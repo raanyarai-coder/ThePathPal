@@ -1,0 +1,22 @@
+{
+  "short_name": "PathPal",
+  "name": "PathPal - Hospital Companion & Escort",
+  "description": "Never navigate the hospital alone. Emergency SOS & offline medical summaries.",
+  "icons": [
+    {
+      "src": "/pwa-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/pwa-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0A0D14",
+  "theme_color": "#00F0FF",
+  "display": "standalone",
+  "orientation": "portrait"
+}

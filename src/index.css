@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+@theme {
+  --color-pathpal-navy: #1F3449;
+  --color-companion-coral: #E85D75;
+  --color-soft-rose: #F7CFD8;
+  --color-navigation-teal: #48A6A5;
+  --color-warm-gold: #F1B84C;
+  --color-care-blush: #FDF4F7;
+  --color-brand-dark: #0A0D14;
+  --color-electric-cyan: #00F0FF;
+  --color-card-dark: #121824;
+  --color-surface-dark: #1A2232;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    background-color: #0A0D14;
+    color: #F5F5F5;
+  }
+
+  html.light-theme {
+    background-color: #F8FAFC !important;
+    color: #0F172A !important;
+  }
+}
+
+/* High Contrast Light Theme Accessibility Overrides */
+html.light-theme body {
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
+}
+
+html.light-theme .bg-\[\#0A0D14\],
+html.light-theme .bg-\[\#0D121F\],
+html.light-theme .bg-\[\#080B12\],
+html.light-theme .bg-\[\#0B0F19\] {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+}
+
+html.light-theme .bg-\[\#121824\],
+html.light-theme .bg-\[\#1A2232\],
+html.light-theme .bg-\[\#161F30\] {
+  background-color: #F1F5F9 !important;
+  color: #0F172A !important;
+  border-color: #CBD5E1 !important;
+}
+
+html.light-theme .text-white {
+  color: #0F172A !important;
+}
+
+html.light-theme .text-gray-300,
+html.light-theme .text-gray-400 {
+  color: #334155 !important;
+}
+
+html.light-theme .border-white\/10,
+html.light-theme .border-white\/15,
+html.light-theme .border-white\/20,
+html.light-theme .border-white\/5 {
+  border-color: #CBD5E1 !important;
+}
+
+html.light-theme .text-\[\#00F0FF\] {
+  color: #0284C7 !important;
+}
+
+html.light-theme .bg-\[\#00F0FF\] {
+  background-color: #0284C7 !important;
+  color: #FFFFFF !important;
+}
+
+/* Bold Typography & Tech Accent Utilities */
+.text-stroke-cyan {
+  -webkit-text-stroke: 1.5px #00F0FF;
+}
+
+.glow-cyan {
+  box-shadow: 0 0 25px rgba(0, 240, 255, 0.25);
+}
+
+.border-cyan-glow {
+  border-color: rgba(0, 240, 255, 0.4);
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
+}
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0A0D14;
+}
+::-webkit-scrollbar-thumb {
+  background: #00F0FF;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #48A6A5;
+}
+
+
