@@ -204,168 +204,140 @@ export const EcosystemPortals: React.FC = () => {
               {patientSubTab === 'request' && (
                 <>
                   {!formSubmitted ? (
-                    <form onSubmit={handleCreateRequest} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                      
-                      <div className="lg:col-span-7 space-y-5 bg-white p-6 rounded-2xl border border-gray-200">
-                        <h4 className="text-base font-bold text-pathpal-navy border-b pb-2">1. Patient & Appointment Info</h4>
-                        
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-xs font-bold text-pathpal-navy mb-1">Patient Full Name</label>
-                            <input
-                              type="text"
-                              required
-                              placeholder="e.g., Maria Santos"
-                              value={patientName}
-                              onChange={(e) => setPatientName(e.target.value)}
-                              className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-companion-coral focus:outline-none"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-bold text-pathpal-navy mb-1">Mobile Phone (for SMS updates)</label>
-                            <input
-                              type="tel"
-                              required
-                              placeholder="(555) 019-2834"
-                              value={patientPhone}
-                              onChange={(e) => setPatientPhone(e.target.value)}
-                              className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-companion-coral focus:outline-none"
-                            />
-                          </div>
+                    <form onSubmit={handleCreateRequest} className="space-y-4 bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 max-w-3xl">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-pathpal-navy mb-1">Patient Full Name</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g., Maria Santos"
+                            value={patientName}
+                            onChange={(e) => setPatientName(e.target.value)}
+                            className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none"
+                          />
                         </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-xs font-bold text-pathpal-navy mb-1">Hospital Location</label>
-                            <select
-                              value={selectedHospitalId}
-                              onChange={(e) => {
-                                setSelectedHospitalId(e.target.value);
-                                const h = SAMPLE_HOSPITALS.find((x) => x.id === e.target.value);
-                                if (h) setMeetingPoint(h.meetingPoints[0]);
-                              }}
-                              className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
-                            >
-                              {SAMPLE_HOSPITALS.map((h) => (
-                                <option key={h.id} value={h.id}>
-                                  {h.name} ({h.city}, {h.state})
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-bold text-pathpal-navy mb-1">Department / Clinic</label>
-                            <select
-                              value={department}
-                              onChange={(e) => setDepartment(e.target.value)}
-                              className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
-                            >
-                              {selectedHospital.departments.map((d) => (
-                                <option key={d} value={d}>
-                                  {d}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
+                        <div>
+                          <label className="block text-xs font-bold text-pathpal-navy mb-1">Mobile Phone (SMS updates)</label>
+                          <input
+                            type="tel"
+                            required
+                            placeholder="(555) 019-2834"
+                            value={patientPhone}
+                            onChange={(e) => setPatientPhone(e.target.value)}
+                            className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none"
+                          />
                         </div>
+                      </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-xs font-bold text-pathpal-navy mb-1">Appointment Date</label>
-                            <input
-                              type="date"
-                              value={appointmentDate}
-                              onChange={(e) => setAppointmentDate(e.target.value)}
-                              className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-bold text-pathpal-navy mb-1">Appointment Time</label>
-                            <input
-                              type="text"
-                              value={appointmentTime}
-                              onChange={(e) => setAppointmentTime(e.target.value)}
-                              placeholder="e.g., 10:30 AM"
-                              className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
-                            />
-                          </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-pathpal-navy mb-1">Hospital Location</label>
+                          <select
+                            value={selectedHospitalId}
+                            onChange={(e) => {
+                              setSelectedHospitalId(e.target.value);
+                              const h = SAMPLE_HOSPITALS.find((x) => x.id === e.target.value);
+                              if (h) setMeetingPoint(h.meetingPoints[0]);
+                            }}
+                            className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
+                          >
+                            {SAMPLE_HOSPITALS.map((h) => (
+                              <option key={h.id} value={h.id}>
+                                {h.name} ({h.city}, {h.state})
+                              </option>
+                            ))}
+                          </select>
                         </div>
 
                         <div>
-                          <label className="block text-xs font-bold text-pathpal-navy mb-1">Meeting Spot at Hospital</label>
+                          <label className="block text-xs font-bold text-pathpal-navy mb-1">Department / Clinic</label>
                           <select
-                            value={meetingPoint}
-                            onChange={(e) => setMeetingPoint(e.target.value)}
-                            className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
+                            value={department}
+                            onChange={(e) => setDepartment(e.target.value)}
+                            className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
                           >
-                            {selectedHospital.meetingPoints.map((mp) => (
-                              <option key={mp} value={mp}>
-                                📍 {mp}
+                            {selectedHospital.departments.map((d) => (
+                              <option key={d} value={d}>
+                                {d}
                               </option>
                             ))}
                           </select>
                         </div>
                       </div>
 
-                      <div className="lg:col-span-5 space-y-5 bg-care-blush/60 p-6 rounded-2xl border border-soft-rose flex flex-col justify-between">
-                        <div className="space-y-4">
-                          <h4 className="text-base font-bold text-pathpal-navy border-b border-soft-rose pb-2">2. Preferences & Accessibility</h4>
-
-                          <div>
-                            <label className="block text-xs font-bold text-pathpal-navy mb-1">Language Preference</label>
-                            <select
-                              value={languagePreference}
-                              onChange={(e) => setLanguagePreference(e.target.value)}
-                              className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
-                            >
-                              <option value="English">English</option>
-                              <option value="Spanish">Spanish (Español)</option>
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-bold text-pathpal-navy mb-2">Accommodations Needed</label>
-                            <div className="space-y-2 text-xs">
-                              {['Wheelchair Pal Assistance', 'Walking / Arm Assistance', 'Visual Navigation Aid', 'Anxiety Reassurance', 'Hearing Support'].map((opt) => (
-                                <label key={opt} className="flex items-center gap-2 p-2 rounded-xl bg-white border border-gray-200 cursor-pointer hover:bg-gray-50">
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedMobility.includes(opt)}
-                                    onChange={() => toggleMobilityOption(opt)}
-                                    className="rounded text-companion-coral focus:ring-companion-coral"
-                                  />
-                                  <span className="font-semibold text-pathpal-navy">{opt}</span>
-                                </label>
-                              ))}
-                            </div>
-                          </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-pathpal-navy mb-1">Appointment Date</label>
+                          <input
+                            type="date"
+                            value={appointmentDate}
+                            onChange={(e) => setAppointmentDate(e.target.value)}
+                            className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
+                          />
                         </div>
-
-                        {/* Link to Medical Summary */}
-                        <div className="pt-3 border-t border-soft-rose">
-                          <button
-                            type="button"
-                            onClick={() => setPatientSubTab('medical_summary')}
-                            className="w-full p-3 rounded-xl bg-white border border-soft-rose text-left hover:border-companion-coral transition-all flex items-center justify-between text-xs"
+                        <div>
+                          <label className="block text-xs font-bold text-pathpal-navy mb-1">Appointment Time</label>
+                          <input
+                            type="text"
+                            value={appointmentTime}
+                            onChange={(e) => setAppointmentTime(e.target.value)}
+                            placeholder="e.g., 10:30 AM"
+                            className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-pathpal-navy mb-1">Language</label>
+                          <select
+                            value={languagePreference}
+                            onChange={(e) => setLanguagePreference(e.target.value)}
+                            className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
                           >
-                            <div className="flex items-center gap-2">
-                              <ShieldCheck className="w-4 h-4 text-companion-coral" />
-                              <span className="font-bold text-pathpal-navy">Share Medical History & Allergies</span>
-                            </div>
-                            <ChevronRight className="w-4 h-4 text-gray-400" />
-                          </button>
+                            <option value="English">English</option>
+                            <option value="Spanish">Spanish (Español)</option>
+                          </select>
                         </div>
-
-                        <button
-                          type="submit"
-                          className="w-full text-sm font-bold text-white bg-companion-coral hover:bg-companion-coral/90 py-3.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 mt-2"
-                        >
-                          <Heart className="w-4 h-4 fill-white" />
-                          <span>Submit Request & Match Pal</span>
-                        </button>
                       </div>
 
+                      <div>
+                        <label className="block text-xs font-bold text-pathpal-navy mb-1">Meeting Spot at Hospital</label>
+                        <select
+                          value={meetingPoint}
+                          onChange={(e) => setMeetingPoint(e.target.value)}
+                          className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
+                        >
+                          {selectedHospital.meetingPoints.map((mp) => (
+                            <option key={mp} value={mp}>
+                              📍 {mp}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-pathpal-navy mb-2">Accommodations Needed</label>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                          {['Wheelchair Pal Assistance', 'Walking / Arm Assistance', 'Visual Navigation Aid', 'Anxiety Reassurance'].map((opt) => (
+                            <label key={opt} className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${selectedMobility.includes(opt) ? 'bg-companion-coral/10 border-companion-coral text-companion-coral font-bold' : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'}`}>
+                              <input
+                                type="checkbox"
+                                checked={selectedMobility.includes(opt)}
+                                onChange={() => toggleMobilityOption(opt)}
+                                className="rounded text-companion-coral focus:ring-companion-coral"
+                              />
+                              <span>{opt}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="w-full text-sm font-bold text-white bg-companion-coral hover:bg-companion-coral/90 py-3.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 mt-4"
+                      >
+                        <Heart className="w-4 h-4 fill-white" />
+                        <span>Submit Request & Match Pal</span>
+                      </button>
                     </form>
                   ) : (
                     <div className="bg-white p-8 rounded-3xl border-2 border-navigation-teal/30 space-y-6 text-center animate-fade-in">

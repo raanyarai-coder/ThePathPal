@@ -47,36 +47,52 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-pathpal-navy mb-1">Patient Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g., Eleanor Vance"
-                  value={patientName}
-                  onChange={(e) => setPatientName(e.target.value)}
-                  className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-companion-coral focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-pathpal-navy mb-1">Mobile Phone (for SMS)</label>
+                  <label className="block text-xs font-bold text-pathpal-navy mb-1">Patient Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g., Eleanor Vance"
+                    value={patientName}
+                    onChange={(e) => setPatientName(e.target.value)}
+                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-pathpal-navy mb-1">Mobile Phone (SMS)</label>
                   <input
                     type="tel"
                     required
                     placeholder="(555) 234-5678"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-companion-coral focus:outline-none"
+                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none"
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-pathpal-navy mb-1">Language Preference</label>
+                  <label className="block text-xs font-bold text-pathpal-navy mb-1">Hospital Location</label>
+                  <select
+                    value={hospitalId}
+                    onChange={(e) => setHospitalId(e.target.value)}
+                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
+                  >
+                    {SAMPLE_HOSPITALS.map((h) => (
+                      <option key={h.id} value={h.id}>
+                        {h.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-pathpal-navy mb-1">Language</label>
                   <select
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
+                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
                   >
                     <option value="English">English</option>
                     <option value="Spanish">Spanish</option>
@@ -84,39 +100,24 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-pathpal-navy mb-1">Select Hospital Location</label>
-                <select
-                  value={hospitalId}
-                  onChange={(e) => setHospitalId(e.target.value)}
-                  className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
-                >
-                  {SAMPLE_HOSPITALS.map((h) => (
-                    <option key={h.id} value={h.id}>
-                      {h.name} ({h.city}, {h.state})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-pathpal-navy mb-1">Appointment Date</label>
+                  <label className="block text-xs font-bold text-pathpal-navy mb-1">Date</label>
                   <input
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
+                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-pathpal-navy mb-1">Appointment Time</label>
+                  <label className="block text-xs font-bold text-pathpal-navy mb-1">Time</label>
                   <input
                     type="text"
                     value={time}
                     onChange={(e) => setTime(e.target.value)}
                     placeholder="10:00 AM"
-                    className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
+                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
                   />
                 </div>
               </div>
@@ -126,7 +127,7 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
                 className="w-full text-sm font-bold text-white bg-companion-coral hover:bg-companion-coral/90 py-3.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 mt-2"
               >
                 <Heart className="w-4 h-4 fill-white" />
-                <span>Confirm Request</span>
+                <span>Request PathPal Companion</span>
               </button>
             </form>
           </div>

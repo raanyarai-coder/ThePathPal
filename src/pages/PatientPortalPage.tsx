@@ -190,35 +190,29 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
             </p>
           </div>
 
-          <form onSubmit={handleCreateRequest} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div className="lg:col-span-7 space-y-4 bg-[#1A2232] p-6 rounded-2xl border border-white/10">
-              <h3 className="text-sm font-black text-[#00F0FF] uppercase tracking-wider border-b border-white/10 pb-2">
-                1. Patient & Visit Information
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-300 mb-1">{t('patientName')}</label>
-                  <input
-                    type="text"
-                    required
-                    value={patientName}
-                    onChange={(e) => setPatientName(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl bg-black/40 border border-white/15 text-white focus:ring-2 focus:ring-companion-coral focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-300 mb-1">{t('phoneLabel')}</label>
-                  <input
-                    type="tel"
-                    required
-                    value={patientPhone}
-                    onChange={(e) => setPatientPhone(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl bg-black/40 border border-white/15 text-white focus:ring-2 focus:ring-companion-coral focus:outline-none"
-                  />
-                </div>
+          <form onSubmit={handleCreateRequest} className="space-y-4 bg-[#1A2232] p-6 sm:p-8 rounded-2xl border border-white/10 max-w-3xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-300 mb-1">{t('patientName')}</label>
+                <input
+                  type="text"
+                  required
+                  value={patientName}
+                  onChange={(e) => setPatientName(e.target.value)}
+                  className="w-full text-xs p-3 rounded-xl bg-black/40 border border-white/15 text-white focus:ring-2 focus:ring-companion-coral focus:outline-none"
+                />
               </div>
-
+              <div>
+                <label className="block text-xs font-bold text-gray-300 mb-1">{t('phoneLabel')}</label>
+                <input
+                  type="tel"
+                  required
+                  value={patientPhone}
+                  onChange={(e) => setPatientPhone(e.target.value)}
+                  className="w-full text-xs p-3 rounded-xl bg-black/40 border border-white/15 text-white focus:ring-2 focus:ring-companion-coral focus:outline-none"
+                />
+              </div>
+            </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-300 mb-1">{t('hospitalLabel')}</label>
@@ -255,7 +249,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-300 mb-1">Appointment Date</label>
                   <input
@@ -274,6 +268,17 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                     className="w-full text-xs p-3 rounded-xl bg-black/40 border border-white/15 text-white focus:ring-2 focus:ring-companion-coral focus:outline-none"
                   />
                 </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">Language</label>
+                  <select
+                    value={languagePreference}
+                    onChange={(e) => setLanguagePreference(e.target.value)}
+                    className="w-full text-xs p-3 rounded-xl bg-black/40 border border-white/15 text-white focus:ring-2 focus:ring-companion-coral focus:outline-none"
+                  >
+                    <option value="English" className="bg-[#121824]">English</option>
+                    <option value="Spanish" className="bg-[#121824]">Spanish (Español)</option>
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -290,41 +295,21 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                   ))}
                 </select>
               </div>
-            </div>
 
-            <div className="lg:col-span-5 space-y-4 bg-[#1A2232] p-6 rounded-2xl border border-white/10 flex flex-col justify-between">
-              <div className="space-y-4">
-                <h3 className="text-sm font-black text-companion-coral uppercase tracking-wider border-b border-white/10 pb-2">
-                  2. Language & Assistance Needed
-                </h3>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-300 mb-1">Language Preference</label>
-                  <select
-                    value={languagePreference}
-                    onChange={(e) => setLanguagePreference(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl bg-black/40 border border-white/15 text-white focus:ring-2 focus:ring-companion-coral focus:outline-none"
-                  >
-                    <option value="English" className="bg-[#121824]">English</option>
-                    <option value="Spanish" className="bg-[#121824]">Spanish (Español)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-300 mb-2">Accommodations Needed</label>
-                  <div className="space-y-2 text-xs">
-                    {['Wheelchair Pal Assistance', 'Arm Assistance', 'Visual Aid', 'Anxiety Reassurance'].map((opt) => (
-                      <label key={opt} className="flex items-center gap-2 p-2.5 rounded-xl bg-black/30 border border-white/10 cursor-pointer hover:bg-white/5">
-                        <input
-                          type="checkbox"
-                          checked={selectedMobility.includes(opt)}
-                          onChange={() => toggleMobilityOption(opt)}
-                          className="rounded text-companion-coral focus:ring-companion-coral"
-                        />
-                        <span className="font-bold text-gray-200">{opt}</span>
-                      </label>
-                    ))}
-                  </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-300 mb-2">Accommodations Needed</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                  {['Wheelchair Pal Assistance', 'Arm Assistance', 'Visual Aid', 'Anxiety Reassurance'].map((opt) => (
+                    <label key={opt} className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${selectedMobility.includes(opt) ? 'bg-companion-coral/20 border-companion-coral text-white' : 'bg-black/30 border-white/10 text-gray-300 hover:bg-white/5'}`}>
+                      <input
+                        type="checkbox"
+                        checked={selectedMobility.includes(opt)}
+                        onChange={() => toggleMobilityOption(opt)}
+                        className="rounded text-companion-coral focus:ring-companion-coral"
+                      />
+                      <span className="font-bold">{opt}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
 
@@ -335,9 +320,8 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                 <Heart className="w-4 h-4 fill-white" />
                 <span>Submit Pal Request</span>
               </button>
-            </div>
-          </form>
-        </div>
+            </form>
+          </div>
       )}
 
       {/* TAB 2: MY SCHEDULED ESCORTS */}
