@@ -87,7 +87,7 @@ export const BecomePalModal: React.FC<BecomePalModalProps> = ({ isOpen, onClose 
                   type="text"
                   value={languages}
                   onChange={(e) => setLanguages(e.target.value)}
-                  placeholder="e.g., English, Spanish, Mandarin"
+                  placeholder="e.g., English, Spanish"
                   className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-navigation-teal focus:outline-none bg-white"
                 />
               </div>

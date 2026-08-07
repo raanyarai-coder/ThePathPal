@@ -61,7 +61,7 @@ export const AboutAndBrand: React.FC<AboutAndBrandProps> = ({
     {
       name: "Amina Al-Mansoor",
       role: "Director of Patient Accessibility & i18n",
-      bio: "Passionate health equity advocate specializing in multilingual patient support for Arabic, Tagalog, and Mandarin speaking patient communities.",
+      bio: "Passionate health equity advocate specializing in bilingual patient support for English and Spanish speaking patient communities.",
       image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=400",
       badge: "Language Equity"
     }

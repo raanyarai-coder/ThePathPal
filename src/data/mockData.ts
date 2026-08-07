@@ -34,7 +34,7 @@ export const SAMPLE_HOSPITALS: Hospital[] = [
 export const SAMPLE_PALS: Pal[] = [
   {
     id: 'pal-founder',
-    name: 'Raanya Shah',
+    name: 'Raanya Rai',
     avatar: raanyaAvatar,
     rating: 5.0,
     completedVisits: 142,
@@ -64,7 +64,7 @@ export const SAMPLE_PALS: Pal[] = [
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
     rating: 4.98,
     completedVisits: 112,
-    languages: ['English', 'Mandarin', 'Cantonese'],
+    languages: ['English', 'Spanish'],
     specialties: ['Visual Impairment Pal', 'Large Campus Navigation', 'First-Time Patients'],
     bio: 'Dedicated community health worker passionate about accessible healthcare and elder guidance.',
     isVerified: true,

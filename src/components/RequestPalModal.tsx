@@ -80,10 +80,6 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
                   >
                     <option value="English">English</option>
                     <option value="Spanish">Spanish</option>
-                    <option value="Mandarin">Mandarin</option>
-                    <option value="Cantonese">Cantonese</option>
-                    <option value="Tagalog">Tagalog</option>
-                    <option value="Arabic">Arabic</option>
                   </select>
                 </div>
               </div>

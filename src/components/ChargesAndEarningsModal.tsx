@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calculator, DollarSign, UserCheck, Heart, ShieldCheck, CheckCircle2, ArrowRight, HelpCircle, FileText, Sparkles } from 'lucide-react';
 
 interface ChargesAndEarningsModalProps {
@@ -6,6 +6,7 @@ interface ChargesAndEarningsModalProps {
   onClose: () => void;
   onRequestPal?: () => void;
   onBecomePal?: () => void;
+  initialTab?: 'patient_charges' | 'pal_earnings';
 }
 
 export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = ({
@@ -13,8 +14,15 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
   onClose,
   onRequestPal,
   onBecomePal,
+  initialTab = 'patient_charges',
 }) => {
-  const [viewTab, setViewTab] = useState<'patient_charges' | 'pal_earnings'>('patient_charges');
+  const [viewTab, setViewTab] = useState<'patient_charges' | 'pal_earnings'>(initialTab);
+
+  useEffect(() => {
+    if (isOpen) {
+      setViewTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
   
   // Patient options
   const [selectedPlan, setSelectedPlan] = useState<'single' | 'monthly' | 'annual' | 'medicare'>('single');

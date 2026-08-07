@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, MapPin, Navigation, Menu, X, Shield, Users, Building2, CreditCard, UserCheck, HelpCircle, Sun, Moon, Calculator, Bell, ShieldAlert, Globe, ChevronDown, Keyboard, Calendar } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
+import { Heart, MapPin, Navigation, Menu, X, Shield, Users, Building2, CreditCard, UserCheck, HelpCircle, Calculator, Bell, ShieldAlert, Globe, ChevronDown, Keyboard, Calendar } from 'lucide-react';
 import { useLanguage, LANGUAGES, SupportedLanguage } from '../context/LanguageContext';
 
 interface NavbarProps {
@@ -14,7 +13,6 @@ interface NavbarProps {
   onOpenGpsModal?: () => void;
   onOpenChargesModal?: () => void;
   onOpenPushNotifications?: () => void;
-  onOpenSosModal?: () => void;
   onOpenKeyboardModal?: () => void;
   onOpenCalendarModal?: () => void;
 }
@@ -30,13 +28,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenGpsModal,
   onOpenChargesModal,
   onOpenPushNotifications,
-  onOpenSosModal,
   onOpenKeyboardModal,
   onOpenCalendarModal,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
-  const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, t, currentLangObj } = useLanguage();
 
   const pageLinks = [
@@ -49,15 +45,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-40 bg-[#0A0D14]/95 backdrop-blur-md border-b border-white/10 text-white">
-      {/* Top Banner */}
-      <div className="bg-[#121824] text-gray-300 text-[11px] py-1.5 px-4 text-center flex items-center justify-center gap-2 font-bold uppercase tracking-wider border-b border-white/5">
-        <span className="inline-block w-2 h-2 rounded-full bg-[#00F0FF] animate-pulse"></span>
-        <span>PATHPAL CARE COORDINATION • Smarter Hospital Navigation & Companion Care</span>
-        <span className="hidden sm:inline-block bg-[#00F0FF]/20 text-[#00F0FF] px-2 py-0.5 rounded text-[10px] font-black tracking-widest border border-[#00F0FF]/30">
-          2026 CMS & SSBCI APPROVED
-        </span>
-      </div>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
@@ -183,42 +170,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
-            {/* SOS Emergency Mode Quick Button */}
-            {onOpenSosModal && (
-              <button
-                onClick={onOpenSosModal}
-                title="Initiate Emergency SOS Dispatch (Alt+S)"
-                className="p-2.5 rounded-xl bg-[#FF3344] hover:bg-[#FF3344]/90 text-white border border-white/20 transition-all flex items-center gap-1.5 text-xs font-black uppercase tracking-wider animate-pulse shadow-lg shadow-[#FF3344]/30"
-                aria-label="SOS Emergency Dispatch (Keyboard shortcut: Alt+S)"
-              >
-                <ShieldAlert className="w-4 h-4 fill-white" />
-                <span className="hidden xl:inline-block">SOS Emergency</span>
-                <kbd className="hidden xl:inline-block px-1.5 py-0.5 rounded text-[10px] bg-black/40 text-white border border-white/30 font-mono">
-                  Alt+S
-                </kbd>
-              </button>
-            )}
-
-            {/* Explicit Theme Toggle Button */}
-            <button
-              onClick={toggleTheme}
-              title={`Switch Theme (Current: ${theme.toUpperCase()})`}
-              className="p-2.5 rounded-xl bg-[#1A2232] hover:bg-white/10 text-[#00F0FF] border border-[#00F0FF]/30 hover:border-[#00F0FF]/60 transition-all flex items-center gap-2 text-xs font-black uppercase tracking-wider"
-              aria-label="Toggle High-Contrast Theme Mode"
-            >
-              {theme === 'dark' ? (
-                <>
-                  <Sun className="w-4 h-4 text-amber-300 animate-spin-slow" />
-                  <span className="text-[11px] text-amber-300">Light Mode</span>
-                </>
-              ) : (
-                <>
-                  <Moon className="w-4 h-4 text-indigo-400" />
-                  <span className="text-[11px] text-indigo-400">Dark Mode</span>
-                </>
-              )}
-            </button>
-
             {/* Push Notifications Toggle Button */}
             {onOpenPushNotifications && (
               <button
@@ -243,26 +194,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
-            {onOpenChargesModal && (
-              <button
-                onClick={onOpenChargesModal}
-                className="text-xs font-bold text-gray-200 bg-[#1A2232] hover:bg-white/10 px-3 py-2 rounded-xl transition-all border border-white/10 flex items-center gap-1.5"
-              >
-                <Calculator className="w-3.5 h-3.5 text-emerald-400" />
-                Charges & Earnings
-              </button>
-            )}
-
-            {onOpenPalAccount && (
-              <button
-                onClick={onOpenPalAccount}
-                className="text-xs font-bold text-gray-300 bg-[#1A2232] hover:bg-white/10 px-3 py-2 rounded-xl transition-all border border-white/10 flex items-center gap-1.5"
-              >
-                <UserCheck className="w-3.5 h-3.5 text-[#00F0FF]" />
-                Pal Portal
-              </button>
-            )}
-
             <button
               onClick={onRequestPal}
               className="text-xs font-black uppercase text-white bg-companion-coral hover:bg-companion-coral/90 px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-md"
@@ -274,14 +205,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Mobile menu button */}
           <div className="lg:hidden flex items-center gap-1.5">
-            <button
-              onClick={toggleTheme}
-              title="Toggle Light/Dark Theme"
-              className="p-2 rounded-xl bg-[#1A2232] text-amber-300 border border-white/10 flex items-center gap-1 text-[10px] font-bold"
-            >
-              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-indigo-400" />}
-            </button>
-
             {onOpenPushNotifications && (
               <button
                 onClick={onOpenPushNotifications}
@@ -362,14 +285,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             })}
           </div>
           <div className="grid grid-cols-1 gap-2 pt-2">
-            <button
-              onClick={toggleTheme}
-              className="w-full text-xs font-bold uppercase text-amber-300 bg-[#1A2232] py-3 rounded-xl flex items-center justify-center gap-2 border border-white/10"
-            >
-              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-indigo-400" />}
-              <span>Switch to {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
-            </button>
-
             {onOpenPushNotifications && (
               <button
                 onClick={() => {
@@ -393,19 +308,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <Navigation className="w-4 h-4 text-[#00F0FF]" />
                 Live GPS Location Tracker
-              </button>
-            )}
-
-            {onOpenChargesModal && (
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenChargesModal();
-                }}
-                className="w-full text-xs font-bold uppercase text-emerald-400 bg-[#1A2232] py-3 rounded-xl flex items-center justify-center gap-2 border border-white/10"
-              >
-                <Calculator className="w-4 h-4 text-emerald-400" />
-                Charges & Earnings Calculator
               </button>
             )}
 

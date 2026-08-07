@@ -10,7 +10,7 @@ export const AndroidAppSection: React.FC<AndroidAppSectionProps> = ({ onRequestP
   const [showQrModal, setShowQrModal] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadComplete, setDownloadComplete] = useState(false);
-  const [activeFeature, setActiveFeature] = useState<'gps' | 'indoor' | 'sos' | 'badge'>('gps');
+  const [activeFeature, setActiveFeature] = useState<'gps' | 'indoor' | 'voice' | 'badge'>('gps');
 
   const handleDownloadApk = () => {
     setIsDownloading(true);
@@ -163,14 +163,14 @@ export const AndroidAppSection: React.FC<AndroidAppSectionProps> = ({ onRequestP
                   <Radio className="w-4 h-4 shrink-0" /> Indoor BLE Beacons
                 </button>
                 <button
-                  onClick={() => setActiveFeature('sos')}
+                  onClick={() => setActiveFeature('voice')}
                   className={`p-3 rounded-xl border text-left text-xs font-bold transition-all flex items-center gap-2 ${
-                    activeFeature === 'sos'
-                      ? 'bg-[#FF5C00]/20 border-[#FF5C00] text-[#FF5C00]'
+                    activeFeature === 'voice'
+                      ? 'bg-[#00F0FF]/15 border-[#00F0FF] text-[#00F0FF]'
                       : 'bg-[#121824] border-white/10 text-gray-300 hover:border-white/20'
                   }`}
                 >
-                  <Zap className="w-4 h-4 shrink-0" /> 1-Tap Emergency SOS
+                  <Zap className="w-4 h-4 shrink-0" /> Hands-Free Voice Guidance
                 </button>
                 <button
                   onClick={() => setActiveFeature('badge')}
@@ -202,11 +202,11 @@ export const AndroidAppSection: React.FC<AndroidAppSectionProps> = ({ onRequestP
                     </p>
                   </>
                 )}
-                {activeFeature === 'sos' && (
+                {activeFeature === 'voice' && (
                   <>
-                    <div className="text-xs font-black uppercase text-[#FF5C00]">Urgent Navigation SOS Mode</div>
+                    <div className="text-xs font-black uppercase text-[#00F0FF]">Hands-Free Voice Guidance & Navigation</div>
                     <p className="text-xs text-gray-300 leading-relaxed">
-                      Lost inside an unfamiliar wing or feeling overwhelmed? Press SOS to broadcast your exact location to the nearest on-duty PathPal supervisor inside the hospital complex.
+                      Auditory step-by-step turn guidance designed for visually impaired or elderly patients navigating hospital hallways, elevators, and clinic corridors effortlessly.
                     </p>
                   </>
                 )}

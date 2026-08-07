@@ -10,8 +10,7 @@ interface HomePageProps {
   onBecomePal: () => void;
   onHospitalPartner: () => void;
   onOpenGpsModal: () => void;
-  onOpenChargesModal: () => void;
-  onOpenSosModal: () => void;
+  onOpenChargesModal: (tab?: 'patient_charges' | 'pal_earnings') => void;
 }
 
 export const HomePage: React.FC<HomePageProps> = ({
@@ -21,7 +20,6 @@ export const HomePage: React.FC<HomePageProps> = ({
   onHospitalPartner,
   onOpenGpsModal,
   onOpenChargesModal,
-  onOpenSosModal,
 }) => {
   return (
     <div className="space-y-16 animate-fade-in pb-16">
@@ -73,7 +71,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-companion-coral shrink-0" />
-                  <span>Live GPS Tracking & Emergency SOS Button</span>
+                  <span>Live GPS Tracking & Indoor Campus Radar</span>
                 </li>
               </ul>
             </div>
@@ -215,34 +213,34 @@ export const HomePage: React.FC<HomePageProps> = ({
         onHospitalPartner={onHospitalPartner}
       />
 
-      {/* 5. Quick Action Bar for Emergency & Tools */}
+      {/* 5. Quick Action Bar for Navigation & Tools */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-r from-[#2B0A0E] via-[#121824] to-[#1A2232] p-6 sm:p-8 rounded-3xl border-2 border-[#FF3344]/40 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
+        <div className="bg-gradient-to-r from-[#121824] via-[#1A2232] to-[#121824] p-6 sm:p-8 rounded-3xl border border-[#00F0FF]/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
           <div className="space-y-2 text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start gap-2">
-              <ShieldAlert className="w-5 h-5 text-[#FF3344] animate-bounce" />
-              <span className="text-xs font-black uppercase tracking-wider text-[#FF3344]">URGENT DISPATCH & SAFETY TOOLS</span>
+              <Navigation className="w-5 h-5 text-[#00F0FF] animate-pulse" />
+              <span className="text-xs font-black uppercase tracking-wider text-[#00F0FF]">CARE COORDINATION & NAVIGATION TOOLS</span>
             </div>
-            <h3 className="text-xl sm:text-2xl font-black text-white">Need Emergency Hospital SOS or Live GPS Radar?</h3>
+            <h3 className="text-xl sm:text-2xl font-black text-white">Need Hospital Live GPS Radar or Fee Calculations?</h3>
             <p className="text-xs text-gray-300 max-w-xl">
-              Access 1-tap 911 dialing, campus security desk alerts, live BLE beacon tracking, and fee estimations.
+              Access turn-by-turn campus radar, live BLE beacon tracking, Medicare coverage calculator, and instant Pal booking.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             <button
-              onClick={onOpenSosModal}
-              className="bg-[#FF3344] hover:bg-[#FF3344]/90 text-white font-black text-xs uppercase px-5 py-3 rounded-xl flex items-center gap-2 shadow-lg animate-pulse"
+              onClick={onOpenGpsModal}
+              className="bg-[#00F0FF] hover:bg-[#00F0FF]/90 text-black font-black text-xs uppercase px-5 py-3 rounded-xl flex items-center gap-2 shadow-lg"
             >
-              <ShieldAlert className="w-4 h-4 fill-white" />
-              <span>SOS Dispatch & 911</span>
+              <Navigation className="w-4 h-4 text-black" />
+              <span>Live GPS Radar</span>
             </button>
             <button
-              onClick={onOpenGpsModal}
-              className="bg-[#1A2232] hover:bg-white/10 text-[#00F0FF] font-bold text-xs uppercase px-5 py-3 rounded-xl border border-[#00F0FF]/40 flex items-center gap-2"
+              onClick={() => onOpenChargesModal('patient_charges')}
+              className="bg-[#1A2232] hover:bg-white/10 text-emerald-400 font-bold text-xs uppercase px-5 py-3 rounded-xl border border-emerald-500/40 flex items-center gap-2"
             >
-              <Navigation className="w-4 h-4 text-[#00F0FF]" />
-              <span>Live GPS Radar</span>
+              <Calculator className="w-4 h-4 text-emerald-400" />
+              <span>Patient Charges & Coverage</span>
             </button>
             <button
               onClick={() => onNavigatePage('about')}

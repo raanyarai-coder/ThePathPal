@@ -321,10 +321,6 @@ export const EcosystemPortals: React.FC = () => {
                             >
                               <option value="English">English</option>
                               <option value="Spanish">Spanish (Español)</option>
-                              <option value="Mandarin">Mandarin (中文)</option>
-                              <option value="Cantonese">Cantonese (粵語)</option>
-                              <option value="Tagalog">Tagalog</option>
-                              <option value="Arabic">Arabic (العربية)</option>
                             </select>
                           </div>
 

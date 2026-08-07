@@ -1,27 +1,18 @@
 import React from 'react';
-import { Keyboard, X, ShieldAlert, Navigation, MapPin, Heart, HelpCircle, Check, Info } from 'lucide-react';
+import { Keyboard, X, Navigation, MapPin, Heart, HelpCircle, Check, Info } from 'lucide-react';
 
 interface KeyboardShortcutsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onOpenSos: () => void;
 }
 
 export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
   isOpen,
   onClose,
-  onOpenSos,
 }) => {
   if (!isOpen) return null;
 
   const shortcuts = [
-    {
-      category: "Critical Emergency & Safety",
-      items: [
-        { keys: ["Alt", "S"], label: "Trigger Urgent SOS Emergency Dispatch", badge: "High Priority", isSos: true },
-        { keys: ["Alt", "E"], label: "Emergency Safety Sequence (Alternate)", isSos: true },
-      ]
-    },
     {
       category: "Main Page Navigation",
       items: [
@@ -81,7 +72,7 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
         <p className="text-xs text-gray-300 leading-relaxed font-normal bg-[#1A2232] p-3.5 rounded-2xl border border-white/10 flex items-center gap-2">
           <Info className="w-4 h-4 text-[#00F0FF] shrink-0" />
           <span>
-            PathPal includes universal keyboard shortcuts for rapid patient emergency assistance and effortless navigation without requiring a mouse.
+            PathPal includes universal keyboard shortcuts for rapid hospital assistance and effortless navigation without requiring a mouse.
           </span>
         </p>
 
@@ -96,11 +87,7 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
                 {group.items.map((item, itemIdx) => (
                   <div
                     key={itemIdx}
-                    className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
-                      item.isSos 
-                        ? 'bg-[#2B0A0E]/60 border-[#FF3344]/50 hover:border-[#FF3344]' 
-                        : 'bg-[#1A2232] border-white/10 hover:border-[#00F0FF]/40'
-                    }`}
+                    className="p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 bg-[#1A2232] border-white/10 hover:border-[#00F0FF]/40"
                   >
                     <span className="text-xs text-gray-200 font-medium leading-tight">
                       {item.label}
@@ -109,11 +96,7 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
                       {item.keys.map((k, kIdx) => (
                         <kbd
                           key={kIdx}
-                          className={`px-2 py-1 rounded-lg text-xs font-mono font-black border shadow-inner ${
-                            item.isSos
-                              ? 'bg-[#FF3344] text-white border-red-300 shadow-red-900'
-                              : 'bg-black/60 text-[#00F0FF] border-[#00F0FF]/40'
-                          }`}
+                          className="px-2 py-1 rounded-lg text-xs font-mono font-black border shadow-inner bg-black/60 text-[#00F0FF] border-[#00F0FF]/40"
                         >
                           {k}
                         </kbd>
@@ -127,18 +110,7 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
-          <button
-            onClick={() => {
-              onClose();
-              onOpenSos();
-            }}
-            className="bg-[#FF3344] hover:bg-[#FF3344]/90 text-white font-black text-xs uppercase px-5 py-3 rounded-xl shadow-lg transition-all flex items-center gap-2"
-          >
-            <ShieldAlert className="w-4 h-4" />
-            <span>Trigger SOS (Alt+S)</span>
-          </button>
-
+        <div className="pt-4 border-t border-white/10 flex items-center justify-end">
           <button
             onClick={onClose}
             className="bg-[#00F0FF] hover:bg-[#00F0FF]/90 text-black font-black text-xs uppercase px-6 py-3 rounded-xl transition-all"

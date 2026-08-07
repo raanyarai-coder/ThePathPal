@@ -17,7 +17,6 @@ import { PaymentModal } from './components/PaymentModal';
 import { LiveGpsTrackerModal } from './components/LiveGpsTrackerModal';
 import { ChargesAndEarningsModal } from './components/ChargesAndEarningsModal';
 import { PushNotificationManager } from './components/PushNotificationManager';
-import { SosEmergencyModal } from './components/SosEmergencyModal';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { CalendarIntegrationModal } from './components/CalendarIntegrationModal';
 import { OfflineStatusBanner } from './components/OfflineStatusBanner';
@@ -34,10 +33,15 @@ export default function App() {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [gpsModalOpen, setGpsModalOpen] = useState(false);
   const [chargesModalOpen, setChargesModalOpen] = useState(false);
+  const [chargesModalTab, setChargesModalTab] = useState<'patient_charges' | 'pal_earnings'>('patient_charges');
   const [pushModalOpen, setPushModalOpen] = useState(false);
-  const [sosModalOpen, setSosModalOpen] = useState(false);
   const [keyboardModalOpen, setKeyboardModalOpen] = useState(false);
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
+
+  const handleOpenChargesModal = (tab: 'patient_charges' | 'pal_earnings' = 'patient_charges') => {
+    setChargesModalTab(tab);
+    setChargesModalOpen(true);
+  };
 
   // Sync Hash on mount and change
   useEffect(() => {
@@ -62,10 +66,7 @@ export default function App() {
       if (e.altKey) {
         const key = e.key.toLowerCase();
         
-        if (key === 's' || key === 'e') {
-          e.preventDefault();
-          setSosModalOpen(true);
-        } else if (key === '1') {
+        if (key === '1') {
           e.preventDefault();
           navigateToPage('home');
         } else if (key === '2') {
@@ -105,7 +106,6 @@ export default function App() {
         setGpsModalOpen(false);
         setChargesModalOpen(false);
         setPushModalOpen(false);
-        setSosModalOpen(false);
       }
     };
 
@@ -125,7 +125,7 @@ export default function App() {
         <div className="min-h-screen bg-[#0A0D14] text-white selection:bg-[#00F0FF] selection:text-black font-sans antialiased flex flex-col justify-between">
           <div>
           {/* Offline Status Banner */}
-          <OfflineStatusBanner onOpenSosModal={() => setSosModalOpen(true)} />
+          <OfflineStatusBanner />
 
           {/* Main Navigation Bar */}
           <Navbar
@@ -137,9 +137,7 @@ export default function App() {
             onOpenPayment={() => setPaymentModalOpen(true)}
             onOpenPalAccount={() => navigateToPage('pal')}
             onOpenGpsModal={() => setGpsModalOpen(true)}
-            onOpenChargesModal={() => setChargesModalOpen(true)}
             onOpenPushNotifications={() => setPushModalOpen(true)}
-            onOpenSosModal={() => setSosModalOpen(true)}
             onOpenKeyboardModal={() => setKeyboardModalOpen(true)}
             onOpenCalendarModal={() => setCalendarModalOpen(true)}
           />
@@ -153,24 +151,21 @@ export default function App() {
                 onBecomePal={() => setBecomePalModalOpen(true)}
                 onHospitalPartner={() => setHospitalModalOpen(true)}
                 onOpenGpsModal={() => setGpsModalOpen(true)}
-                onOpenChargesModal={() => setChargesModalOpen(true)}
-                onOpenSosModal={() => setSosModalOpen(true)}
+                onOpenChargesModal={(tab) => handleOpenChargesModal(tab)}
               />
             )}
 
             {currentPage === 'patient' && (
               <PatientPortalPage
                 onOpenGpsModal={() => setGpsModalOpen(true)}
-                onOpenChargesModal={() => setChargesModalOpen(true)}
-                onOpenSosModal={() => setSosModalOpen(true)}
+                onOpenChargesModal={(tab) => handleOpenChargesModal(tab || 'patient_charges')}
               />
             )}
 
             {currentPage === 'pal' && (
               <PalPortalPage
                 onOpenGpsModal={() => setGpsModalOpen(true)}
-                onOpenChargesModal={() => setChargesModalOpen(true)}
-                onOpenSosModal={() => setSosModalOpen(true)}
+                onOpenChargesModal={(tab) => handleOpenChargesModal(tab || 'pal_earnings')}
               />
             )}
 
@@ -219,26 +214,21 @@ export default function App() {
         <LiveGpsTrackerModal
           isOpen={gpsModalOpen}
           onClose={() => setGpsModalOpen(false)}
-          onOpenSosModal={() => setSosModalOpen(true)}
         />
         <ChargesAndEarningsModal
           isOpen={chargesModalOpen}
           onClose={() => setChargesModalOpen(false)}
           onRequestPal={() => setRequestModalOpen(true)}
           onBecomePal={() => setBecomePalModalOpen(true)}
+          initialTab={chargesModalTab}
         />
         <PushNotificationManager
           isOpen={pushModalOpen}
           onClose={() => setPushModalOpen(false)}
         />
-        <SosEmergencyModal
-          isOpen={sosModalOpen}
-          onClose={() => setSosModalOpen(false)}
-        />
         <KeyboardShortcutsModal
           isOpen={keyboardModalOpen}
           onClose={() => setKeyboardModalOpen(false)}
-          onOpenSos={() => setSosModalOpen(true)}
         />
         <CalendarIntegrationModal
           isOpen={calendarModalOpen}

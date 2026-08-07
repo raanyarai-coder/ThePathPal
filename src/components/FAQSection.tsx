@@ -13,7 +13,7 @@ const FAQ_ITEMS: FAQItem[] = [
     id: 'faq-1',
     category: 'pairing',
     question: 'How does PathPal pair patients with a Companion Pal?',
-    answer: 'PathPal utilizes an intelligent matching algorithm that evaluates patient mobility requirements, primary language (e.g., English, Spanish, Mandarin, Cantonese, French), cultural background preferences, and appointment time. Matches are confirmed prior to arrival, ensuring a familiar, vetted Pal meets you directly at the hospital entrance valet or lobby.'
+    answer: 'PathPal utilizes an intelligent matching algorithm that evaluates patient mobility requirements, primary language (English or Spanish), cultural background preferences, and appointment time. Matches are confirmed prior to arrival, ensuring a familiar, vetted Pal meets you directly at the hospital entrance valet or lobby.'
   },
   {
     id: 'faq-2',

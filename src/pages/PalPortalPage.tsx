@@ -9,14 +9,12 @@ import { createGoogleCalendarUrl } from '../utils/calendarUtils';
 
 interface PalPortalPageProps {
   onOpenGpsModal: () => void;
-  onOpenChargesModal: () => void;
-  onOpenSosModal: () => void;
+  onOpenChargesModal: (tab?: 'patient_charges' | 'pal_earnings') => void;
 }
 
 export const PalPortalPage: React.FC<PalPortalPageProps> = ({
   onOpenGpsModal,
   onOpenChargesModal,
-  onOpenSosModal,
 }) => {
   const [isOnDuty, setIsOnDuty] = useState(true);
   const [activeTab, setActiveTab] = useState<'available_feed' | 'my_active' | 'eta_calculator' | 'earnings' | 'profile'>('available_feed');
@@ -383,11 +381,11 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
 
           <div className="text-center pt-2">
             <button
-              onClick={onOpenChargesModal}
+              onClick={() => onOpenChargesModal('pal_earnings')}
               className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 mx-auto"
             >
               <DollarSign className="w-4 h-4" />
-              <span>View Full Earnings & Rates Calculator</span>
+              <span>Launch Pal Earnings & Stipend Calculator</span>
             </button>
           </div>
         </div>

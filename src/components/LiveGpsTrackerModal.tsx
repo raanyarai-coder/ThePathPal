@@ -5,14 +5,12 @@ interface LiveGpsTrackerModalProps {
   isOpen: boolean;
   onClose: () => void;
   role?: 'patient' | 'pal';
-  onOpenSosModal?: () => void;
 }
 
 export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
   isOpen,
   onClose,
   role: initialRole = 'patient',
-  onOpenSosModal,
 }) => {
   const [activeRole, setActiveRole] = useState<'patient' | 'pal'>(initialRole);
   const [selectedLocation, setSelectedLocation] = useState<string>('valet');
@@ -349,16 +347,6 @@ export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
                   <span>Send SMS</span>
                 </button>
               </div>
-
-              {onOpenSosModal && (
-                <button
-                  onClick={onOpenSosModal}
-                  className="w-full bg-[#FF3344] hover:bg-[#FF3344]/90 text-white py-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-[#FF3344]/30 animate-pulse transition-all"
-                >
-                  <ShieldAlert className="w-4 h-4 fill-white" />
-                  <span>Trigger Urgent SOS Dispatch Sequence</span>
-                </button>
-              )}
 
             </div>
 

@@ -11,14 +11,12 @@ import { createGoogleCalendarUrl, downloadIcsFile } from '../utils/calendarUtils
 
 interface PatientPortalPageProps {
   onOpenGpsModal: () => void;
-  onOpenChargesModal: () => void;
-  onOpenSosModal: () => void;
+  onOpenChargesModal: (tab?: 'patient_charges' | 'pal_earnings') => void;
 }
 
 export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
   onOpenGpsModal,
   onOpenChargesModal,
-  onOpenSosModal,
 }) => {
   const { t, language, setLanguage } = useLanguage();
   const [activeTab, setActiveTab] = useState<'request' | 'my_escorts' | 'eta_calculator' | 'recovery_trends' | 'medical_summary' | 'financials'>('request');
@@ -96,13 +94,6 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 relative z-10">
-          <button
-            onClick={onOpenSosModal}
-            className="bg-[#FF3344] hover:bg-[#FF3344]/90 text-white font-black text-xs uppercase px-4 py-3 rounded-xl flex items-center gap-2 shadow-lg animate-bounce"
-          >
-            <ShieldAlert className="w-4 h-4 fill-white" />
-            <span>Emergency SOS</span>
-          </button>
           <button
             onClick={onOpenGpsModal}
             className="bg-[#1A2232] hover:bg-white/10 text-[#00F0FF] font-bold text-xs uppercase px-4 py-3 rounded-xl border border-[#00F0FF]/30 flex items-center gap-2"
@@ -316,10 +307,6 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                   >
                     <option value="English" className="bg-[#121824]">English</option>
                     <option value="Spanish" className="bg-[#121824]">Spanish (Español)</option>
-                    <option value="Mandarin" className="bg-[#121824]">Mandarin (中文)</option>
-                    <option value="Cantonese" className="bg-[#121824]">Cantonese (粵語)</option>
-                    <option value="Tagalog" className="bg-[#121824]">Tagalog</option>
-                    <option value="Arabic" className="bg-[#121824]">Arabic (العربية)</option>
                   </select>
                 </div>
 
@@ -524,11 +511,11 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
 
           <div className="text-center pt-2">
             <button
-              onClick={onOpenChargesModal}
+              onClick={() => onOpenChargesModal('patient_charges')}
               className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 mx-auto"
             >
               <Calculator className="w-4 h-4" />
-              <span>Launch Full Fee & Benefit Calculator</span>
+              <span>Launch Patient Charges & Subsidy Calculator</span>
             </button>
           </div>
         </div>

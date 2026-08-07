@@ -47,7 +47,7 @@ export const TargetAudiences: React.FC<TargetAudiencesProps> = ({ onRequestPal }
       icon: Globe2,
       color: 'border-navigation-teal text-navigation-teal bg-navigation-teal/10',
       description: 'Navigating unfamiliar health systems when English is not the primary language.',
-      benefit: 'Smart matching pairs patients with fluent, multilingual Pals (Spanish, Mandarin, Arabic, etc.).',
+      benefit: 'Smart matching pairs patients with fluent, bilingual Pals (English & Spanish).',
     },
     {
       id: 5,
