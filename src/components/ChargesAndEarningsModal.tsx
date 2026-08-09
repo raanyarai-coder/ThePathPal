@@ -25,7 +25,7 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
   }, [isOpen, initialTab]);
   
   // Patient options
-  const [selectedPlan, setSelectedPlan] = useState<'single' | 'monthly' | 'annual' | 'medicare'>('single');
+  const [selectedPlan, setSelectedPlan] = useState<'single' | 'monthly' | 'annual' | 'voucher'>('single');
   const [visitHours, setVisitHours] = useState<number>(2);
   const [includeWheelchair, setIncludeWheelchair] = useState<boolean>(true);
   const [includeBilingual, setIncludeBilingual] = useState<boolean>(false);
@@ -43,14 +43,14 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
     if (selectedPlan === 'single') return 35;
     if (selectedPlan === 'monthly') return 49;
     if (selectedPlan === 'annual') return 399;
-    if (selectedPlan === 'medicare') return 0;
+    if (selectedPlan === 'voucher') return 0;
     return 35;
   };
 
   const baseRate = getPatientBaseRate();
   const additionalHoursCost = selectedPlan === 'single' && visitHours > 2 ? (visitHours - 2) * 15 : 0;
   const wheelchairAddon = includeWheelchair ? 0 : 0; // Free amenity
-  const insuranceSubsidy = insuranceCovered ? (selectedPlan === 'medicare' ? baseRate + additionalHoursCost : 15) : 0;
+  const insuranceSubsidy = insuranceCovered ? (selectedPlan === 'voucher' ? baseRate + additionalHoursCost : 15) : 0;
   const patientTotalCost = Math.max(0, baseRate + additionalHoursCost - insuranceSubsidy);
 
   // Pal calculations
@@ -133,7 +133,7 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
                     { id: 'single', name: 'Single Visit', price: '$35', note: 'Per 2hr Visit' },
                     { id: 'monthly', name: 'Monthly Pass', price: '$49', note: 'Unlimited Visits' },
                     { id: 'annual', name: 'Annual Pass', price: '$399', note: 'Full Family' },
-                    { id: 'medicare', name: 'Medicare / SSBCI', price: '$0', note: '100% Subsidized' },
+                    { id: 'voucher', name: 'Health Voucher', price: '$0', note: '100% Subsidized' },
                   ].map((p) => (
                     <button
                       key={p.id}
@@ -194,7 +194,7 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
                         onChange={(e) => setInsuranceCovered(e.target.checked)}
                         className="rounded accent-[#00F0FF]"
                       />
-                      <span className="text-white">Apply Medicare / Medicaid Benefit Subsidy</span>
+                      <span className="text-white">Apply Health Plan / Benefit Voucher Subsidy</span>
                     </label>
                   </div>
                 </div>
@@ -227,7 +227,7 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
 
                   {insuranceSubsidy > 0 && (
                     <div className="flex justify-between text-emerald-400 font-bold">
-                      <span>Insurance / CMS Code G0511 Subsidy Credit:</span>
+                      <span>Insurance / Health Benefit Subsidy Credit:</span>
                       <span>-${insuranceSubsidy}.00</span>
                     </div>
                   )}

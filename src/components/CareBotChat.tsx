@@ -11,7 +11,7 @@ interface ChatMessage {
 
 const PRESET_TOPICS = [
   { label: '🤝 How matching works', prompt: 'How does PathPal pair patients with a Pal?' },
-  { label: '💳 Costs & Insurance', prompt: 'What does a visit cost and is Medicare accepted?' },
+  { label: '💳 Costs & Coverage', prompt: 'What does a visit cost and is insurance accepted?' },
   { label: '🛡️ Safety & Vetting', prompt: 'How are Pals background checked and screened?' },
   { label: '📞 Talk to Human Manager', prompt: 'I want to speak with a human Care Coordinator' }
 ];
@@ -52,8 +52,8 @@ export const CareBotChat: React.FC = () => {
       return 'PathPal pairs you based on your mobility requirements, primary language (English or Spanish), appointment location, and personal preferences. Pals meet you directly at the hospital entrance valet or lobby check-in.';
     }
 
-    if (q.includes('cost') || q.includes('price') || q.includes('medicare') || q.includes('insurance') || q.includes('free') || q.includes('pay')) {
-      return 'Single visits are $35 / escort, and monthly memberships are $49/mo. Most importantly, eligible Medicare Advantage (SSBCI) and Medicaid Managed Care members receive PathPal at $0 cost via insurance benefit vouchers!';
+    if (q.includes('cost') || q.includes('price') || q.includes('insurance') || q.includes('free') || q.includes('pay') || q.includes('voucher')) {
+      return 'Single visits are $35 / escort, and monthly memberships are $49/mo. Most importantly, eligible health plan members receive PathPal at $0 cost via insurance benefit vouchers!';
     }
 
     if (q.includes('safe') || q.includes('check') || q.includes('vet') || q.includes('background') || q.includes('hipaa')) {

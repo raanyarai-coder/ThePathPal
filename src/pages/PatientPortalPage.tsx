@@ -84,7 +84,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
               PATIENT & FAMILY PORTAL
             </span>
             <span className="text-xs font-bold text-emerald-400 bg-emerald-500/20 px-3 py-1 rounded-full border border-emerald-500/30">
-              Medicare $0 Cost Covered
+              Subsidized Vouchers Available
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-white">Welcome, Maria Santos</h1>
@@ -175,7 +175,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
           }`}
         >
           <Calculator className="w-4 h-4 text-emerald-300" />
-          <span>$0 Cost & Medicare Coverage</span>
+          <span>$0 Cost & Benefit Vouchers</span>
         </button>
       </div>
 
@@ -456,20 +456,20 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
         </div>
       )}
 
-      {/* TAB 4: FINANCIALS & MEDICARE */}
+      {/* TAB 4: FINANCIALS & VOUCHERS */}
       {activeTab === 'financials' && (
         <div className="bg-[#121824] p-6 sm:p-8 rounded-3xl border border-emerald-500/40 space-y-6">
           <div className="border-b border-white/10 pb-4">
             <span className="text-xs font-black uppercase text-emerald-400 tracking-wider">ZERO HIDDEN FEES</span>
-            <h2 className="text-2xl font-black text-white">$0 Out-Of-Pocket Medicare & Medicaid Coverage</h2>
+            <h2 className="text-2xl font-black text-white">$0 Out-Of-Pocket Benefit Voucher Coverage</h2>
             <p className="text-xs text-gray-300">
-              PathPal is covered under Medicare G0511 (Principal Illness Navigation) and SSBCI Supplemental Benefits for eligible seniors.
+              PathPal is covered under health benefit vouchers and hospital community assistance programs for eligible patients.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-[#1A2232] p-6 rounded-2xl border border-white/10 space-y-2">
-              <span className="text-[10px] font-bold uppercase text-emerald-400">MEDICARE G0511 CODE</span>
+              <span className="text-[10px] font-bold uppercase text-emerald-400">BENEFIT VOUCHER PROGRAM</span>
               <h3 className="text-xl font-black text-white">100% Covered</h3>
               <p className="text-xs text-gray-300">
                 Covers non-clinical navigation, appointment accompaniment, and language translation support.
@@ -477,10 +477,10 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
             </div>
 
             <div className="bg-[#1A2232] p-6 rounded-2xl border border-white/10 space-y-2">
-              <span className="text-[10px] font-bold uppercase text-emerald-400">MEDICAID CHW BENEFIT</span>
+              <span className="text-[10px] font-bold uppercase text-emerald-400">STATE HEALTH PLAN BENEFIT</span>
               <h3 className="text-xl font-black text-white">$0 Patient Copay</h3>
               <p className="text-xs text-gray-300">
-                Direct state community health worker reimbursement ensures patients pay zero dollars out of pocket.
+                Direct community health worker reimbursement ensures eligible patients pay zero dollars out of pocket.
               </p>
             </div>
 

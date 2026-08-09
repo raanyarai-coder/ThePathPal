@@ -19,7 +19,7 @@ const FAQ_ITEMS: FAQItem[] = [
     id: 'faq-2',
     category: 'costs',
     question: 'What does a PathPal companion visit cost, and is it covered by insurance?',
-    answer: 'Single hospital visits start at $35 per 2-hour session. PathPal is also available through $49/mo membership passes. Importantly, PathPal partners with Medicare Advantage plans under SSBCI (Special Supplemental Benefits for the Chronically Ill) and Medicaid Managed Care programs, allowing many eligible seniors and high-risk patients to receive PathPal at $0 out-of-pocket cost with an approved voucher.'
+    answer: 'Single hospital visits start at $35 per 2-hour session. PathPal is also available through $49/mo membership passes. Importantly, PathPal partners with health plans and hospital benefit programs, allowing many eligible seniors and high-risk patients to receive PathPal at $0 out-of-pocket cost with an approved benefit voucher.'
   },
   {
     id: 'faq-3',
@@ -49,7 +49,7 @@ const FAQ_ITEMS: FAQItem[] = [
     id: 'faq-7',
     category: 'costs',
     question: 'What payment methods are accepted for bookings and memberships?',
-    answer: 'We accept all major Credit and Debit cards (Visa, MasterCard, American Express, Discover), PayPal, Apple Pay, Google Pay, as well as Medicare Advantage / Medicaid Benefit Vouchers and Hospital Sponsorship IDs.'
+    answer: 'We accept all major Credit and Debit cards (Visa, MasterCard, American Express, Discover), PayPal, Apple Pay, Google Pay, as well as Health Benefit Vouchers and Hospital Sponsorship IDs.'
   }
 ];
 
@@ -105,7 +105,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ onRequestPal, onOpenPaym
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Search questions (e.g., costs, safety, Medicare)..."
+              placeholder="Search questions (e.g., costs, safety, vouchers)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-[#1A2232] text-xs text-white pl-10 pr-4 py-2.5 rounded-xl border border-white/10 focus:border-[#00F0FF] focus:outline-none"
@@ -178,7 +178,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ onRequestPal, onOpenPaym
             })
           ) : (
             <div className="text-center py-12 bg-[#121824] rounded-2xl border border-white/10 text-gray-400">
-              No questions found matching your search. Try adjusting terms or search "Medicare" or "Safety".
+              No questions found matching your search. Try adjusting terms or search "Voucher" or "Safety".
             </div>
           )}
         </div>

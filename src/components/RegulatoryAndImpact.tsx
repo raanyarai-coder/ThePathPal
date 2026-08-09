@@ -16,7 +16,7 @@ export const RegulatoryAndImpact: React.FC = () => {
             Real policy levers already reward this work
           </h2>
           <p className="text-base text-pathpal-navy/70">
-            PathPal aligns with national healthcare quality incentives, CMS care navigation billing, and Medicaid CHW reimbursement programs.
+            PathPal aligns with national healthcare quality incentives, care navigation billing, and CHW reimbursement programs.
           </p>
         </div>
 
@@ -24,16 +24,16 @@ export const RegulatoryAndImpact: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
           <div className="bg-white p-6 rounded-3xl border-l-4 border-navigation-teal border-gray-100 shadow-xs hover:shadow-md transition-shadow">
-            <div className="text-xs font-bold text-navigation-teal uppercase tracking-wider mb-2">2024 CMS CODE</div>
-            <h3 className="text-lg font-bold text-pathpal-navy mb-2">CMS care navigation codes</h3>
+            <div className="text-xs font-bold text-navigation-teal uppercase tracking-wider mb-2">CARE NAVIGATION CODES</div>
+            <h3 className="text-lg font-bold text-pathpal-navy mb-2">Care navigation codes</h3>
             <p className="text-xs text-pathpal-navy/75 font-medium leading-relaxed">
-              2024 Medicare codes reimburse non-clinical navigation support, billable under HCPCS G0511 for FQHCs and RHCs.
+              Care navigation codes reimburse non-clinical navigation support, billable for FQHCs and RHCs.
             </p>
           </div>
 
           <div className="bg-white p-6 rounded-3xl border-l-4 border-companion-coral border-gray-100 shadow-xs hover:shadow-md transition-shadow">
             <div className="text-xs font-bold text-companion-coral uppercase tracking-wider mb-2">CHW REIMBURSEMENT</div>
-            <h3 className="text-lg font-bold text-pathpal-navy mb-2">Medicaid CHW state plans</h3>
+            <h3 className="text-lg font-bold text-pathpal-navy mb-2">State CHW plans</h3>
             <p className="text-xs text-pathpal-navy/75 font-medium leading-relaxed">
               20+ states now reimburse certified Community Health Worker (CHW) services for eligible patient populations.
             </p>
@@ -43,23 +43,23 @@ export const RegulatoryAndImpact: React.FC = () => {
             <div className="text-xs font-bold text-pathpal-navy uppercase tracking-wider mb-2">QUALITY INCENTIVES</div>
             <h3 className="text-lg font-bold text-pathpal-navy mb-2">Hospital value-based purchasing</h3>
             <p className="text-xs text-pathpal-navy/75 font-medium leading-relaxed">
-              Patient experience accounts for 25% of a hospital's VBP score, affecting up to 2% of total Medicare reimbursement.
+              Patient experience accounts for 25% of a hospital's VBP score, affecting overall quality reimbursement.
             </p>
           </div>
 
           <div className="bg-white p-6 rounded-3xl border-l-4 border-navigation-teal border-gray-100 shadow-xs hover:shadow-md transition-shadow">
             <div className="text-xs font-bold text-navigation-teal uppercase tracking-wider mb-2">MANDATED BENEFIT</div>
-            <h3 className="text-lg font-bold text-pathpal-navy mb-2">Medicaid transportation benefit</h3>
+            <h3 className="text-lg font-bold text-pathpal-navy mb-2">Medical transportation benefit</h3>
             <p className="text-xs text-pathpal-navy/75 font-medium leading-relaxed">
-              Federally mandated benefit (42 CFR 431.53) that Pals help coordinate from valet entrance to appointment check-in.
+              Transportation assistance that Pals help coordinate from valet entrance to appointment check-in.
             </p>
           </div>
 
           <div className="bg-white p-6 rounded-3xl border-l-4 border-companion-coral border-gray-100 shadow-xs hover:shadow-md transition-shadow">
-            <div className="text-xs font-bold text-companion-coral uppercase tracking-wider mb-2">MEDICARE ADVANTAGE</div>
-            <h3 className="text-lg font-bold text-pathpal-navy mb-2">Medicare Advantage benefits</h3>
+            <div className="text-xs font-bold text-companion-coral uppercase tracking-wider mb-2">HEALTH PLAN BENEFITS</div>
+            <h3 className="text-lg font-bold text-pathpal-navy mb-2">Health plan benefits</h3>
             <p className="text-xs text-pathpal-navy/75 font-medium leading-relaxed">
-              The Chronic Care Act allows Medicare Advantage plans to cover non-medical hospital navigation and accompaniment.
+              Health plans cover non-medical hospital navigation and accompaniment for eligible members.
             </p>
           </div>
 
@@ -145,7 +145,7 @@ export const RegulatoryAndImpact: React.FC = () => {
 
             <div className="p-5 rounded-2xl bg-white/10 border border-white/10 space-y-2">
               <div className="text-sm font-bold text-soft-rose">Clinics, FQHCs & RHCs</div>
-              <p className="text-xs text-gray-200">Certified Pals deliver billable navigation under Medicare's care management codes.</p>
+              <p className="text-xs text-gray-200">Certified Pals deliver billable navigation under standard care management codes.</p>
             </div>
 
             <div className="p-5 rounded-2xl bg-white/10 border border-white/10 space-y-2">
@@ -159,8 +159,8 @@ export const RegulatoryAndImpact: React.FC = () => {
             </div>
 
             <div className="p-5 rounded-2xl bg-white/10 border border-white/10 space-y-2">
-              <div className="text-sm font-bold text-soft-rose">Medicare & Medicaid</div>
-              <p className="text-xs text-gray-200">Public payers sponsor navigation through CHW billing and supplemental benefits.</p>
+              <div className="text-sm font-bold text-soft-rose">Health Plans & Insurers</div>
+              <p className="text-xs text-gray-200">Payers sponsor navigation through CHW programs and supplemental benefits.</p>
             </div>
 
             <div className="p-5 rounded-2xl bg-white/10 border border-white/10 space-y-2">

@@ -44,7 +44,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   ] as const;
 
   return (
-    <header className="sticky top-0 z-40 bg-[#0A0D14]/95 backdrop-blur-md border-b border-white/10 text-white">
+    <header className="sticky top-0 z-40 bg-[#1C2D42] text-white shadow-lg border-b border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
@@ -52,18 +52,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={() => onNavigatePage('home')}
             className="flex items-center gap-3 group text-left focus:outline-none"
           >
-            <div className="relative w-11 h-11 bg-[#1A2232] rounded-2xl border border-[#00F0FF]/40 flex items-center justify-center shadow-lg shadow-[#00F0FF]/10 group-hover:scale-105 transition-transform duration-200">
+            <div className="relative w-11 h-11 bg-[#22334A] rounded-2xl border border-[#E85264]/40 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-200">
               <div className="relative flex items-center justify-center">
-                <MapPin className="w-8 h-8 text-[#00F0FF] fill-[#00F0FF]/20" />
-                <Heart className="w-3.5 h-3.5 text-black fill-[#00F0FF] absolute top-2.5" />
+                <MapPin className="w-8 h-8 text-[#E85264] fill-[#E85264]/20" />
+                <Heart className="w-3.5 h-3.5 text-white fill-white absolute top-2.5" />
               </div>
             </div>
             <div className="flex flex-col">
               <span className="text-2xl font-black italic tracking-tight text-white flex items-center gap-0.5 uppercase">
-                Path<span className="text-[#00F0FF] text-stroke-cyan">Pal</span>
+                Path<span className="text-[#E85264]">Pal</span>
               </span>
-              <span className="text-[9px] uppercase tracking-widest font-black text-[#00F0FF] -mt-1">
-                Never Navigate Alone
+              <span className="text-[9px] uppercase tracking-widest font-black text-[#38A3A0] -mt-1">
+                Never Navigate The Hospital Alone
               </span>
             </div>
           </button>
@@ -78,8 +78,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onClick={() => onNavigatePage(link.id)}
                   className={`text-xs font-bold uppercase tracking-wider px-3.5 py-2 rounded-xl transition-all ${
                     isActive
-                      ? 'bg-[#00F0FF]/15 text-[#00F0FF] font-black border border-[#00F0FF]/30'
-                      : 'text-gray-300 hover:text-white hover:bg-white/5'
+                      ? 'bg-[#38A3A0] text-white font-black shadow-md'
+                      : 'text-gray-200 hover:text-white hover:bg-white/10'
                   }`}
                 >
                   {link.name}
@@ -100,14 +100,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                   className="px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-white transition-all flex items-center gap-1.5 text-xs font-bold"
                   title="Select Language"
                 >
-                  <Globe className="w-3.5 h-3.5 text-[#00F0FF]" />
+                  <Globe className="w-3.5 h-3.5 text-[#38A3A0]" />
                   <span className="text-xs">{currentLangObj.flag}</span>
-                  <span className="text-[10px] font-black uppercase text-[#00F0FF]">{currentLangObj.code}</span>
+                  <span className="text-[10px] font-black uppercase text-[#38A3A0]">{currentLangObj.code}</span>
                   <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${langDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {langDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-44 bg-[#121824] rounded-xl border border-[#00F0FF]/50 shadow-2xl overflow-hidden z-50 p-1 space-y-0.5">
+                  <div className="absolute right-0 mt-2 w-44 bg-[#182538] rounded-xl border border-[#38A3A0]/50 shadow-2xl overflow-hidden z-50 p-1 space-y-0.5">
                     {LANGUAGES.map((lang) => (
                       <button
                         key={lang.code}
@@ -117,7 +117,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         }}
                         className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs transition-all ${
                           language === lang.code
-                            ? 'bg-[#00F0FF] text-black font-bold'
+                            ? 'bg-[#38A3A0] text-white font-bold'
                             : 'text-gray-200 hover:bg-white/10'
                         }`}
                       >
@@ -137,9 +137,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   onClick={onOpenGpsModal}
                   title="Live GPS Location Tracker"
-                  className="p-1.5 rounded-lg hover:bg-white/10 text-gray-300 hover:text-[#00F0FF] transition-all"
+                  className="p-1.5 rounded-lg hover:bg-white/10 text-gray-300 hover:text-[#38A3A0] transition-all"
                 >
-                  <Navigation className="w-4 h-4 text-[#00F0FF]" />
+                  <Navigation className="w-4 h-4 text-[#38A3A0]" />
                 </button>
               )}
 

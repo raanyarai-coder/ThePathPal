@@ -34,38 +34,6 @@ export const AboutAndBrand: React.FC<AboutAndBrandProps> = ({
   onHospitalPartner,
 }) => {
   const { t } = useLanguage();
-  const [activeStoryTab, setActiveStoryTab] = useState<'origin' | 'mission' | 'values' | 'team'>('origin');
-
-  const teamMembers = [
-    {
-      name: "Dr. Aris Thorne, MD",
-      role: "Founder & Chief Medical Officer",
-      bio: "Former ER Chief with 18+ years in acute hospital care. Founded PathPal after seeing vulnerable patients miss life-saving appointments due to complex campus navigation.",
-      image: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400",
-      badge: "Clinical Leadership"
-    },
-    {
-      name: "Elena Rostova, CHW",
-      role: "Lead Community Health Ambassador",
-      bio: "Accredited Community Health Worker fluent in English, Spanish, and Russian. Leads PathPal's companion training, empathy protocols, and door-to-door patient safety.",
-      image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=400",
-      badge: "CHW Accreditation"
-    },
-    {
-      name: "Marcus Vance",
-      role: "VP of Hospital System Partnerships",
-      bio: "12+ years optimizing health system operations & HCAHPS scores. Connects regional hospital networks with CMS Medicare G0511 reimbursement channels.",
-      image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=400",
-      badge: "Health Systems"
-    },
-    {
-      name: "Amina Al-Mansoor",
-      role: "Director of Patient Accessibility & i18n",
-      bio: "Passionate health equity advocate specializing in bilingual patient support for English and Spanish speaking patient communities.",
-      image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=400",
-      badge: "Language Equity"
-    }
-  ];
 
   const coreValues = [
     {
@@ -88,8 +56,8 @@ export const AboutAndBrand: React.FC<AboutAndBrandProps> = ({
     },
     {
       icon: FileCheck,
-      title: "Medicare G0511 Covered",
-      desc: "Aligned with CMS Principal Illness Navigation (PIN) guidelines, providing $0 out-of-pocket costs for qualified patients.",
+      title: "100% Subsidized Care",
+      desc: "Partnered with health plans and sponsor programs, providing $0 out-of-pocket costs for qualified patients.",
       color: "text-warm-gold bg-warm-gold/10 border-warm-gold/30"
     }
   ];
@@ -100,82 +68,29 @@ export const AboutAndBrand: React.FC<AboutAndBrandProps> = ({
       <div className="absolute top-1/4 left-0 w-[500px] h-[500px] bg-[#00F0FF]/5 rounded-full blur-[140px] pointer-events-none"></div>
       <div className="absolute bottom-1/4 right-0 w-[500px] h-[500px] bg-companion-coral/5 rounded-full blur-[140px] pointer-events-none"></div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-20">
         
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto space-y-4">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#00F0FF]/15 border border-[#00F0FF]/40 text-[#00F0FF] text-xs font-black uppercase tracking-[0.25em] shadow-lg shadow-[#00F0FF]/10">
-            <Compass className="w-4 h-4" />
-            <span>ABOUT US • OUR STORY & MISSION</span>
-          </div>
-          
-          <h2 className="text-3xl sm:text-5xl font-black tracking-tight uppercase italic leading-tight text-white">
-            Transforming Hospital Navigation Through <br />
-            <span className="text-[#00F0FF] text-stroke-cyan">Compassionate Companion Pals</span>
-          </h2>
-          
-          <p className="text-sm sm:text-base text-gray-300 font-normal max-w-2xl mx-auto leading-relaxed">
-            PathPal pairs vulnerable patients with accredited, background-checked Community Health Workers and Companion Pals—ensuring no one faces a complex hospital visit alone.
-          </p>
-        </div>
-
-        {/* Story & Mission Tabbed Interactive Showcase */}
-        <div className="bg-[#121824] rounded-3xl p-6 sm:p-10 border border-white/10 shadow-2xl space-y-8">
-          
-          {/* Navigation Tabs */}
-          <div className="flex flex-wrap items-center justify-center gap-2 border-b border-white/10 pb-6">
-            <button
-              onClick={() => setActiveStoryTab('origin')}
-              className={`px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
-                activeStoryTab === 'origin'
-                  ? 'bg-[#00F0FF] text-black shadow-lg shadow-[#00F0FF]/20'
-                  : 'bg-[#1A2232] text-gray-300 hover:bg-white/10 hover:text-white'
-              }`}
-            >
-              <Heart className="w-4 h-4" />
-              <span>Our Founding Story</span>
-            </button>
-
-            <button
-              onClick={() => setActiveStoryTab('mission')}
-              className={`px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
-                activeStoryTab === 'mission'
-                  ? 'bg-companion-coral text-white shadow-lg shadow-companion-coral/20'
-                  : 'bg-[#1A2232] text-gray-300 hover:bg-white/10 hover:text-white'
-              }`}
-            >
-              <Target className="w-4 h-4" />
-              <span>Mission & Vision</span>
-            </button>
-
-            <button
-              onClick={() => setActiveStoryTab('values')}
-              className={`px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
-                activeStoryTab === 'values'
-                  ? 'bg-navigation-teal text-white shadow-lg shadow-navigation-teal/20'
-                  : 'bg-[#1A2232] text-gray-300 hover:bg-white/10 hover:text-white'
-              }`}
-            >
-              <Award className="w-4 h-4" />
-              <span>Core Values</span>
-            </button>
-
-            <button
-              onClick={() => setActiveStoryTab('team')}
-              className={`px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
-                activeStoryTab === 'team'
-                  ? 'bg-warm-gold text-black shadow-lg shadow-warm-gold/20 font-black'
-                  : 'bg-[#1A2232] text-gray-300 hover:bg-white/10 hover:text-white'
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span>Leadership & Team</span>
-            </button>
+        {/* ==================== 1. ABOUT PATHPAL ==================== */}
+        <div className="space-y-10">
+          <div className="text-center max-w-3xl mx-auto space-y-4">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#00F0FF]/15 border border-[#00F0FF]/40 text-[#00F0FF] text-xs font-black uppercase tracking-[0.25em] shadow-lg shadow-[#00F0FF]/10">
+              <Compass className="w-4 h-4" />
+              <span>ABOUT PATHPAL</span>
+            </div>
+            
+            <h2 className="text-3xl sm:text-5xl font-black tracking-tight uppercase italic leading-tight text-white">
+              Transforming Hospital Navigation Through <br />
+              <span className="text-[#00F0FF] text-stroke-cyan">Compassionate Companion Pals</span>
+            </h2>
+            
+            <p className="text-sm sm:text-base text-gray-300 font-normal max-w-2xl mx-auto leading-relaxed">
+              PathPal pairs vulnerable patients with accredited, background-checked Community Health Workers and Companion Pals—ensuring no one faces a complex hospital visit alone.
+            </p>
           </div>
 
-          {/* Tab Content 1: Founding Story */}
-          {activeStoryTab === 'origin' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center animate-fade-in">
+          {/* Founding Story Content Card */}
+          <div className="bg-[#121824] rounded-3xl p-6 sm:p-10 border border-white/10 shadow-2xl">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
               <div className="space-y-6">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-[#00F0FF]/10 text-[#00F0FF] text-[11px] font-black uppercase tracking-wider border border-[#00F0FF]/30">
                   <Sparkles className="w-3.5 h-3.5" />
@@ -218,120 +133,117 @@ export const AboutAndBrand: React.FC<AboutAndBrandProps> = ({
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        </div>
 
-          {/* Tab Content 2: Mission & Vision */}
-          {activeStoryTab === 'mission' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in">
-              <div className="bg-[#1A2232] p-8 rounded-3xl border border-companion-coral/40 space-y-4 relative overflow-hidden">
-                <div className="w-1.5 h-full bg-companion-coral absolute top-0 left-0"></div>
-                <div className="flex items-center gap-3 text-companion-coral">
-                  <Target className="w-6 h-6" />
-                  <span className="text-xs font-black uppercase tracking-widest">OUR MISSION</span>
-                </div>
-                <h3 className="text-2xl font-black uppercase text-white">
-                  No Patient Navigates Alone
-                </h3>
-                <p className="text-sm text-gray-300 leading-relaxed font-normal">
-                  To ensure no patient ever faces a complex medical center alone—by placing a trained, vetted, and caring companion within reach of every hospital appointment, regardless of age, mobility, language, or financial background.
-                </p>
-                <ul className="space-y-2 text-xs text-gray-200 pt-2">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-companion-coral" />
-                    <span>Door-to-door arm-in-arm patient guidance</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-companion-coral" />
-                    <span>Real-time family SMS status notifications</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-companion-coral" />
-                    <span>Zero out-of-pocket costs via Medicare G0511</span>
-                  </li>
-                </ul>
+        {/* ==================== 2. OUR MISSION ==================== */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-companion-coral/20 border border-companion-coral/40 text-companion-coral">
+              <Target className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="text-xs font-black uppercase tracking-[0.25em] text-companion-coral">OUR MISSION</span>
+              <h3 className="text-2xl sm:text-3xl font-black uppercase text-white">No Patient Navigates Alone</h3>
+            </div>
+          </div>
+
+          <div className="bg-[#121824] p-8 sm:p-10 rounded-3xl border border-companion-coral/30 shadow-xl space-y-6 relative overflow-hidden">
+            <div className="w-2 h-full bg-companion-coral absolute top-0 left-0"></div>
+            <p className="text-base sm:text-lg text-gray-200 leading-relaxed font-medium">
+              To ensure no patient ever faces a complex medical center alone—by placing a trained, vetted, and caring companion within reach of every hospital appointment, regardless of age, mobility, language, or financial background.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+              <div className="bg-[#1A2232] p-5 rounded-2xl border border-white/10 space-y-2">
+                <CheckCircle2 className="w-5 h-5 text-companion-coral" />
+                <h4 className="text-sm font-bold text-white">Door-to-Door Guidance</h4>
+                <p className="text-xs text-gray-300">Arm-in-arm patient escort from campus entry to discharge.</p>
               </div>
-
-              <div className="bg-[#1A2232] p-8 rounded-3xl border border-warm-gold/40 space-y-4 relative overflow-hidden">
-                <div className="w-1.5 h-full bg-warm-gold absolute top-0 left-0"></div>
-                <div className="flex items-center gap-3 text-warm-gold">
-                  <Compass className="w-6 h-6" />
-                  <span className="text-xs font-black uppercase tracking-widest">OUR VISION</span>
-                </div>
-                <h3 className="text-2xl font-black uppercase text-white">
-                  Universal Health Access Peace of Mind
-                </h3>
-                <p className="text-sm text-gray-300 leading-relaxed font-normal">
-                  A healthcare ecosystem where every patient journey in every city begins with a friendly face at the entrance and ends with safe, dignified, and clear peace of mind.
-                </p>
-                <ul className="space-y-2 text-xs text-gray-200 pt-2">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-warm-gold" />
-                    <span>Nationwide accredited CHW companion network</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-warm-gold" />
-                    <span>Seamless integration with hospital EMR systems</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-warm-gold" />
-                    <span>Enhanced hospital HCAHPS patient experience ratings</span>
-                  </li>
-                </ul>
+              <div className="bg-[#1A2232] p-5 rounded-2xl border border-white/10 space-y-2">
+                <CheckCircle2 className="w-5 h-5 text-companion-coral" />
+                <h4 className="text-sm font-bold text-white">Family Peace of Mind</h4>
+                <p className="text-xs text-gray-300">Real-time SMS status updates and check-in alerts for loved ones.</p>
+              </div>
+              <div className="bg-[#1A2232] p-5 rounded-2xl border border-white/10 space-y-2">
+                <CheckCircle2 className="w-5 h-5 text-companion-coral" />
+                <h4 className="text-sm font-bold text-white">Equal Access Care</h4>
+                <p className="text-xs text-gray-300">Zero out-of-pocket costs via partner health vouchers.</p>
               </div>
             </div>
-          )}
+          </div>
+        </div>
 
-          {/* Tab Content 3: Core Values */}
-          {activeStoryTab === 'values' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in">
-              {coreValues.map((val, index) => {
-                const IconComponent = val.icon;
-                return (
-                  <div key={index} className="bg-[#1A2232] p-6 rounded-3xl border border-white/10 space-y-4 hover:border-white/30 transition-all flex flex-col justify-between">
-                    <div className="space-y-3">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${val.color}`}>
-                        <IconComponent className="w-6 h-6" />
-                      </div>
-                      <h4 className="text-base font-black uppercase text-white">{val.title}</h4>
-                      <p className="text-xs text-gray-300 leading-relaxed font-normal">{val.desc}</p>
-                    </div>
-                    <div className="pt-2 border-t border-white/10 flex items-center gap-1.5 text-[11px] font-bold text-gray-400">
-                      <Check className="w-3.5 h-3.5 text-[#00F0FF]" />
-                      <span>Verified Standard</span>
-                    </div>
-                  </div>
-                );
-              })}
+        {/* ==================== 3. OUR VISION ==================== */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-warm-gold/20 border border-warm-gold/40 text-warm-gold">
+              <Compass className="w-6 h-6" />
             </div>
-          )}
+            <div>
+              <span className="text-xs font-black uppercase tracking-[0.25em] text-warm-gold">OUR VISION</span>
+              <h3 className="text-2xl sm:text-3xl font-black uppercase text-white">Universal Health Access & Peace of Mind</h3>
+            </div>
+          </div>
 
-          {/* Tab Content 4: Leadership Team */}
-          {activeStoryTab === 'team' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in">
-              {teamMembers.map((member, index) => (
-                <div key={index} className="bg-[#1A2232] rounded-3xl border border-white/10 overflow-hidden flex flex-col justify-between hover:border-[#00F0FF]/40 transition-all group">
-                  <div>
-                    <div className="h-48 overflow-hidden relative">
-                      <img 
-                        src={member.image} 
-                        alt={member.name} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-black uppercase text-[#00F0FF] border border-[#00F0FF]/30">
-                        {member.badge}
-                      </div>
+          <div className="bg-[#121824] p-8 sm:p-10 rounded-3xl border border-warm-gold/30 shadow-xl space-y-6 relative overflow-hidden">
+            <div className="w-2 h-full bg-warm-gold absolute top-0 left-0"></div>
+            <p className="text-base sm:text-lg text-gray-200 leading-relaxed font-medium">
+              A healthcare ecosystem where every patient journey in every city begins with a friendly face at the entrance and ends with safe, dignified, and clear peace of mind.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+              <div className="bg-[#1A2232] p-5 rounded-2xl border border-white/10 space-y-2">
+                <CheckCircle2 className="w-5 h-5 text-warm-gold" />
+                <h4 className="text-sm font-bold text-white">Accredited CHW Network</h4>
+                <p className="text-xs text-gray-300">Nationwide network of certified companion health workers.</p>
+              </div>
+              <div className="bg-[#1A2232] p-5 rounded-2xl border border-white/10 space-y-2">
+                <CheckCircle2 className="w-5 h-5 text-warm-gold" />
+                <h4 className="text-sm font-bold text-white">EHR & Health System Sync</h4>
+                <p className="text-xs text-gray-300">Seamless automated integration with hospital scheduling APIs.</p>
+              </div>
+              <div className="bg-[#1A2232] p-5 rounded-2xl border border-white/10 space-y-2">
+                <CheckCircle2 className="w-5 h-5 text-warm-gold" />
+                <h4 className="text-sm font-bold text-white">HCAHPS Quality Impact</h4>
+                <p className="text-xs text-gray-300">Measurable improvements in patient satisfaction and hospital ratings.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ==================== 4. CORE VALUES ==================== */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-navigation-teal/20 border border-navigation-teal/40 text-navigation-teal">
+              <Award className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="text-xs font-black uppercase tracking-[0.25em] text-navigation-teal">CORE VALUES</span>
+              <h3 className="text-2xl sm:text-3xl font-black uppercase text-white">The Standards That Guide Every Journey</h3>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {coreValues.map((val, index) => {
+              const IconComponent = val.icon;
+              return (
+                <div key={index} className="bg-[#121824] p-6 rounded-3xl border border-white/10 space-y-4 hover:border-white/30 transition-all flex flex-col justify-between shadow-xl">
+                  <div className="space-y-3">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${val.color}`}>
+                      <IconComponent className="w-6 h-6" />
                     </div>
-                    <div className="p-5 space-y-2">
-                      <h4 className="text-base font-black text-white">{member.name}</h4>
-                      <p className="text-xs font-bold text-companion-coral uppercase">{member.role}</p>
-                      <p className="text-xs text-gray-300 leading-relaxed pt-1 font-normal">{member.bio}</p>
-                    </div>
+                    <h4 className="text-base font-black uppercase text-white">{val.title}</h4>
+                    <p className="text-xs text-gray-300 leading-relaxed font-normal">{val.desc}</p>
+                  </div>
+                  <div className="pt-3 border-t border-white/10 flex items-center gap-1.5 text-[11px] font-bold text-gray-400">
+                    <Check className="w-3.5 h-3.5 text-[#00F0FF]" />
+                    <span>Verified Standard</span>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-
+              );
+            })}
+          </div>
         </div>
 
         {/* Brand Trinity (Heart, Pin, Path Breakdown) */}

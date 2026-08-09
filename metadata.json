@@ -1,6 +1,6 @@
 {
   "name": "PathPal - Smarter Hospital Navigation & Companion Care",
   "description": "Healthcare navigation service pairing patients with trained, compassionate companions (Pals) supported by a smart digital coordination platform.",
-  "requestFramePermissions": ["geolocation", "camera"],
+  "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

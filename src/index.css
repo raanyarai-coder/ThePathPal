@@ -1,39 +1,47 @@
 @import "tailwindcss";
 
 @theme {
+  --color-coral-pink: #E85D75;
+  --color-deep-navy: #1F3449;
+  --color-wayfinding-teal: #48A6A5;
+  --color-pink-tint: #FCE9EC;
+  
+  /* Legacy alias mappings for components */
   --color-pathpal-navy: #1F3449;
   --color-companion-coral: #E85D75;
-  --color-soft-rose: #F7CFD8;
+  --color-soft-rose: #FCE9EC;
   --color-navigation-teal: #48A6A5;
   --color-warm-gold: #F1B84C;
-  --color-care-blush: #FDF4F7;
-  --color-brand-dark: #0A0D14;
-  --color-electric-cyan: #00F0FF;
-  --color-card-dark: #121824;
-  --color-surface-dark: #1A2232;
+  --color-care-blush: #FCE9EC;
+  --color-brand-dark: #1F3449;
+  --color-electric-cyan: #48A6A5;
+  --color-card-dark: #1F3449;
+  --color-surface-dark: #2B425B;
+  
+  --font-sans: 'Poppins', system-ui, sans-serif;
 }
 
 @layer base {
   html {
     scroll-behavior: smooth;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    background-color: #0A0D14;
-    color: #F5F5F5;
+    font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #FCE9EC;
+    color: #1F3449;
   }
 }
 
-/* Bold Typography & Tech Accent Utilities */
+/* Typography and Accent Utilities */
 .text-stroke-cyan {
-  -webkit-text-stroke: 1.5px #00F0FF;
+  -webkit-text-stroke: 1.5px #48A6A5;
 }
 
-.glow-cyan {
-  box-shadow: 0 0 25px rgba(0, 240, 255, 0.25);
+.glow-teal {
+  box-shadow: 0 0 25px rgba(72, 166, 165, 0.25);
 }
 
-.border-cyan-glow {
-  border-color: rgba(0, 240, 255, 0.4);
-  box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
+.border-teal-glow {
+  border-color: rgba(72, 166, 165, 0.4);
+  box-shadow: 0 0 15px rgba(72, 166, 165, 0.15);
 }
 
 /* Custom scrollbar styling */
@@ -42,10 +50,10 @@
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #0A0D14;
+  background: #FCE9EC;
 }
 ::-webkit-scrollbar-thumb {
-  background: #00F0FF;
+  background: #E85D75;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {

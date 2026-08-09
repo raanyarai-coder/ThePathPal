@@ -150,7 +150,7 @@ export const BusinessModel: React.FC = () => {
             <div className="bg-white/10 p-5 rounded-2xl border border-white/10 space-y-2">
               <div className="text-sm font-bold text-soft-rose">Government Reimbursement</div>
               <p className="text-xs text-gray-200">
-                Medicaid CHW billing (around $77 per service) where state programs allow.
+                State CHW program billing where allowed.
               </p>
             </div>
 

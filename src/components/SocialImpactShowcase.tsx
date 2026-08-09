@@ -133,8 +133,8 @@ export const SocialImpactShowcase: React.FC = () => {
           </div>
           <div className="text-center space-y-1 border-l border-white/10 pl-4">
             <div className="text-3xl sm:text-4xl font-black text-warm-gold italic">$0 Cost</div>
-            <div className="text-xs font-bold uppercase tracking-widest text-white">Medicare/Medicaid</div>
-            <div className="text-[10px] text-gray-400 font-light">Subsidized via SSBCI healthcare vouchers</div>
+            <div className="text-xs font-bold uppercase tracking-widest text-white">Health Plan Subsidized</div>
+            <div className="text-[10px] text-gray-400 font-light">Subsidized via partner health vouchers</div>
           </div>
         </div>
 

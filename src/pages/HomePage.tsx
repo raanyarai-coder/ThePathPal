@@ -57,7 +57,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 <span className="text-xs font-black uppercase text-companion-coral tracking-widest">FOR PATIENTS & FAMILIES</span>
                 <h3 className="text-2xl font-black text-white">Patient Portal</h3>
                 <p className="text-xs text-gray-300 leading-relaxed">
-                  Request a compassionate companion, track your assigned Pal in real-time, view zero out-of-pocket Medicare G0511 coverage, and manage your encrypted HIPAA medical summary.
+                  Request a compassionate companion, track your assigned Pal in real-time, view zero out-of-pocket health voucher coverage, and manage your encrypted HIPAA medical summary.
                 </p>
               </div>
               <ul className="space-y-2 text-xs text-gray-200 pt-2">
@@ -223,7 +223,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
             <h3 className="text-xl sm:text-2xl font-black text-white">Need Hospital Live GPS Radar or Fee Calculations?</h3>
             <p className="text-xs text-gray-300 max-w-xl">
-              Access turn-by-turn campus radar, live BLE beacon tracking, Medicare coverage calculator, and instant Pal booking.
+              Access turn-by-turn campus radar, live BLE beacon tracking, health voucher calculator, and instant Pal booking.
             </p>
           </div>
 

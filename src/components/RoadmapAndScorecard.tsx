@@ -5,9 +5,9 @@ import { PILOT_METRICS } from '../data/mockData';
 export const RoadmapAndScorecard: React.FC = () => {
   const growthPhases = [
     { num: '1', title: 'LAUNCH', desc: 'Deploy 24/7 care escorts in primary hospital hubs' },
-    { num: '2', title: 'INTEGRATE', desc: 'Epic/Cerner EHR API & CMS G0511 billing setup' },
+    { num: '2', title: 'INTEGRATE', desc: 'Epic/Cerner EHR API & care navigation billing setup' },
     { num: '3', title: 'EXPAND', desc: 'Scale Pal network across emergency & outpatient towers' },
-    { num: '4', title: 'CREDENTIAL', desc: 'Statewide Medicaid CHW certification pathways' },
+    { num: '4', title: 'CREDENTIAL', desc: 'Statewide CHW certification pathways' },
     { num: '5', title: 'MOBILE APP', desc: 'Native Android BLE indoor navigation release' },
     { num: '6', title: 'NATIONWIDE', desc: 'Full health system partnerships across all 50 states' },
   ];
@@ -15,8 +15,8 @@ export const RoadmapAndScorecard: React.FC = () => {
   const stagedGrowth = [
     { num: '1', name: 'Regional Hubs', desc: 'Anchor hospital systems in major metro centers' },
     { num: '2', name: 'Citywide Network', desc: 'Cover clinics, imaging centers and outpatient surgery' },
-    { num: '3', name: 'Statewide Coverage', desc: 'Statewide Medicaid & CHW care coordination' },
-    { num: '4', name: 'Nationwide Enterprise', desc: 'National Medicare Advantage & health system licensing' },
+    { num: '3', name: 'Statewide Coverage', desc: 'Statewide CHW care coordination' },
+    { num: '4', name: 'Nationwide Enterprise', desc: 'National health plan & health system licensing' },
     { num: '5', name: 'Global Health', desc: 'International expansion with global care partners' },
   ];
 

@@ -8,7 +8,7 @@ interface PaymentModalProps {
 }
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, defaultType = 'visit' }) => {
-  const [paymentType, setPaymentType] = useState<'visit' | 'membership_monthly' | 'membership_annual' | 'medicare_voucher'>(
+  const [paymentType, setPaymentType] = useState<'visit' | 'membership_monthly' | 'membership_annual' | 'subsidized_voucher'>(
     defaultType === 'membership' ? 'membership_monthly' : 'visit'
   );
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal' | 'applepay' | 'voucher'>('card');
@@ -29,7 +29,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, def
     if (paymentType === 'visit') return 35;
     if (paymentType === 'membership_monthly') return 49;
     if (paymentType === 'membership_annual') return 399;
-    if (paymentType === 'medicare_voucher') return 0;
+    if (paymentType === 'subsidized_voucher') return 0;
     return 35;
   };
 
@@ -73,7 +73,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, def
               </div>
               <h3 className="text-2xl font-black uppercase italic text-white">PathPal Care & Access Payment</h3>
               <p className="text-xs text-gray-300 font-light">
-                Select your service plan and complete payment via Credit Card, PayPal, Apple Pay, or Medicare Voucher.
+                Select your service plan and complete payment via Credit Card, PayPal, Apple Pay, or Insurance Voucher.
               </p>
             </div>
 
@@ -140,7 +140,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, def
                     type="button"
                     onClick={() => {
                       setPaymentMethod(m.id as any);
-                      if (m.id === 'voucher') setPaymentType('medicare_voucher');
+                      if (m.id === 'voucher') setPaymentType('subsidized_voucher');
                     }}
                     className={`py-2 px-1 text-[11px] font-bold rounded-xl border text-center transition-all ${
                       paymentMethod === m.id
@@ -160,7 +160,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, def
                 <Tag className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Insurance Voucher Code (e.g. MEDICARE2026)"
+                  placeholder="Insurance Voucher Code (e.g. VOUCHER2026)"
                   value={voucherCode}
                   onChange={(e) => setVoucherCode(e.target.value)}
                   className="w-full bg-[#1A2232] text-xs text-white pl-9 pr-3 py-2.5 rounded-xl border border-white/10 focus:border-[#00F0FF] focus:outline-none"
@@ -177,7 +177,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, def
 
             {appliedVoucher && (
               <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-bold rounded-xl flex items-center justify-between">
-                <span>✓ Medicare SSBCI Voucher Applied! 100% Subsidized</span>
+                <span>✓ Health Benefit Voucher Applied! 100% Subsidized</span>
                 <span className="text-white">$0.00 Due</span>
               </div>
             )}
@@ -255,14 +255,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, def
 
               {paymentMethod === 'voucher' && (
                 <div className="p-4 bg-[#1A2232] rounded-2xl border border-white/10 space-y-2">
-                  <label className="block text-xs font-bold uppercase text-[#00F0FF]">Medicare Advantage / Medicaid Plan ID</label>
+                  <label className="block text-xs font-bold uppercase text-[#00F0FF]">Health Plan / Insurance Member ID</label>
                   <input
                     type="text"
                     required
                     placeholder="Enter Insurance Member ID Number"
                     className="w-full bg-[#121824] text-xs text-white p-2.5 rounded-xl border border-white/10 focus:border-[#00F0FF] focus:outline-none"
                   />
-                  <p className="text-[10px] text-gray-400">Covers non-clinical companion navigation under SSBCI/VBID benefit codes.</p>
+                  <p className="text-[10px] text-gray-400">Covers non-clinical companion navigation under partner health benefit codes.</p>
                 </div>
               )}
 

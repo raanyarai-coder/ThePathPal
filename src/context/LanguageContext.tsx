@@ -32,12 +32,12 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     btnLiveGps: 'Live GPS Radar',
 
     // Hero
-    heroBadge: 'CMS Medicare G0511 Covered • $0 Out-of-Pocket',
+    heroBadge: 'Health Plan & Insurance Covered • $0 Out-of-Pocket',
     heroTitlePrefix: 'Compassionate Hospital',
     heroTitleHighlight: 'Companion & Guidance',
     heroSubtitle: 'Connecting elderly, disabled, and non-English speaking patients with background-checked Community Health Workers for stress-free hospital visits.',
     heroStat1: 'Doorstep-to-Clinic Pal',
-    heroStat2: 'Medicare & Medicaid Covered',
+    heroStat2: 'Health Plan Subsidized',
     heroStat3: 'Multilingual CHWs',
 
     // Portals Selector
@@ -52,7 +52,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
 
     // Patient Portal
     welcomePatient: 'Welcome, Maria Santos',
-    medicareCovered: 'Medicare $0 Cost Covered',
+    voucherSubsidized: '100% Subsidized / $0 Cost',
     bookEscortTitle: 'Schedule a Hospital Companion Pal',
     patientName: 'Patient Full Name',
     phoneLabel: 'Phone Number for Updates',
@@ -106,12 +106,12 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     btnLiveGps: 'Radar GPS en Vivo',
 
     // Hero
-    heroBadge: 'Cubierto por Medicare G0511 • $0 de su Bolsillo',
+    heroBadge: 'Cubierto por Seguro Médico • $0 de su Bolsillo',
     heroTitlePrefix: 'Acompañante y Escolta',
     heroTitleHighlight: 'Hospitalaria Compasiva',
     heroSubtitle: 'Conectando a adultos mayores, personas con discapacidad y pacientes de habla hispana con promotores de salud acreditados para visitas hospitalarias sin estrés.',
     heroStat1: 'Escolta desde Puerta a Clínica',
-    heroStat2: 'Cubierto por Medicare y Medicaid',
+    heroStat2: 'Cubierto por Seguro Médico',
     heroStat3: 'Acompañantes Multilingües',
 
     // Portals Selector
@@ -126,7 +126,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
 
     // Patient Portal
     welcomePatient: 'Bienvenido/a, Maria Santos',
-    medicareCovered: 'Cubierto 100% por Medicare ($0 Costo)',
+    voucherSubsidized: 'Subvencionado 100% ($0 Costo)',
     bookEscortTitle: 'Programar un Acompañante Hospitalario Pal',
     patientName: 'Nombre Completo del Paciente',
     phoneLabel: 'Número de Teléfono para Notificaciones',

@@ -31,7 +31,7 @@ export const AboutAndImpactPage: React.FC<AboutAndImpactPageProps> = ({
           </span>
           <h1 className="text-3xl sm:text-5xl font-black text-white">About PathPal, Safety & Impact</h1>
           <p className="text-sm sm:text-base text-gray-300">
-            Learn why PathPal was built, how our accredited Companion Pals transform health access, and our compliance with CMS Medicare G0511 standards.
+            Learn why PathPal was built, how our accredited Companion Pals transform health access, and our compliance with healthcare quality standards.
           </p>
         </div>
       </div>
