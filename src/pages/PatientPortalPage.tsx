@@ -76,10 +76,10 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 animate-fade-in text-white">
       
       {/* Patient Portal Header Banner */}
-      <div className="bg-[#121824] p-6 sm:p-8 rounded-3xl border-2 border-companion-coral/40 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+      <div className="bg-[#1F3449] p-6 sm:p-8 rounded-3xl border-2 border-[#E85D75]/40 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
         <div className="space-y-2 relative z-10">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-black uppercase tracking-widest text-white bg-companion-coral px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md">
+            <span className="text-xs font-black uppercase tracking-widest text-white bg-[#E85D75] px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md">
               <Heart className="w-3.5 h-3.5 fill-white" />
               PATIENT & FAMILY PORTAL
             </span>
@@ -96,21 +96,21 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
         <div className="flex flex-wrap items-center gap-2 relative z-10">
           <button
             onClick={onOpenGpsModal}
-            className="bg-[#1A2232] hover:bg-white/10 text-[#00F0FF] font-bold text-xs uppercase px-4 py-3 rounded-xl border border-[#00F0FF]/30 flex items-center gap-2"
+            className="bg-[#2B425B] hover:bg-white/10 text-[#48A6A5] font-bold text-xs uppercase px-4 py-3 rounded-xl border border-[#48A6A5]/30 flex items-center gap-2"
           >
-            <Navigation className="w-4 h-4 text-[#00F0FF]" />
+            <Navigation className="w-4 h-4 text-[#48A6A5]" />
             <span>Track Live GPS</span>
           </button>
         </div>
       </div>
 
       {/* Patient Tabs Navigation */}
-      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-[#121824] rounded-2xl border border-white/10 text-xs font-bold">
+      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-[#1F3449] rounded-2xl border border-white/10 text-xs font-bold">
         <button
           onClick={() => setActiveTab('request')}
           className={`px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${
             activeTab === 'request'
-              ? 'bg-companion-coral text-white shadow-lg'
+              ? 'bg-[#E85D75] text-white shadow-lg'
               : 'text-gray-300 hover:text-white hover:bg-white/5'
           }`}
         >
@@ -122,11 +122,11 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
           onClick={() => setActiveTab('my_escorts')}
           className={`px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${
             activeTab === 'my_escorts'
-              ? 'bg-companion-coral text-white shadow-lg'
+              ? 'bg-[#E85D75] text-white shadow-lg'
               : 'text-gray-300 hover:text-white hover:bg-white/5'
           }`}
         >
-          <Calendar className="w-4 h-4 text-[#00F0FF]" />
+          <Calendar className="w-4 h-4 text-[#48A6A5]" />
           <span>My Scheduled Visits ({requests.length})</span>
         </button>
 
@@ -134,11 +134,11 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
           onClick={() => setActiveTab('eta_calculator')}
           className={`px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${
             activeTab === 'eta_calculator'
-              ? 'bg-[#00F0FF] text-black font-black shadow-lg shadow-[#00F0FF]/20'
+              ? 'bg-[#48A6A5] text-white font-black shadow-lg shadow-[#48A6A5]/20'
               : 'text-gray-300 hover:text-white hover:bg-white/5'
           }`}
         >
-          <Calculator className="w-4 h-4 text-[#00F0FF]" />
+          <Calculator className="w-4 h-4 text-[#48A6A5]" />
           <span>AI Hospital ETA Predictor</span>
         </button>
 
@@ -146,11 +146,11 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
           onClick={() => setActiveTab('recovery_trends')}
           className={`px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${
             activeTab === 'recovery_trends'
-              ? 'bg-[#00F0FF] text-black font-black shadow-lg shadow-[#00F0FF]/20'
+              ? 'bg-[#48A6A5] text-white font-black shadow-lg shadow-[#48A6A5]/20'
               : 'text-gray-300 hover:text-white hover:bg-white/5'
           }`}
         >
-          <Activity className="w-4 h-4 text-[#00F0FF]" />
+          <Activity className="w-4 h-4 text-[#48A6A5]" />
           <span>30-Day Recovery Trends</span>
         </button>
 
@@ -158,11 +158,11 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
           onClick={() => setActiveTab('medical_summary')}
           className={`px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${
             activeTab === 'medical_summary'
-              ? 'bg-pathpal-navy text-white border border-[#00F0FF] shadow-lg'
+              ? 'bg-[#1F3449] text-white border border-[#48A6A5] shadow-lg'
               : 'text-gray-300 hover:text-white hover:bg-white/5'
           }`}
         >
-          <ShieldCheck className="w-4 h-4 text-[#00F0FF]" />
+          <ShieldCheck className="w-4 h-4 text-[#48A6A5]" />
           <span>Secure Medical Summary</span>
         </button>
 
@@ -181,16 +181,16 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
 
       {/* TAB 1: REQUEST NEW COMPANION PAL */}
       {activeTab === 'request' && (
-        <div className="bg-[#121824] p-6 sm:p-8 rounded-3xl border border-white/10 space-y-6">
+        <div className="bg-[#1F3449] p-6 sm:p-8 rounded-3xl border border-white/10 space-y-6">
           <div className="border-b border-white/10 pb-4">
-            <span className="text-xs font-black uppercase text-companion-coral tracking-wider">BOOK COMPANION PAL</span>
+            <span className="text-xs font-black uppercase text-[#E85D75] tracking-wider">BOOK COMPANION PAL</span>
             <h2 className="text-2xl font-black text-white">Schedule a Hospital Companion Pal</h2>
             <p className="text-xs text-gray-300">
               Fill out your visit details. We match you with an accredited, background-checked Community Health Worker or Pal.
             </p>
           </div>
 
-          <form onSubmit={handleCreateRequest} className="space-y-4 bg-[#1A2232] p-6 sm:p-8 rounded-2xl border border-white/10 max-w-3xl">
+          <form onSubmit={handleCreateRequest} className="space-y-4 bg-[#2B425B] p-6 sm:p-8 rounded-2xl border border-white/10 max-w-3xl">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-300 mb-1">{t('patientName')}</label>
@@ -199,7 +199,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                   required
                   value={patientName}
                   onChange={(e) => setPatientName(e.target.value)}
-                  className="w-full text-xs p-3 rounded-xl bg-black/40 border border-white/15 text-white focus:ring-2 focus:ring-companion-coral focus:outline-none"
+                  className="w-full text-xs p-3 rounded-xl bg-[#152535] border border-white/15 text-white focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
                 />
               </div>
               <div>
@@ -209,7 +209,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                   required
                   value={patientPhone}
                   onChange={(e) => setPatientPhone(e.target.value)}
-                  className="w-full text-xs p-3 rounded-xl bg-black/40 border border-white/15 text-white focus:ring-2 focus:ring-companion-coral focus:outline-none"
+                  className="w-full text-xs p-3 rounded-xl bg-[#152535] border border-white/15 text-white focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
                 />
               </div>
             </div>
@@ -223,10 +223,10 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                       const h = SAMPLE_HOSPITALS.find((x) => x.id === e.target.value);
                       if (h) setMeetingPoint(h.meetingPoints[0]);
                     }}
-                    className="w-full text-xs p-3 rounded-xl bg-black/40 border border-white/15 text-white focus:ring-2 focus:ring-companion-coral focus:outline-none"
+                    className="w-full text-xs p-3 rounded-xl bg-[#152535] border border-white/15 text-white focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
                   >
                     {SAMPLE_HOSPITALS.map((h) => (
-                      <option key={h.id} value={h.id} className="bg-[#121824]">
+                      <option key={h.id} value={h.id} className="bg-[#1F3449]">
                         {h.name} ({h.city}, {h.state})
                       </option>
                     ))}
@@ -238,10 +238,10 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                   <select
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl bg-black/40 border border-white/15 text-white focus:ring-2 focus:ring-companion-coral focus:outline-none"
+                    className="w-full text-xs p-3 rounded-xl bg-[#152535] border border-white/15 text-white focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
                   >
                     {selectedHospital.departments.map((d) => (
-                      <option key={d} value={d} className="bg-[#121824]">
+                      <option key={d} value={d} className="bg-[#1F3449]">
                         {d}
                       </option>
                     ))}
@@ -256,7 +256,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                     type="date"
                     value={appointmentDate}
                     onChange={(e) => setAppointmentDate(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl bg-black/40 border border-white/15 text-white focus:ring-2 focus:ring-companion-coral focus:outline-none"
+                    className="w-full text-xs p-3 rounded-xl bg-[#152535] border border-white/15 text-white focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
                   />
                 </div>
                 <div>
@@ -265,7 +265,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                     type="text"
                     value={appointmentTime}
                     onChange={(e) => setAppointmentTime(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl bg-black/40 border border-white/15 text-white focus:ring-2 focus:ring-companion-coral focus:outline-none"
+                    className="w-full text-xs p-3 rounded-xl bg-[#152535] border border-white/15 text-white focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
                   />
                 </div>
                 <div>
@@ -273,10 +273,10 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                   <select
                     value={languagePreference}
                     onChange={(e) => setLanguagePreference(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl bg-black/40 border border-white/15 text-white focus:ring-2 focus:ring-companion-coral focus:outline-none"
+                    className="w-full text-xs p-3 rounded-xl bg-[#152535] border border-white/15 text-white focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
                   >
-                    <option value="English" className="bg-[#121824]">English</option>
-                    <option value="Spanish" className="bg-[#121824]">Spanish (Español)</option>
+                    <option value="English" className="bg-[#1F3449]">English</option>
+                    <option value="Spanish" className="bg-[#1F3449]">Spanish (Español)</option>
                   </select>
                 </div>
               </div>
@@ -286,10 +286,10 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                 <select
                   value={meetingPoint}
                   onChange={(e) => setMeetingPoint(e.target.value)}
-                  className="w-full text-xs p-3 rounded-xl bg-black/40 border border-white/15 text-white focus:ring-2 focus:ring-companion-coral focus:outline-none"
+                  className="w-full text-xs p-3 rounded-xl bg-[#152535] border border-white/15 text-white focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
                 >
                   {selectedHospital.meetingPoints.map((mp) => (
-                    <option key={mp} value={mp} className="bg-[#121824]">
+                    <option key={mp} value={mp} className="bg-[#1F3449]">
                       📍 {mp}
                     </option>
                   ))}
@@ -300,12 +300,12 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                 <label className="block text-xs font-bold text-gray-300 mb-2">Accommodations Needed</label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                   {['Wheelchair Pal Assistance', 'Arm Assistance', 'Visual Aid', 'Anxiety Reassurance'].map((opt) => (
-                    <label key={opt} className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${selectedMobility.includes(opt) ? 'bg-companion-coral/20 border-companion-coral text-white' : 'bg-black/30 border-white/10 text-gray-300 hover:bg-white/5'}`}>
+                    <label key={opt} className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${selectedMobility.includes(opt) ? 'bg-[#E85D75]/20 border-[#E85D75] text-white' : 'bg-black/30 border-white/10 text-gray-300 hover:bg-white/5'}`}>
                       <input
                         type="checkbox"
                         checked={selectedMobility.includes(opt)}
                         onChange={() => toggleMobilityOption(opt)}
-                        className="rounded text-companion-coral focus:ring-companion-coral"
+                        className="rounded text-[#E85D75] focus:ring-[#E85D75]"
                       />
                       <span className="font-bold">{opt}</span>
                     </label>
@@ -315,7 +315,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
 
               <button
                 type="submit"
-                className="w-full text-xs font-black uppercase text-white bg-companion-coral hover:bg-companion-coral/90 py-4 rounded-xl transition-all shadow-xl flex items-center justify-center gap-2 mt-4"
+                className="w-full text-xs font-black uppercase text-white bg-[#E85D75] hover:bg-[#E85D75]/90 py-4 rounded-xl transition-all shadow-xl flex items-center justify-center gap-2 mt-4"
               >
                 <Heart className="w-4 h-4 fill-white" />
                 <span>Submit Pal Request</span>

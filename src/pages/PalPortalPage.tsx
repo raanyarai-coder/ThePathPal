@@ -37,14 +37,14 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 animate-fade-in text-white">
       
       {/* Pal Portal Header Banner */}
-      <div className="bg-[#121824] p-6 sm:p-8 rounded-3xl border-2 border-navigation-teal/40 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="bg-[#1F3449] p-6 sm:p-8 rounded-3xl border-2 border-[#48A6A5]/40 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-black uppercase tracking-widest text-white bg-navigation-teal px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md">
+            <span className="text-xs font-black uppercase tracking-widest text-white bg-[#48A6A5] px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md">
               <UserCheck className="w-3.5 h-3.5" />
               PAL COMPANION PORTAL
             </span>
-            <span className="text-xs font-bold text-navigation-teal bg-navigation-teal/20 px-3 py-1 rounded-full border border-navigation-teal/30 font-mono">
+            <span className="text-xs font-bold text-[#48A6A5] bg-[#48A6A5]/20 px-3 py-1 rounded-full border border-[#48A6A5]/30 font-mono">
               Badge #PAL-8802
             </span>
           </div>
@@ -56,7 +56,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Duty Status Toggle */}
-          <div className="flex items-center gap-2 bg-[#1A2232] p-2 rounded-2xl border border-white/10">
+          <div className="flex items-center gap-2 bg-[#2B425B] p-2 rounded-2xl border border-white/10">
             <span className="text-xs font-bold text-gray-300 pl-2">Duty Status:</span>
             <button
               onClick={() => setIsOnDuty(!isOnDuty)}
@@ -71,7 +71,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
 
           <button
             onClick={onOpenGpsModal}
-            className="bg-[#00F0FF] text-black font-black text-xs uppercase px-4 py-3 rounded-xl flex items-center gap-2 shadow-lg hover:bg-[#00F0FF]/90 transition-all"
+            className="bg-[#48A6A5] text-white font-black text-xs uppercase px-4 py-3 rounded-xl flex items-center gap-2 shadow-lg hover:bg-[#48A6A5]/90 transition-all"
           >
             <Navigation className="w-4 h-4" />
             <span>Indoor Campus Radar</span>
@@ -81,28 +81,28 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
 
       {/* Pal Quick Metrics Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-[#121824] p-5 rounded-2xl border border-white/10 space-y-1">
+        <div className="bg-[#1F3449] p-5 rounded-2xl border border-white/10 space-y-1">
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Completed Visits</span>
           <div className="text-2xl sm:text-3xl font-black text-white">{palInfo.completedVisits} Visits</div>
           <span className="text-[10px] font-bold text-emerald-400">100% On-Time Record</span>
         </div>
 
-        <div className="bg-[#121824] p-5 rounded-2xl border border-white/10 space-y-1">
+        <div className="bg-[#1F3449] p-5 rounded-2xl border border-white/10 space-y-1">
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Patient Rating</span>
-          <div className="text-2xl sm:text-3xl font-black text-amber-400 flex items-center gap-1">
+          <div className="text-2xl sm:text-3xl font-black text-[#F1B84C] flex items-center gap-1">
             <span>{palInfo.rating}</span>
-            <Star className="w-5 h-5 fill-amber-400" />
+            <Star className="w-5 h-5 fill-[#F1B84C]" />
           </div>
           <span className="text-[10px] font-bold text-gray-300">Based on 84 reviews</span>
         </div>
 
-        <div className="bg-[#121824] p-5 rounded-2xl border border-white/10 space-y-1">
+        <div className="bg-[#1F3449] p-5 rounded-2xl border border-white/10 space-y-1">
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Hourly Stipend Rate</span>
-          <div className="text-2xl sm:text-3xl font-black text-navigation-teal">$26.00 / hr</div>
-          <span className="text-[10px] font-bold text-navigation-teal">+ $5.00 Bonus Per Visit</span>
+          <div className="text-2xl sm:text-3xl font-black text-[#48A6A5]">$26.00 / hr</div>
+          <span className="text-[10px] font-bold text-[#48A6A5]">+ $5.00 Bonus Per Visit</span>
         </div>
 
-        <div className="bg-[#121824] p-5 rounded-2xl border border-white/10 space-y-1">
+        <div className="bg-[#1F3449] p-5 rounded-2xl border border-white/10 space-y-1">
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Certifications</span>
           <div className="text-xs font-bold text-emerald-400 mt-1 flex items-center gap-1">
             <ShieldCheck className="w-4 h-4" />
@@ -113,12 +113,12 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
       </div>
 
       {/* Pal Tabs Navigation */}
-      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-[#121824] rounded-2xl border border-white/10 text-xs font-bold">
+      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-[#1F3449] rounded-2xl border border-white/10 text-xs font-bold">
         <button
           onClick={() => setActiveTab('available_feed')}
           className={`px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${
             activeTab === 'available_feed'
-              ? 'bg-navigation-teal text-white shadow-lg'
+              ? 'bg-[#48A6A5] text-white shadow-lg'
               : 'text-gray-300 hover:text-white hover:bg-white/5'
           }`}
         >
@@ -130,7 +130,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
           onClick={() => setActiveTab('my_active')}
           className={`px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${
             activeTab === 'my_active'
-              ? 'bg-navigation-teal text-white shadow-lg'
+              ? 'bg-[#48A6A5] text-white shadow-lg'
               : 'text-gray-300 hover:text-white hover:bg-white/5'
           }`}
         >
@@ -142,11 +142,11 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
           onClick={() => setActiveTab('eta_calculator')}
           className={`px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${
             activeTab === 'eta_calculator'
-              ? 'bg-[#00F0FF] text-black font-black shadow-lg shadow-[#00F0FF]/20'
+              ? 'bg-[#48A6A5] text-white font-black shadow-lg shadow-[#48A6A5]/20'
               : 'text-gray-300 hover:text-white hover:bg-white/5'
           }`}
         >
-          <Calculator className="w-4 h-4 text-[#00F0FF]" />
+          <Calculator className="w-4 h-4 text-[#48A6A5]" />
           <span>AI Dispatch ETA Predictor</span>
         </button>
 
@@ -166,52 +166,52 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
           onClick={() => setActiveTab('profile')}
           className={`px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${
             activeTab === 'profile'
-              ? 'bg-pathpal-navy text-white border border-white/20 shadow-lg'
+              ? 'bg-[#1F3449] text-white border border-[#48A6A5] shadow-lg'
               : 'text-gray-300 hover:text-white hover:bg-white/5'
           }`}
         >
-          <Award className="w-4 h-4 text-amber-300" />
+          <Award className="w-4 h-4 text-[#F1B84C]" />
           <span>Badge & Certifications</span>
         </button>
       </div>
 
       {/* TAB 1: AVAILABLE ESCORTS FEED */}
       {activeTab === 'available_feed' && (
-        <div className="bg-[#121824] p-6 sm:p-8 rounded-3xl border border-white/10 space-y-6">
+        <div className="bg-[#1F3449] p-6 sm:p-8 rounded-3xl border border-white/10 space-y-6">
           <div className="flex items-center justify-between border-b border-white/10 pb-4">
             <div>
-              <span className="text-xs font-black uppercase text-navigation-teal tracking-wider">DISPATCH FEED</span>
+              <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">DISPATCH FEED</span>
               <h2 className="text-2xl font-black text-white">Pending Patient Pal Requests</h2>
             </div>
-            <span className="text-xs font-bold text-navigation-teal bg-navigation-teal/20 px-3 py-1 rounded-full border border-navigation-teal/30">
+            <span className="text-xs font-bold text-[#48A6A5] bg-[#48A6A5]/20 px-3 py-1 rounded-full border border-[#48A6A5]/30">
               Nearby Hospitals
             </span>
           </div>
 
           <div className="space-y-4">
             {requests.map((req) => (
-              <div key={req.id} className="bg-[#1A2232] p-6 rounded-2xl border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hover:border-navigation-teal/50 transition-all">
+              <div key={req.id} className="bg-[#2B425B] p-6 rounded-2xl border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hover:border-[#48A6A5]/50 transition-all">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-white font-mono bg-black/40 px-2.5 py-0.5 rounded border border-white/10">
                       {req.id}
                     </span>
-                    <span className="text-xs font-bold text-companion-coral bg-companion-coral/10 px-2 py-0.5 rounded">
+                    <span className="text-xs font-bold text-[#E85D75] bg-[#E85D75]/10 px-2 py-0.5 rounded">
                       {req.department}
                     </span>
-                    <span className="text-xs font-bold text-navigation-teal bg-navigation-teal/10 px-2 py-0.5 rounded">
+                    <span className="text-xs font-bold text-[#48A6A5] bg-[#48A6A5]/10 px-2 py-0.5 rounded">
                       🗣️ {req.languagePreference}
                     </span>
                   </div>
 
                   <h3 className="text-xl font-black text-white">{req.patientName}</h3>
                   <p className="text-xs text-gray-300 flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-companion-coral shrink-0" />
+                    <MapPin className="w-4 h-4 text-[#E85D75] shrink-0" />
                     <span>{req.hospitalName} • Rendezvous: <strong>{req.meetingPoint}</strong></span>
                   </p>
 
                   <div className="flex flex-wrap items-center gap-3 text-xs text-gray-300">
-                    <span className="flex items-center gap-1 font-bold text-amber-300">
+                    <span className="flex items-center gap-1 font-bold text-[#F1B84C]">
                       <Clock className="w-3.5 h-3.5" /> {req.appointmentDate} at {req.appointmentTime}
                     </span>
                     <span className="font-semibold text-emerald-400">
@@ -233,13 +233,13 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
                     onClick={() => setSelectedPalPatientSummary(req)}
                     className="w-full sm:w-auto px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 border border-white/20"
                   >
-                    <ShieldCheck className="w-4 h-4 text-[#00F0FF]" />
+                    <ShieldCheck className="w-4 h-4 text-[#48A6A5]" />
                     <span>Read-Only Health Info</span>
                   </button>
 
                   <button
                     onClick={() => handleAcceptRequest(req.id)}
-                    className="w-full sm:w-auto px-6 py-3 rounded-xl bg-navigation-teal hover:bg-navigation-teal/90 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-navigation-teal/30 transition-all"
+                    className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-[#48A6A5]/30 transition-all"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span>Accept Pal Assignment</span>
@@ -253,10 +253,10 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
 
       {/* TAB 2: MY ACTIVE ESCORTS */}
       {activeTab === 'my_active' && (
-        <div className="bg-[#121824] p-6 sm:p-8 rounded-3xl border border-navigation-teal/40 space-y-6">
+        <div className="bg-[#1F3449] p-6 sm:p-8 rounded-3xl border border-[#48A6A5]/40 space-y-6">
           <div className="flex items-center justify-between border-b border-white/10 pb-4">
             <div>
-              <span className="text-xs font-black uppercase text-navigation-teal tracking-wider">ACTIVE ASSIGNMENT</span>
+              <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">ACTIVE ASSIGNMENT</span>
               <h2 className="text-2xl font-black text-white">Your Accepted Companion Assignments</h2>
             </div>
             <span className="text-xs font-bold bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/30">
@@ -266,16 +266,16 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
 
           <div className="space-y-4">
             {requests.map((req) => (
-              <div key={req.id} className="bg-[#1A2232] p-6 rounded-2xl border-2 border-navigation-teal/50 space-y-4">
+              <div key={req.id} className="bg-[#2B425B] p-6 rounded-2xl border-2 border-[#48A6A5]/50 space-y-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-3">
                   <div>
-                    <span className="text-xs font-bold text-[#00F0FF] uppercase">PATIENT:</span>
+                    <span className="text-xs font-bold text-[#48A6A5] uppercase">PATIENT:</span>
                     <h3 className="text-2xl font-black text-white">{req.patientName}</h3>
                     <p className="text-xs text-gray-300">{req.hospitalName} ({req.department})</p>
                   </div>
                   <button
                     onClick={() => setSelectedPalPatientSummary(req)}
-                    className="px-4 py-2 rounded-xl bg-[#00F0FF]/15 text-[#00F0FF] border border-[#00F0FF]/40 text-xs font-bold flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-xl bg-[#48A6A5]/15 text-[#48A6A5] border border-[#48A6A5]/40 text-xs font-bold flex items-center gap-1.5"
                   >
                     <Lock className="w-3.5 h-3.5" /> Audit Read-Only Medical Summary
                   </button>
@@ -292,7 +292,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
                   </div>
                   <div className="bg-black/40 p-3 rounded-xl border border-white/10">
                     <span className="text-gray-400 block font-mono text-[10px]">MOBILITY REQ:</span>
-                    <span className="text-companion-coral font-bold">{req.mobilityNeeds.join(', ')}</span>
+                    <span className="text-[#E85D75] font-bold">{req.mobilityNeeds.join(', ')}</span>
                   </div>
                 </div>
 
@@ -309,15 +309,15 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
                       });
                       window.open(gCalUrl, '_blank', 'noopener,noreferrer');
                     }}
-                    className="px-5 py-3 rounded-xl bg-[#1A2232] hover:bg-white/10 text-[#00F0FF] font-bold text-xs uppercase tracking-wider flex items-center gap-2 border border-[#00F0FF]/40 transition-all"
+                    className="px-5 py-3 rounded-xl bg-[#1F3449] hover:bg-white/10 text-[#48A6A5] font-bold text-xs uppercase tracking-wider flex items-center gap-2 border border-[#48A6A5]/40 transition-all"
                   >
-                    <Calendar className="w-4 h-4 text-[#00F0FF]" />
+                    <Calendar className="w-4 h-4 text-[#48A6A5]" />
                     <span>Sync Duty & Medical Review Reminder</span>
                   </button>
 
                   <button
                     onClick={onOpenGpsModal}
-                    className="px-6 py-3 rounded-xl bg-navigation-teal hover:bg-navigation-teal/90 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg"
+                    className="px-6 py-3 rounded-xl bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg"
                   >
                     <Navigation className="w-4 h-4" />
                     <span>Launch Campus Navigation & Beacon Check-In</span>
@@ -350,7 +350,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
 
       {/* TAB 3: EARNINGS & STIPEND LOG */}
       {activeTab === 'earnings' && (
-        <div className="bg-[#121824] p-6 sm:p-8 rounded-3xl border border-emerald-500/40 space-y-6">
+        <div className="bg-[#1F3449] p-6 sm:p-8 rounded-3xl border border-emerald-500/40 space-y-6">
           <div className="border-b border-white/10 pb-4">
             <span className="text-xs font-black uppercase text-emerald-400 tracking-wider">CHW STIPEND LOG</span>
             <h2 className="text-2xl font-black text-white">Pal Earnings & Payout Breakdown</h2>
@@ -360,21 +360,21 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-[#1A2232] p-6 rounded-2xl border border-white/10 space-y-2">
+            <div className="bg-[#2B425B] p-6 rounded-2xl border border-white/10 space-y-2">
               <span className="text-[10px] font-bold uppercase text-gray-400">THIS WEEK EARNINGS</span>
               <div className="text-3xl font-black text-emerald-400">$468.00</div>
               <p className="text-xs text-gray-300">18 Hours Logged • 9 Escorts</p>
             </div>
 
-            <div className="bg-[#1A2232] p-6 rounded-2xl border border-white/10 space-y-2">
+            <div className="bg-[#2B425B] p-6 rounded-2xl border border-white/10 space-y-2">
               <span className="text-[10px] font-bold uppercase text-gray-400">MONTHLY TOTAL</span>
               <div className="text-3xl font-black text-white">$1,840.00</div>
               <p className="text-xs text-gray-300">71 Hours Logged • 35 Escorts</p>
             </div>
 
-            <div className="bg-[#1A2232] p-6 rounded-2xl border border-white/10 space-y-2">
+            <div className="bg-[#2B425B] p-6 rounded-2xl border border-white/10 space-y-2">
               <span className="text-[10px] font-bold uppercase text-gray-400">HOSPITAL BONUSES</span>
-              <div className="text-3xl font-black text-amber-400">$140.00</div>
+              <div className="text-3xl font-black text-[#F1B84C]">$140.00</div>
               <p className="text-xs text-gray-300">5-Star Rating Bonuses</p>
             </div>
           </div>
@@ -393,20 +393,20 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
 
       {/* TAB 4: BADGE & CERTIFICATIONS */}
       {activeTab === 'profile' && (
-        <div className="bg-[#121824] p-6 sm:p-8 rounded-3xl border border-white/10 space-y-6">
+        <div className="bg-[#1F3449] p-6 sm:p-8 rounded-3xl border border-white/10 space-y-6">
           <div className="border-b border-white/10 pb-4">
-            <span className="text-xs font-black uppercase text-amber-400 tracking-wider">ACCREDITATION BADGE</span>
+            <span className="text-xs font-black uppercase text-[#F1B84C] tracking-wider">ACCREDITATION BADGE</span>
             <h2 className="text-2xl font-black text-white">Official PathPal Companion Badge & Clearances</h2>
           </div>
 
-          <div className="bg-[#1A2232] p-6 rounded-2xl border border-white/10 max-w-md space-y-4">
+          <div className="bg-[#2B425B] p-6 rounded-2xl border border-white/10 max-w-md space-y-4">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-navigation-teal text-white font-black text-2xl flex items-center justify-center shadow-lg">
+              <div className="w-16 h-16 rounded-2xl bg-[#48A6A5] text-white font-black text-2xl flex items-center justify-center shadow-lg">
                 ER
               </div>
               <div>
                 <h3 className="text-xl font-black text-white">Elena Rostova</h3>
-                <span className="text-xs text-[#00F0FF] font-mono font-bold block">Badge #PAL-8802</span>
+                <span className="text-xs text-[#48A6A5] font-mono font-bold block">Badge #PAL-8802</span>
                 <span className="text-[10px] text-gray-400 block">San Francisco Medical Campus Division</span>
               </div>
             </div>
@@ -438,7 +438,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
       {/* PAL READ-ONLY MEDICAL SUMMARY MODAL */}
       {selectedPalPatientSummary && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-[#0A0D14] rounded-3xl max-w-3xl w-full p-6 sm:p-8 border-2 border-[#00F0FF] shadow-2xl relative max-h-[90vh] overflow-y-auto space-y-4 text-white">
+          <div className="bg-[#1F3449] rounded-3xl max-w-3xl w-full p-6 sm:p-8 border-2 border-[#48A6A5] shadow-2xl relative max-h-[90vh] overflow-y-auto space-y-4 text-white">
             <button
               onClick={() => setSelectedPalPatientSummary(null)}
               className="absolute top-5 right-5 p-2 rounded-full text-gray-400 hover:bg-white/10 transition-colors"
@@ -446,7 +446,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
               <X className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center gap-2 text-xs font-bold text-[#00F0FF] uppercase tracking-wider">
+            <div className="flex items-center gap-2 text-xs font-bold text-[#48A6A5] uppercase tracking-wider">
               <Lock className="w-4 h-4" />
               <span>PAL COMPANION READ-ONLY AUDIT VIEW</span>
             </div>
@@ -476,7 +476,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
             <div className="pt-2 flex justify-end">
               <button
                 onClick={() => setSelectedPalPatientSummary(null)}
-                className="bg-[#00F0FF] text-black font-black text-xs px-6 py-3 rounded-xl uppercase tracking-wider hover:bg-[#00F0FF]/90 transition-all"
+                className="bg-[#48A6A5] text-white font-black text-xs px-6 py-3 rounded-xl uppercase tracking-wider hover:bg-[#48A6A5]/90 transition-all"
               >
                 Close Read-Only View
               </button>

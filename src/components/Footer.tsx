@@ -13,7 +13,7 @@ export const Footer: React.FC<FooterProps> = ({ onRequestPal, onBecomePal, onHos
   };
 
   return (
-    <footer className="bg-brand-dark text-white pt-16 pb-12 border-t border-white/10">
+    <footer className="bg-[#1F3449] text-white pt-16 pb-12 border-t border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 pb-12 border-b border-white/10">
@@ -21,11 +21,26 @@ export const Footer: React.FC<FooterProps> = ({ onRequestPal, onBecomePal, onHos
           {/* Brand Info */}
           <div className="md:col-span-5 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-companion-coral rounded-2xl flex items-center justify-center text-white shadow-md">
-                <MapPin className="w-6 h-6 fill-white/20" />
+              {/* Primary Logo Icon Mark with Pin & Teal Arch */}
+              <div className="relative flex flex-col items-center">
+                <div className="relative w-10 h-10 bg-[#1F3449] rounded-xl flex items-center justify-center">
+                  <MapPin className="w-8 h-8 text-[#E85D75] fill-[#E85D75]" />
+                  <Heart className="w-3.5 h-3.5 text-white fill-white absolute top-2" />
+                </div>
+                <div className="w-10 h-1.5 flex items-center justify-between -mt-1 px-0.5">
+                  <span className="w-1 h-1 rounded-full bg-[#48A6A5]"></span>
+                  <div className="flex-1 h-[2px] bg-[#48A6A5] rounded-full mx-0.5"></div>
+                  <span className="w-1 h-1 rounded-full bg-[#48A6A5]"></span>
+                </div>
               </div>
-              <div className="text-2xl font-black tracking-tight text-white">
-                Path<span className="text-companion-coral">Pal</span>
+
+              <div className="flex flex-col">
+                <span className="text-2xl font-black tracking-tight text-white flex items-center gap-0.5">
+                  Path<span className="text-[#E85D75]">Pal</span>
+                </span>
+                <span className="text-[8.5px] uppercase tracking-widest font-medium text-gray-300 -mt-0.5">
+                  NEVER NAVIGATE THE HOSPITAL ALONE
+                </span>
               </div>
             </div>
 
@@ -33,55 +48,54 @@ export const Footer: React.FC<FooterProps> = ({ onRequestPal, onBecomePal, onHos
               PathPal is a healthcare navigation service pairing patients with trained, compassionate, non-clinical companions — Pals — supported by a smart digital platform that coordinates every step of the journey.
             </p>
 
-            <div className="text-xs text-soft-rose font-bold">
+            <div className="text-xs text-[#FCE9EC] font-bold">
               Prepared by Raanya Rai • July 2026 • Innovation Project
             </div>
           </div>
 
           {/* Navigation Links */}
           <div className="md:col-span-3 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-soft-rose">Navigation</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#FCE9EC]">Navigation</h4>
             <ul className="space-y-2 text-xs text-gray-300">
-              <li><a href="#about" className="hover:text-companion-coral transition-colors">About PathPal</a></li>
-              <li><a href="#challenge" className="hover:text-companion-coral transition-colors">The Challenge</a></li>
-              <li><a href="#how-it-works" className="hover:text-companion-coral transition-colors">5-Step Journey</a></li>
-              <li><a href="#ecosystem" className="hover:text-companion-coral transition-colors">Interactive Portal</a></li>
-              <li><a href="#policy" className="hover:text-companion-coral transition-colors">CMS & Policy Levers</a></li>
-              <li><a href="#pricing" className="hover:text-companion-coral transition-colors">Access & Pricing</a></li>
+              <li><a href="#about" className="hover:text-[#E85D75] transition-colors">About PathPal</a></li>
+              <li><a href="#challenge" className="hover:text-[#E85D75] transition-colors">The Challenge</a></li>
+              <li><a href="#how-it-works" className="hover:text-[#E85D75] transition-colors">5-Step Journey</a></li>
+              <li><a href="#ecosystem" className="hover:text-[#E85D75] transition-colors">Interactive Portal</a></li>
+              <li><a href="#policy" className="hover:text-[#E85D75] transition-colors">CMS & Policy Levers</a></li>
+              <li><a href="#pricing" className="hover:text-[#E85D75] transition-colors">Access & Pricing</a></li>
             </ul>
           </div>
 
           {/* Action Callouts */}
           <div className="md:col-span-4 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-soft-rose">Get Involved</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#FCE9EC]">Get Involved</h4>
             <div className="space-y-2">
               <button
                 onClick={onRequestPal}
-                className="w-full text-xs font-bold text-white bg-companion-coral hover:bg-companion-coral/90 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2"
+                className="w-full text-xs font-bold text-white bg-[#E85D75] hover:bg-[#E85D75]/90 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md"
               >
-                <Heart className="w-3.5 h-3.5 fill-white" />
-                <span>Request a Companion Pal</span>
+                <Heart className="w-4 h-4 fill-white" />
+                Request a Companion Pal
               </button>
               <button
                 onClick={onBecomePal}
-                className="w-full text-xs font-bold text-navigation-teal bg-navigation-teal/20 hover:bg-navigation-teal/30 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2"
+                className="w-full text-xs font-bold text-white bg-[#48A6A5] hover:bg-[#48A6A5]/90 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md"
               >
-                <span>Apply to Become a Pal</span>
+                Apply to Become a Pal
               </button>
               <button
                 onClick={onHospitalPartner}
-                className="w-full text-xs font-bold text-white bg-white/10 hover:bg-white/20 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2"
+                className="w-full text-xs font-bold text-[#1F3449] bg-[#FCE9EC] hover:bg-white py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md"
               >
-                <span>Hospital System Licensing</span>
+                Hospital Partnership Inquiry
               </button>
             </div>
           </div>
-
         </div>
 
         {/* Mandatory Non-Clinical Legal Disclaimer Box */}
-        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-3 text-[11px] text-gray-400">
-          <ShieldAlert className="w-5 h-5 text-warm-gold shrink-0 mt-0.5" />
+        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-3 text-[11px] text-gray-300">
+          <ShieldAlert className="w-5 h-5 text-[#F1B84C] shrink-0 mt-0.5" />
           <p className="leading-relaxed">
             <strong className="text-white font-semibold">Non-Clinical Scope Notice:</strong> PathPal companions ("Pals") provide non-clinical navigation support, accompaniment, and physical environment guidance within healthcare facilities. Pals are strictly non-clinical personnel and do not provide medical advice, diagnosis, clinical nursing care, or medical decision-making.
           </p>
@@ -94,7 +108,7 @@ export const Footer: React.FC<FooterProps> = ({ onRequestPal, onBecomePal, onHos
           </div>
           <button
             onClick={scrollToTop}
-            className="flex items-center gap-1.5 text-xs font-bold text-soft-rose hover:text-white transition-colors"
+            className="flex items-center gap-1.5 text-xs font-bold text-[#FCE9EC] hover:text-white transition-colors"
           >
             <span>Back to top</span>
             <ArrowUp className="w-4 h-4" />
