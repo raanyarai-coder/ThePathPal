@@ -41,16 +41,16 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
       aria-modal="true"
       aria-labelledby="keyboard-modal-title"
     >
-      <div className="bg-[#121824] rounded-3xl border-2 border-[#00F0FF]/40 max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative text-white">
+      <div className="bg-[#1F3449] rounded-3xl border-2 border-[#48A6A5]/40 max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative text-white">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 pb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-[#00F0FF]/20 text-[#00F0FF] border border-[#00F0FF]/40">
+            <div className="p-2.5 rounded-2xl bg-[#48A6A5]/20 text-[#48A6A5] border border-[#48A6A5]/40">
               <Keyboard className="w-6 h-6" />
             </div>
             <div>
-              <span className="text-[10px] font-black uppercase text-[#00F0FF] tracking-widest bg-[#00F0FF]/10 px-2 py-0.5 rounded border border-[#00F0FF]/20">
+              <span className="text-[10px] font-black uppercase text-[#48A6A5] tracking-widest bg-[#48A6A5]/10 px-2 py-0.5 rounded border border-[#48A6A5]/20">
                 WCAG 2.1 AA ACCESSIBILITY
               </span>
               <h2 id="keyboard-modal-title" className="text-xl sm:text-2xl font-black uppercase tracking-tight text-white">
@@ -69,8 +69,8 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
         </div>
 
         {/* Intro */}
-        <p className="text-xs text-gray-300 leading-relaxed font-normal bg-[#1A2232] p-3.5 rounded-2xl border border-white/10 flex items-center gap-2">
-          <Info className="w-4 h-4 text-[#00F0FF] shrink-0" />
+        <p className="text-xs text-gray-300 leading-relaxed font-normal bg-[#2B425B] p-3.5 rounded-2xl border border-white/10 flex items-center gap-2">
+          <Info className="w-4 h-4 text-[#48A6A5] shrink-0" />
           <span>
             PathPal includes universal keyboard shortcuts for rapid hospital assistance and effortless navigation without requiring a mouse.
           </span>
@@ -87,7 +87,7 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
                 {group.items.map((item, itemIdx) => (
                   <div
                     key={itemIdx}
-                    className="p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 bg-[#1A2232] border-white/10 hover:border-[#00F0FF]/40"
+                    className="p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 bg-[#2B425B] border-white/10 hover:border-[#48A6A5]/40"
                   >
                     <span className="text-xs text-gray-200 font-medium leading-tight">
                       {item.label}
@@ -96,7 +96,7 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
                       {item.keys.map((k, kIdx) => (
                         <kbd
                           key={kIdx}
-                          className="px-2 py-1 rounded-lg text-xs font-mono font-black border shadow-inner bg-black/60 text-[#00F0FF] border-[#00F0FF]/40"
+                          className="px-2 py-1 rounded-lg text-xs font-mono font-black border shadow-inner bg-black/60 text-[#48A6A5] border-[#48A6A5]/40"
                         >
                           {k}
                         </kbd>
@@ -113,7 +113,7 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
         <div className="pt-4 border-t border-white/10 flex items-center justify-end">
           <button
             onClick={onClose}
-            className="bg-[#00F0FF] hover:bg-[#00F0FF]/90 text-black font-black text-xs uppercase px-6 py-3 rounded-xl transition-all"
+            className="bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-black text-xs uppercase px-6 py-3 rounded-xl transition-all"
           >
             Got It (Esc)
           </button>

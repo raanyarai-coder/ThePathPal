@@ -63,16 +63,16 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in text-white">
-      <div className="bg-[#0D121F] rounded-3xl max-w-3xl w-full border border-[#00F0FF]/40 shadow-2xl relative max-h-[92vh] overflow-y-auto flex flex-col">
+      <div className="bg-[#1F3449] rounded-3xl max-w-3xl w-full border border-[#48A6A5]/40 shadow-2xl relative max-h-[92vh] overflow-y-auto flex flex-col">
         
         {/* Top Header */}
-        <div className="p-5 sm:p-6 border-b border-white/10 flex items-center justify-between bg-[#121824] rounded-t-3xl">
+        <div className="p-5 sm:p-6 border-b border-white/10 flex items-center justify-between bg-[#2B425B] rounded-t-3xl">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+            <div className="w-10 h-10 rounded-2xl bg-[#48A6A5]/20 border border-[#48A6A5]/40 flex items-center justify-center text-[#48A6A5]">
               <Calculator className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xs font-black uppercase text-[#00F0FF] tracking-widest flex items-center gap-1">
+              <div className="text-xs font-black uppercase text-[#48A6A5] tracking-widest flex items-center gap-1">
                 <span>100% TRANSPARENT FINANCIAL MODEL</span>
               </div>
               <h3 className="text-xl font-black uppercase tracking-tight text-white">
@@ -90,13 +90,13 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
         </div>
 
         {/* View Switcher Tabs */}
-        <div className="p-4 bg-[#121824] border-b border-white/10 flex items-center gap-3">
+        <div className="p-4 bg-[#2B425B] border-b border-white/10 flex items-center gap-3">
           <button
             onClick={() => setViewTab('patient_charges')}
             className={`flex-1 py-3 px-4 rounded-2xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 border ${
               viewTab === 'patient_charges'
-                ? 'bg-[#00F0FF] text-black border-[#00F0FF] shadow-lg shadow-[#00F0FF]/20'
-                : 'bg-[#1A2232] text-gray-400 border-white/10 hover:text-white'
+                ? 'bg-[#48A6A5] text-white border-[#48A6A5] shadow-lg shadow-[#48A6A5]/20'
+                : 'bg-[#1F3449] text-gray-400 border-white/10 hover:text-white'
             }`}
           >
             <Heart className="w-4 h-4" />
@@ -107,8 +107,8 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
             onClick={() => setViewTab('pal_earnings')}
             className={`flex-1 py-3 px-4 rounded-2xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 border ${
               viewTab === 'pal_earnings'
-                ? 'bg-companion-coral text-white border-companion-coral shadow-lg shadow-companion-coral/20'
-                : 'bg-[#1A2232] text-gray-400 border-white/10 hover:text-white'
+                ? 'bg-[#E85D75] text-white border-[#E85D75] shadow-lg shadow-[#E85D75]/20'
+                : 'bg-[#1F3449] text-gray-400 border-white/10 hover:text-white'
             }`}
           >
             <UserCheck className="w-4 h-4" />
@@ -140,11 +140,11 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
                       onClick={() => setSelectedPlan(p.id as any)}
                       className={`p-3 rounded-2xl border text-left transition-all ${
                         selectedPlan === p.id
-                          ? 'bg-[#00F0FF]/15 border-[#00F0FF] text-white shadow-md'
-                          : 'bg-[#121824] border-white/10 text-gray-400 hover:border-white/20'
+                          ? 'bg-[#48A6A5]/20 border-[#48A6A5] text-white shadow-md'
+                          : 'bg-[#2B425B] border-white/10 text-gray-400 hover:border-white/20'
                       }`}
                     >
-                      <div className="text-[10px] font-bold uppercase text-[#00F0FF]">{p.name}</div>
+                      <div className="text-[10px] font-bold uppercase text-[#48A6A5]">{p.name}</div>
                       <div className="text-xl font-black text-white">{p.price}</div>
                       <div className="text-[9px] text-gray-400">{p.note}</div>
                     </button>
@@ -153,8 +153,8 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
               </div>
 
               {/* Custom Controls */}
-              <div className="bg-[#121824] p-5 rounded-3xl border border-white/10 space-y-4">
-                <div className="text-xs font-bold uppercase text-[#00F0FF] border-b border-white/10 pb-2">
+              <div className="bg-[#2B425B] p-5 rounded-3xl border border-white/10 space-y-4">
+                <div className="text-xs font-bold uppercase text-[#48A6A5] border-b border-white/10 pb-2">
                   Step 2: Custom Visit Requirements & Subsidies
                 </div>
 
@@ -167,7 +167,7 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
                       max={8}
                       value={visitHours}
                       onChange={(e) => setVisitHours(Number(e.target.value))}
-                      className="w-full accent-[#00F0FF]"
+                      className="w-full accent-[#48A6A5]"
                     />
                     <div className="flex justify-between text-[10px] text-gray-500 mt-1">
                       <span>1 hr (Express)</span>
@@ -182,7 +182,7 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
                         type="checkbox"
                         checked={includeWheelchair}
                         onChange={(e) => setIncludeWheelchair(e.target.checked)}
-                        className="rounded accent-[#00F0FF]"
+                        className="rounded accent-[#48A6A5]"
                       />
                       <span className="text-white">Wheelchair & Mobility Assistance ($0.00 Included)</span>
                     </label>
@@ -192,7 +192,7 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
                         type="checkbox"
                         checked={insuranceCovered}
                         onChange={(e) => setInsuranceCovered(e.target.checked)}
-                        className="rounded accent-[#00F0FF]"
+                        className="rounded accent-[#48A6A5]"
                       />
                       <span className="text-white">Apply Health Plan / Benefit Voucher Subsidy</span>
                     </label>
@@ -201,8 +201,8 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
               </div>
 
               {/* Itemized Invoice Calculation Box */}
-              <div className="bg-[#161F30] p-6 rounded-3xl border border-[#00F0FF]/30 space-y-4">
-                <div className="text-xs font-black uppercase text-[#00F0FF] tracking-wider flex items-center justify-between">
+              <div className="bg-[#1F3449] p-6 rounded-3xl border border-[#48A6A5]/40 space-y-4">
+                <div className="text-xs font-black uppercase text-[#48A6A5] tracking-wider flex items-center justify-between">
                   <span>ITEMIZED PATIENT CHARGE STATEMENT</span>
                   <span>GUARANTEED FLAT FEE</span>
                 </div>
@@ -238,7 +238,7 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
                     <div className="text-xs text-gray-400 font-bold uppercase">TOTAL PATIENT OUT-OF-POCKET COST</div>
                     <div className="text-[10px] text-emerald-400">No hidden fees, surge pricing, or tip requirements</div>
                   </div>
-                  <div className="text-3xl font-black text-[#00F0FF]">${patientTotalCost}.00</div>
+                  <div className="text-3xl font-black text-[#48A6A5]">${patientTotalCost}.00</div>
                 </div>
 
                 {onRequestPal && (
@@ -247,7 +247,7 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
                       onClose();
                       onRequestPal();
                     }}
-                    className="w-full py-4 rounded-2xl bg-[#00F0FF] text-black font-black text-sm uppercase tracking-wider hover:bg-[#00F0FF]/90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#00F0FF]/20"
+                    className="w-full py-4 rounded-2xl bg-[#48A6A5] text-white font-black text-sm uppercase tracking-wider hover:bg-[#48A6A5]/90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#48A6A5]/20"
                   >
                     <span>Proceed to Book Pal at ${patientTotalCost}.00</span>
                     <ArrowRight className="w-5 h-5" />
@@ -267,7 +267,7 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
                   Step 1: Configure Your Pal Shift Metrics
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="bg-[#121824] p-4 rounded-2xl border border-white/10 space-y-2">
+                  <div className="bg-[#2B425B] p-4 rounded-2xl border border-white/10 space-y-2">
                     <label className="text-xs text-gray-400 font-bold">Shift Hours: {palShiftHours} hrs</label>
                     <input
                       type="range"
@@ -275,11 +275,11 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
                       max={12}
                       value={palShiftHours}
                       onChange={(e) => setPalShiftHours(Number(e.target.value))}
-                      className="w-full accent-companion-coral"
+                      className="w-full accent-[#E85D75]"
                     />
                   </div>
 
-                  <div className="bg-[#121824] p-4 rounded-2xl border border-white/10 space-y-2">
+                  <div className="bg-[#2B425B] p-4 rounded-2xl border border-white/10 space-y-2">
                     <label className="text-xs text-gray-400 font-bold">Completed Visits: {visitsPerShift}</label>
                     <input
                       type="range"
@@ -287,11 +287,11 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
                       max={6}
                       value={visitsPerShift}
                       onChange={(e) => setVisitsPerShift(Number(e.target.value))}
-                      className="w-full accent-companion-coral"
+                      className="w-full accent-[#E85D75]"
                     />
                   </div>
 
-                  <div className="bg-[#121824] p-4 rounded-2xl border border-white/10 space-y-2 flex flex-col justify-center">
+                  <div className="bg-[#2B425B] p-4 rounded-2xl border border-white/10 space-y-2 flex flex-col justify-center">
                     <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-white">
                       <input
                         type="checkbox"
@@ -306,8 +306,8 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
               </div>
 
               {/* Itemized Earnings Statement Box */}
-              <div className="bg-[#161F30] p-6 rounded-3xl border border-companion-coral/30 space-y-4">
-                <div className="text-xs font-black uppercase text-companion-coral tracking-wider flex items-center justify-between">
+              <div className="bg-[#1F3449] p-6 rounded-3xl border border-[#E85D75]/30 space-y-4">
+                <div className="text-xs font-black uppercase text-[#E85D75] tracking-wider flex items-center justify-between">
                   <span>ITEMIZED PAL DIRECT DEPOSIT EARNINGS</span>
                   <span>WEEKLY PAYOUT READY</span>
                 </div>

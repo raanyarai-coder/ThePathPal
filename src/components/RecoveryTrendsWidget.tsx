@@ -225,7 +225,7 @@ export const RecoveryTrendsWidget: React.FC = () => {
               onClick={() => setSelectedTimeframe('14d')}
               className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase transition-all ${
                 selectedTimeframe === '14d'
-                  ? 'bg-[#00F0FF] text-black shadow-md'
+                  ? 'bg-[#48A6A5] text-white shadow-md'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
@@ -235,7 +235,7 @@ export const RecoveryTrendsWidget: React.FC = () => {
               onClick={() => setSelectedTimeframe('30d')}
               className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase transition-all ${
                 selectedTimeframe === '30d'
-                  ? 'bg-[#00F0FF] text-black shadow-md'
+                  ? 'bg-[#48A6A5] text-white shadow-md'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
@@ -248,7 +248,7 @@ export const RecoveryTrendsWidget: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
           {/* Card 1: Overall Milestone Completion */}
-          <div className="bg-[#1A2232] p-5 rounded-2xl border border-white/10 space-y-2 relative overflow-hidden">
+          <div className="bg-[#1F3449] p-5 rounded-2xl border border-white/10 space-y-2 relative overflow-hidden">
             <div className="flex items-center justify-between text-gray-400 text-xs">
               <span className="font-black uppercase tracking-wider text-gray-300">Recovery Index</span>
               <Award className="w-4 h-4 text-warm-gold" />
@@ -261,7 +261,7 @@ export const RecoveryTrendsWidget: React.FC = () => {
             </div>
             <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
               <div
-                className="bg-gradient-to-r from-warm-gold to-[#00F0FF] h-full transition-all duration-700"
+                className="bg-gradient-to-r from-warm-gold to-[#48A6A5] h-full transition-all duration-700"
                 style={{ width: `${overallProgressPercent}%` }}
               ></div>
             </div>
@@ -271,13 +271,13 @@ export const RecoveryTrendsWidget: React.FC = () => {
           </div>
 
           {/* Card 2: Daily Mobility Walked */}
-          <div className="bg-[#1A2232] p-5 rounded-2xl border border-white/10 space-y-2">
+          <div className="bg-[#1F3449] p-5 rounded-2xl border border-white/10 space-y-2">
             <div className="flex items-center justify-between text-gray-400 text-xs">
               <span className="font-black uppercase tracking-wider text-gray-300">30-Day Walk Peak</span>
-              <Footprints className="w-4 h-4 text-[#00F0FF]" />
+              <Footprints className="w-4 h-4 text-[#48A6A5]" />
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-black font-mono text-white">1,910 <span className="text-sm font-sans font-normal text-[#00F0FF]">m/day</span></span>
+              <span className="text-3xl font-black font-mono text-white">1,910 <span className="text-sm font-sans font-normal text-[#48A6A5]">m/day</span></span>
             </div>
             <span className="text-[11px] text-emerald-400 font-semibold block">
               ↑ 420% increase since Post-Op Day 1
@@ -286,7 +286,7 @@ export const RecoveryTrendsWidget: React.FC = () => {
           </div>
 
           {/* Card 3: Avg Pain Level */}
-          <div className="bg-[#1A2232] p-5 rounded-2xl border border-white/10 space-y-2">
+          <div className="bg-[#1F3449] p-5 rounded-2xl border border-white/10 space-y-2">
             <div className="flex items-center justify-between text-gray-400 text-xs">
               <span className="font-black uppercase tracking-wider text-gray-300">Current Pain Level</span>
               <HeartPulse className="w-4 h-4 text-companion-coral" />

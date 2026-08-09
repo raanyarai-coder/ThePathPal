@@ -326,10 +326,10 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
 
       {/* TAB 2: MY SCHEDULED ESCORTS */}
       {activeTab === 'my_escorts' && (
-        <div className="bg-[#121824] p-6 sm:p-8 rounded-3xl border border-white/10 space-y-6">
+        <div className="bg-[#1F3449] p-6 sm:p-8 rounded-3xl border border-white/10 space-y-6">
           <div className="flex items-center justify-between border-b border-white/10 pb-4">
             <div>
-              <span className="text-xs font-black uppercase text-[#00F0FF] tracking-wider">SCHEDULED VISITS</span>
+              <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">SCHEDULED VISITS</span>
               <h2 className="text-2xl font-black text-white">Your Upcoming Companion Visits</h2>
             </div>
             <span className="text-xs font-bold bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/30">
@@ -339,10 +339,10 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
 
           <div className="space-y-4">
             {requests.map((req) => (
-              <div key={req.id} className="bg-[#1A2232] p-6 rounded-2xl border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div key={req.id} className="bg-[#2B425B] p-6 rounded-2xl border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold text-[#00F0FF] bg-[#00F0FF]/10 px-2.5 py-0.5 rounded border border-[#00F0FF]/30">
+                    <span className="text-xs font-mono font-bold text-[#48A6A5] bg-[#48A6A5]/10 px-2.5 py-0.5 rounded border border-[#48A6A5]/30">
                       {req.id}
                     </span>
                     <span className="text-xs font-bold bg-emerald-500/20 text-emerald-400 px-2.5 py-0.5 rounded">
@@ -352,16 +352,16 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
 
                   <h3 className="text-xl font-black text-white">{req.hospitalName}</h3>
                   <div className="flex flex-wrap items-center gap-4 text-xs text-gray-300 font-medium">
-                    <span className="flex items-center gap-1.5 text-companion-coral font-bold">
+                    <span className="flex items-center gap-1.5 text-[#E85D75] font-bold">
                       <Clock className="w-4 h-4" /> {req.appointmentDate} at {req.appointmentTime}
                     </span>
-                    <span className="flex items-center gap-1.5 text-[#00F0FF]">
+                    <span className="flex items-center gap-1.5 text-[#48A6A5]">
                       <MapPin className="w-4 h-4" /> Meeting: {req.meetingPoint}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-3 pt-2">
-                    <div className="w-10 h-10 rounded-full bg-companion-coral text-white font-black flex items-center justify-center text-sm shadow">
+                    <div className="w-10 h-10 rounded-full bg-[#E85D75] text-white font-black flex items-center justify-center text-sm shadow">
                       {req.assignedPal?.name.charAt(0) || 'P'}
                     </div>
                     <div>
@@ -384,10 +384,10 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                       });
                       window.open(gCalUrl, '_blank', 'noopener,noreferrer');
                     }}
-                    className="w-full sm:w-auto px-4 py-3 rounded-xl bg-[#1A2232] hover:bg-white/10 text-[#00F0FF] border border-[#00F0FF]/40 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
+                    className="w-full sm:w-auto px-4 py-3 rounded-xl bg-[#1F3449] hover:bg-white/10 text-[#48A6A5] border border-[#48A6A5]/40 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
                     title="Add appointment to Google Calendar"
                   >
-                    <Calendar className="w-4 h-4 text-[#00F0FF]" />
+                    <Calendar className="w-4 h-4 text-[#48A6A5]" />
                     <span>Sync Calendar</span>
                   </button>
                   <button
@@ -403,7 +403,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                   </button>
                   <button
                     onClick={onOpenGpsModal}
-                    className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#00F0FF] text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg hover:bg-[#00F0FF]/90 transition-all"
+                    className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#48A6A5] text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg hover:bg-[#48A6A5]/90 transition-all"
                   >
                     <Navigation className="w-4 h-4" />
                     <span>Track Pal Live GPS</span>
@@ -445,8 +445,8 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
       {/* TAB 3: SECURE MEDICAL SUMMARY */}
       {activeTab === 'medical_summary' && (
         <div className="space-y-4">
-          <div className="bg-[#121824] p-4 rounded-2xl border border-[#00F0FF]/40 text-xs text-gray-300 flex items-center gap-3">
-            <Lock className="w-5 h-5 text-[#00F0FF] shrink-0" />
+          <div className="bg-[#1F3449] p-4 rounded-2xl border border-[#48A6A5]/40 text-xs text-gray-300 flex items-center gap-3">
+            <Lock className="w-5 h-5 text-[#48A6A5] shrink-0" />
             <span>
               <strong className="text-white">HIPAA Privacy Control:</strong> Your health summary is stored encrypted on your device. You choose when to grant read-only access to your assigned Pal during active companion escorts.
             </span>
@@ -458,7 +458,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
 
       {/* TAB 4: FINANCIALS & VOUCHERS */}
       {activeTab === 'financials' && (
-        <div className="bg-[#121824] p-6 sm:p-8 rounded-3xl border border-emerald-500/40 space-y-6">
+        <div className="bg-[#1F3449] p-6 sm:p-8 rounded-3xl border border-emerald-500/40 space-y-6">
           <div className="border-b border-white/10 pb-4">
             <span className="text-xs font-black uppercase text-emerald-400 tracking-wider">ZERO HIDDEN FEES</span>
             <h2 className="text-2xl font-black text-white">$0 Out-Of-Pocket Benefit Voucher Coverage</h2>
@@ -468,7 +468,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-[#1A2232] p-6 rounded-2xl border border-white/10 space-y-2">
+            <div className="bg-[#2B425B] p-6 rounded-2xl border border-white/10 space-y-2">
               <span className="text-[10px] font-bold uppercase text-emerald-400">BENEFIT VOUCHER PROGRAM</span>
               <h3 className="text-xl font-black text-white">100% Covered</h3>
               <p className="text-xs text-gray-300">
@@ -476,7 +476,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
               </p>
             </div>
 
-            <div className="bg-[#1A2232] p-6 rounded-2xl border border-white/10 space-y-2">
+            <div className="bg-[#2B425B] p-6 rounded-2xl border border-white/10 space-y-2">
               <span className="text-[10px] font-bold uppercase text-emerald-400">STATE HEALTH PLAN BENEFIT</span>
               <h3 className="text-xl font-black text-white">$0 Patient Copay</h3>
               <p className="text-xs text-gray-300">
@@ -484,7 +484,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
               </p>
             </div>
 
-            <div className="bg-[#1A2232] p-6 rounded-2xl border border-white/10 space-y-2">
+            <div className="bg-[#2B425B] p-6 rounded-2xl border border-white/10 space-y-2">
               <span className="text-[10px] font-bold uppercase text-emerald-400">HOSPITAL COMMUNITY BENEFIT</span>
               <h3 className="text-xl font-black text-white">CHNA Sponsored</h3>
               <p className="text-xs text-gray-300">

@@ -194,7 +194,7 @@ export const EcosystemPortals: React.FC = () => {
                         : 'text-pathpal-navy hover:text-companion-coral'
                     }`}
                   >
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#00F0FF]" />
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#48A6A5]" />
                     <span>Secure Medical Summary</span>
                   </button>
                 </div>
@@ -376,7 +376,7 @@ export const EcosystemPortals: React.FC = () => {
                       <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
                         <button
                           onClick={() => setPatientSubTab('medical_summary')}
-                          className="text-xs font-bold bg-[#121824] text-[#00F0FF] border border-[#00F0FF]/30 px-6 py-3 rounded-xl flex items-center justify-center gap-2"
+                          className="text-xs font-bold bg-[#1F3449] text-[#48A6A5] border border-[#48A6A5]/30 px-6 py-3 rounded-xl flex items-center justify-center gap-2"
                         >
                           <ShieldCheck className="w-4 h-4" />
                           <span>Review Shared Medical Summary Widget</span>
@@ -396,11 +396,11 @@ export const EcosystemPortals: React.FC = () => {
               {/* Sub-Tab 2: Medical Summary Widget */}
               {patientSubTab === 'medical_summary' && (
                 <div className="space-y-4 animate-fade-in">
-                  <div className="bg-pathpal-navy text-white p-4 rounded-2xl flex items-center justify-between text-xs">
+                  <div className="bg-[#1F3449] text-white p-4 rounded-2xl flex items-center justify-between text-xs border border-[#48A6A5]/30">
                     <div className="flex items-center gap-3">
-                      <ShieldCheck className="w-5 h-5 text-[#00F0FF]" />
+                      <ShieldCheck className="w-5 h-5 text-[#48A6A5]" />
                       <span>
-                        <strong className="text-[#00F0FF]">HIPAA Privacy Guard:</strong> This medical summary is stored securely on your device and shared read-only with your assigned Pal during active escorts.
+                        <strong className="text-[#48A6A5]">HIPAA Privacy Guard:</strong> This medical summary is stored securely on your device and shared read-only with your assigned Pal during active escorts.
                       </span>
                     </div>
                   </div>
@@ -495,13 +495,13 @@ export const EcosystemPortals: React.FC = () => {
                       <div className="flex flex-wrap items-center gap-2 self-end md:self-center">
                         <button
                           onClick={() => setSelectedPalPatientSummary(req)}
-                          className="text-xs font-bold text-pathpal-navy bg-[#00F0FF]/15 hover:bg-[#00F0FF]/30 border border-[#00F0FF]/50 px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5"
+                          className="text-xs font-bold text-white bg-[#48A6A5]/20 hover:bg-[#48A6A5]/30 border border-[#48A6A5]/50 px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5"
                         >
-                          <ShieldCheck className="w-3.5 h-3.5 text-navigation-teal" />
+                          <ShieldCheck className="w-3.5 h-3.5 text-[#48A6A5]" />
                           <span>View Read-Only Medical Summary</span>
                         </button>
 
-                        <button className="text-xs font-bold text-white bg-navigation-teal hover:bg-navigation-teal/90 px-4 py-2 rounded-xl transition-all">
+                        <button className="text-xs font-bold text-white bg-[#48A6A5] hover:bg-[#48A6A5]/90 px-4 py-2 rounded-xl transition-all">
                           Check-In at Entrance
                         </button>
                       </div>
@@ -641,7 +641,7 @@ export const EcosystemPortals: React.FC = () => {
       {/* PAL PATIENT READ-ONLY MEDICAL SUMMARY MODAL */}
       {selectedPalPatientSummary && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-fade-in">
-          <div className="bg-[#0A0D14] rounded-3xl max-w-3xl w-full p-6 sm:p-8 border border-[#00F0FF]/40 shadow-2xl relative max-h-[90vh] overflow-y-auto space-y-4 text-white">
+          <div className="bg-[#1F3449] rounded-3xl max-w-3xl w-full p-6 sm:p-8 border border-[#48A6A5]/40 shadow-2xl relative max-h-[90vh] overflow-y-auto space-y-4 text-white">
             <button
               onClick={() => setSelectedPalPatientSummary(null)}
               className="absolute top-5 right-5 p-2 rounded-full text-gray-400 hover:bg-white/10 transition-colors"
@@ -649,7 +649,7 @@ export const EcosystemPortals: React.FC = () => {
               <X className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center gap-2 text-xs font-bold text-[#00F0FF] uppercase tracking-wider">
+            <div className="flex items-center gap-2 text-xs font-bold text-[#48A6A5] uppercase tracking-wider">
               <Lock className="w-4 h-4" />
               <span>PAL COMPANION READ-ONLY AUDIT VIEW</span>
             </div>
@@ -679,7 +679,7 @@ export const EcosystemPortals: React.FC = () => {
             <div className="pt-2 flex justify-end">
               <button
                 onClick={() => setSelectedPalPatientSummary(null)}
-                className="bg-[#00F0FF] text-black font-black text-xs px-6 py-3 rounded-xl uppercase tracking-wider hover:bg-[#00F0FF]/90 transition-all"
+                className="bg-[#48A6A5] text-white font-black text-xs px-6 py-3 rounded-xl uppercase tracking-wider hover:bg-[#48A6A5]/90 transition-all"
               >
                 Close Medical Summary
               </button>

@@ -15,22 +15,22 @@ export const GpsAndFinancialSection: React.FC<GpsAndFinancialSectionProps> = ({
   onBecomePal,
 }) => {
   return (
-    <section id="gps-charges" className="py-20 bg-[#0A0D14] text-white border-b border-white/10 relative overflow-hidden">
+    <section id="gps-charges" className="py-20 bg-[#1F3449] text-white border-b border-white/10 relative overflow-hidden">
       
       {/* Background Decorative Glow */}
-      <div className="absolute top-1/2 left-0 w-96 h-96 bg-[#00F0FF]/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2" />
-      <div className="absolute top-1/2 right-0 w-96 h-96 bg-companion-coral/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2" />
+      <div className="absolute top-1/2 left-0 w-96 h-96 bg-[#48A6A5]/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2" />
+      <div className="absolute top-1/2 right-0 w-96 h-96 bg-[#E85D75]/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 relative z-10">
         
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#00F0FF]/10 text-[#00F0FF] text-xs font-black uppercase tracking-wider border border-[#00F0FF]/30">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#48A6A5]/20 text-[#48A6A5] text-xs font-black uppercase tracking-wider border border-[#48A6A5]/40">
             <Signal className="w-4 h-4 animate-pulse" />
             <span>REAL-TIME TELEMETRY & TRANSPARENT PRICING</span>
           </div>
           <h2 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-white">
-            Live GPS Tracking & <span className="text-[#00F0FF] text-stroke-cyan">Clear Financial Breakdown</span>
+            Live GPS Tracking & <span className="text-[#48A6A5]">Clear Financial Breakdown</span>
           </h2>
           <p className="text-base text-gray-300 font-light">
             Patients and Pals stay connected with encrypted live campus location radar, while both parties enjoy 100% upfront clarity on patient charges and Pal earnings.
@@ -41,10 +41,10 @@ export const GpsAndFinancialSection: React.FC<GpsAndFinancialSectionProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
           {/* Feature 1: Live GPS Location Tracking */}
-          <div className="bg-[#121824] p-8 rounded-3xl border border-[#00F0FF]/30 hover:border-[#00F0FF]/60 transition-all space-y-6 flex flex-col justify-between shadow-2xl relative group">
+          <div className="bg-[#2B425B] p-8 rounded-3xl border border-[#48A6A5]/40 hover:border-[#48A6A5]/60 transition-all space-y-6 flex flex-col justify-between shadow-2xl relative group">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="w-14 h-14 rounded-2xl bg-[#00F0FF]/15 border border-[#00F0FF]/40 flex items-center justify-center text-[#00F0FF]">
+                <div className="w-14 h-14 rounded-2xl bg-[#48A6A5]/20 border border-[#48A6A5]/40 flex items-center justify-center text-[#48A6A5]">
                   <Navigation className="w-7 h-7 animate-pulse" />
                 </div>
                 <span className="text-[10px] font-black uppercase px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
@@ -62,15 +62,15 @@ export const GpsAndFinancialSection: React.FC<GpsAndFinancialSectionProps> = ({
 
               <div className="space-y-2 text-xs">
                 <div className="flex items-center gap-2 text-gray-300">
-                  <CheckCircle2 className="w-4 h-4 text-[#00F0FF] shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-[#48A6A5] shrink-0" />
                   <span>Real-time ETA countdown & speed telemetry</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-300">
-                  <CheckCircle2 className="w-4 h-4 text-[#00F0FF] shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-[#48A6A5] shrink-0" />
                   <span>Audio & haptic rendezvous ping button</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-300">
-                  <CheckCircle2 className="w-4 h-4 text-[#00F0FF] shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-[#48A6A5] shrink-0" />
                   <span>Encrypted location sharing links for family</span>
                 </div>
               </div>
@@ -78,7 +78,7 @@ export const GpsAndFinancialSection: React.FC<GpsAndFinancialSectionProps> = ({
 
             <button
               onClick={onOpenGps}
-              className="w-full py-4 rounded-2xl bg-[#00F0FF] text-black font-black text-xs uppercase tracking-wider hover:bg-[#00F0FF]/90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#00F0FF]/20 mt-4"
+              className="w-full py-4 rounded-2xl bg-[#48A6A5] text-white font-black text-xs uppercase tracking-wider hover:bg-[#48A6A5]/90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#48A6A5]/20 mt-4"
             >
               <Navigation className="w-4 h-4" />
               <span>Launch Live GPS Radar Tracker Demo</span>
@@ -87,7 +87,7 @@ export const GpsAndFinancialSection: React.FC<GpsAndFinancialSectionProps> = ({
           </div>
 
           {/* Feature 2: Transparent Charges & Earnings Calculator */}
-          <div className="bg-[#121824] p-8 rounded-3xl border border-companion-coral/30 hover:border-companion-coral/60 transition-all space-y-6 flex flex-col justify-between shadow-2xl relative group">
+          <div className="bg-[#2B425B] p-8 rounded-3xl border border-[#E85D75]/40 hover:border-[#E85D75]/60 transition-all space-y-6 flex flex-col justify-between shadow-2xl relative group">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="w-14 h-14 rounded-2xl bg-companion-coral/15 border border-companion-coral/40 flex items-center justify-center text-companion-coral">

@@ -122,7 +122,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <div className="min-h-screen bg-[#0A0D14] text-white selection:bg-[#00F0FF] selection:text-black font-sans antialiased flex flex-col justify-between">
+        <div className="min-h-screen bg-[#1F3449] text-white selection:bg-[#E85D75] selection:text-white font-sans antialiased flex flex-col justify-between">
           <div>
           {/* Offline Status Banner */}
           <OfflineStatusBanner />

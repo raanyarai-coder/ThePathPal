@@ -69,7 +69,7 @@ export const PalAccountModal: React.FC<PalAccountModalProps> = ({ isOpen, onClos
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in text-white">
-      <div className="bg-[#121824] rounded-3xl max-w-3xl w-full p-6 sm:p-8 border border-[#00F0FF]/40 shadow-2xl relative max-h-[90vh] overflow-y-auto space-y-6">
+      <div className="bg-[#1F3449] rounded-3xl max-w-3xl w-full p-6 sm:p-8 border border-[#48A6A5]/40 shadow-2xl relative max-h-[90vh] overflow-y-auto space-y-6">
         
         {/* Close Button */}
         <button
@@ -85,12 +85,12 @@ export const PalAccountModal: React.FC<PalAccountModalProps> = ({ isOpen, onClos
             <img
               src={currentPal.avatar}
               alt={currentPal.name}
-              className="w-16 h-16 rounded-2xl object-cover border-2 border-[#00F0FF] shadow-lg shadow-[#00F0FF]/20"
+              className="w-16 h-16 rounded-2xl object-cover border-2 border-[#48A6A5] shadow-lg shadow-[#48A6A5]/20"
             />
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-2xl font-black uppercase italic text-white tracking-tight">{currentPal.name}</h3>
-                <span className="bg-[#00F0FF]/20 text-[#00F0FF] text-[10px] font-black uppercase px-2 py-0.5 rounded-full border border-[#00F0FF]/40">
+                <h3 className="text-2xl font-black uppercase text-white tracking-tight">{currentPal.name}</h3>
+                <span className="bg-[#48A6A5]/20 text-[#48A6A5] text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border border-[#48A6A5]/40">
                   {currentPal.badgeNumber}
                 </span>
               </div>
@@ -101,15 +101,15 @@ export const PalAccountModal: React.FC<PalAccountModalProps> = ({ isOpen, onClos
           </div>
 
           {/* Switch Active Pal Account */}
-          <div className="flex items-center gap-2 bg-[#1A2232] p-2 rounded-xl border border-white/10">
-            <User className="w-4 h-4 text-[#00F0FF]" />
+          <div className="flex items-center gap-2 bg-[#2B425B] p-2 rounded-xl border border-white/10">
+            <User className="w-4 h-4 text-[#48A6A5]" />
             <select
               value={selectedPalId}
               onChange={(e) => setSelectedPalId(e.target.value)}
               className="bg-transparent text-xs font-bold text-white focus:outline-none"
             >
               {SAMPLE_PALS.map(pal => (
-                <option key={pal.id} value={pal.id} className="bg-[#121824] text-white">
+                <option key={pal.id} value={pal.id} className="bg-[#1F3449] text-white">
                   Account: {pal.name}
                 </option>
               ))}
@@ -121,7 +121,7 @@ export const PalAccountModal: React.FC<PalAccountModalProps> = ({ isOpen, onClos
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           
           {/* Duty Status */}
-          <div className="p-4 rounded-2xl bg-[#1A2232] border border-white/10 flex flex-col justify-between space-y-2">
+          <div className="p-4 rounded-2xl bg-[#2B425B] border border-white/10 flex flex-col justify-between space-y-2">
             <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Dispatch Duty</span>
             <button
               onClick={() => setIsOnDuty(!isOnDuty)}
@@ -135,26 +135,26 @@ export const PalAccountModal: React.FC<PalAccountModalProps> = ({ isOpen, onClos
           </div>
 
           {/* Rating */}
-          <div className="p-4 rounded-2xl bg-[#1A2232] border border-white/10 space-y-1">
+          <div className="p-4 rounded-2xl bg-[#2B425B] border border-white/10 space-y-1">
             <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Patient Rating</span>
-            <div className="flex items-center gap-1.5 text-2xl font-black text-[#00F0FF]">
-              <Star className="w-5 h-5 fill-[#00F0FF] text-[#00F0FF]" />
+            <div className="flex items-center gap-1.5 text-2xl font-black text-[#48A6A5]">
+              <Star className="w-5 h-5 fill-[#48A6A5] text-[#48A6A5]" />
               <span>{currentPal.rating} / 5.0</span>
             </div>
             <p className="text-[10px] text-gray-400 font-light">Based on 100% verified visits</p>
           </div>
 
           {/* Completed Visits */}
-          <div className="p-4 rounded-2xl bg-[#1A2232] border border-white/10 space-y-1">
+          <div className="p-4 rounded-2xl bg-[#2B425B] border border-white/10 space-y-1">
             <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Completed Visits</span>
             <div className="text-2xl font-black text-white">{currentPal.completedVisits}</div>
             <p className="text-[10px] text-gray-400 font-light">0 missed appointments</p>
           </div>
 
           {/* Impact Earnings */}
-          <div className="p-4 rounded-2xl bg-[#1A2232] border border-white/10 space-y-1">
+          <div className="p-4 rounded-2xl bg-[#2B425B] border border-white/10 space-y-1">
             <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Stipend & Credits</span>
-            <div className="text-2xl font-black text-companion-coral">${currentPal.completedVisits * 35}</div>
+            <div className="text-2xl font-black text-[#E85D75]">${currentPal.completedVisits * 35}</div>
             <p className="text-[10px] text-gray-400 font-light">Community impact stipend</p>
           </div>
 
@@ -174,7 +174,7 @@ export const PalAccountModal: React.FC<PalAccountModalProps> = ({ isOpen, onClos
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-xl transition-all ${
                   activeTab === tab.id
-                    ? 'bg-[#00F0FF] text-black shadow-md'
+                    ? 'bg-[#48A6A5] text-white shadow-md'
                     : 'text-gray-400 hover:bg-white/5 hover:text-white'
                 }`}
               >
@@ -189,8 +189,8 @@ export const PalAccountModal: React.FC<PalAccountModalProps> = ({ isOpen, onClos
         {activeTab === 'overview' && (
           <div className="space-y-6">
             <div className="space-y-2">
-              <h4 className="text-xs font-bold uppercase tracking-widest text-[#00F0FF]">Pal Bio & Specialties</h4>
-              <p className="text-xs text-gray-300 leading-relaxed font-light bg-[#1A2232] p-4 rounded-xl border border-white/10">
+              <h4 className="text-xs font-bold uppercase tracking-widest text-[#48A6A5]">Pal Bio & Specialties</h4>
+              <p className="text-xs text-gray-300 leading-relaxed font-light bg-[#2B425B] p-4 rounded-xl border border-white/10">
                 "{currentPal.bio}"
               </p>
             </div>
@@ -200,7 +200,7 @@ export const PalAccountModal: React.FC<PalAccountModalProps> = ({ isOpen, onClos
                 <h4 className="text-xs font-bold uppercase tracking-widest text-white">Specialized Skills</h4>
                 <div className="flex flex-wrap gap-2">
                   {currentPal.specialties.map((s, i) => (
-                    <span key={i} className="text-[11px] font-bold bg-[#00F0FF]/10 text-[#00F0FF] px-3 py-1 rounded-full border border-[#00F0FF]/30">
+                    <span key={i} className="text-[11px] font-bold bg-[#48A6A5]/20 text-[#48A6A5] px-3 py-1 rounded-full border border-[#48A6A5]/30">
                       ✓ {s}
                     </span>
                   ))}
@@ -219,7 +219,7 @@ export const PalAccountModal: React.FC<PalAccountModalProps> = ({ isOpen, onClos
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-[#1A2232] border border-white/10 flex items-center gap-3 text-xs text-emerald-400">
+            <div className="p-4 rounded-2xl bg-[#2B425B] border border-white/10 flex items-center gap-3 text-xs text-emerald-400">
               <ShieldCheck className="w-6 h-6 shrink-0" />
               <span>HIPAA Privacy Certified • 7-Year Background Clearance Active • 10-Panel Drug Screen Verified</span>
             </div>
@@ -229,11 +229,11 @@ export const PalAccountModal: React.FC<PalAccountModalProps> = ({ isOpen, onClos
         {activeTab === 'reviews' && (
           <div className="space-y-4">
             {palFeedbacks.map((rev) => (
-              <div key={rev.id} className="p-4 rounded-2xl bg-[#1A2232] border border-white/10 space-y-2">
+              <div key={rev.id} className="p-4 rounded-2xl bg-[#2B425B] border border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-white">{rev.patientName}</span>
-                    <span className="text-[10px] bg-[#00F0FF]/10 text-[#00F0FF] px-2 py-0.5 rounded-full border border-[#00F0FF]/20">
+                    <span className="text-[10px] bg-[#48A6A5]/20 text-[#48A6A5] px-2.5 py-0.5 rounded-full border border-[#48A6A5]/30">
                       {rev.tag}
                     </span>
                   </div>
@@ -252,16 +252,16 @@ export const PalAccountModal: React.FC<PalAccountModalProps> = ({ isOpen, onClos
         {activeTab === 'assignments' && (
           <div className="space-y-4">
             {upcomingAssignments.map((assign) => (
-              <div key={assign.id} className="p-5 rounded-2xl bg-[#1A2232] border border-white/10 space-y-2">
+              <div key={assign.id} className="p-5 rounded-2xl bg-[#2B425B] border border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-black uppercase text-[#00F0FF]">{assign.date}</span>
+                  <span className="text-xs font-black uppercase text-[#48A6A5]">{assign.date}</span>
                   <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-500/30">
                     Confirmed
                   </span>
                 </div>
                 <div className="text-sm font-bold text-white">{assign.patientName}</div>
                 <div className="text-xs text-gray-300">{assign.hospital} • {assign.department}</div>
-                <div className="text-xs text-gray-400 font-light bg-[#121824] p-3 rounded-xl border border-white/5">
+                <div className="text-xs text-gray-400 font-light bg-[#1F3449] p-3 rounded-xl border border-white/5">
                   📌 {assign.needs}
                 </div>
               </div>

@@ -33,7 +33,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 2. Clear Role Selection Banners - Tailored Experiences */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto space-y-3 mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00F0FF]/10 text-[#00F0FF] text-xs font-black uppercase tracking-wider border border-[#00F0FF]/30">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#48A6A5]/15 text-[#48A6A5] text-xs font-black uppercase tracking-wider border border-[#48A6A5]/30">
             <Sparkles className="w-3.5 h-3.5" />
             <span>CHOOSE YOUR DEDICATED PORTAL</span>
           </div>
@@ -48,13 +48,13 @@ export const HomePage: React.FC<HomePageProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
           {/* Patient Card */}
-          <div className="bg-[#121824] p-8 rounded-3xl border border-companion-coral/40 shadow-xl flex flex-col justify-between space-y-6 hover:border-companion-coral transition-all group">
+          <div className="bg-[#1F3449] p-8 rounded-3xl border border-[#E85D75]/40 shadow-xl flex flex-col justify-between space-y-6 hover:border-[#E85D75] transition-all group">
             <div className="space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-companion-coral/20 border border-companion-coral text-companion-coral flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Heart className="w-7 h-7 fill-companion-coral" />
+              <div className="w-14 h-14 rounded-2xl bg-[#E85D75]/20 border border-[#E85D75] text-[#E85D75] flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Heart className="w-7 h-7 fill-[#E85D75]" />
               </div>
               <div className="space-y-1">
-                <span className="text-xs font-black uppercase text-companion-coral tracking-widest">FOR PATIENTS & FAMILIES</span>
+                <span className="text-xs font-black uppercase text-[#E85D75] tracking-widest">FOR PATIENTS & FAMILIES</span>
                 <h3 className="text-2xl font-black text-white">Patient Portal</h3>
                 <p className="text-xs text-gray-300 leading-relaxed">
                   Request a compassionate companion, track your assigned Pal in real-time, view zero out-of-pocket health voucher coverage, and manage your encrypted HIPAA medical summary.
@@ -62,15 +62,15 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
               <ul className="space-y-2 text-xs text-gray-200 pt-2">
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-companion-coral shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-[#E85D75] shrink-0" />
                   <span>Book Hospital Meeting Point & Doorstep Pal</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-companion-coral shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-[#E85D75] shrink-0" />
                   <span>Read-Only HIPAA Medical Summary Control</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-companion-coral shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-[#E85D75] shrink-0" />
                   <span>Live GPS Tracking & Indoor Campus Radar</span>
                 </li>
               </ul>
@@ -78,7 +78,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
             <button
               onClick={() => onNavigatePage('patient')}
-              className="w-full bg-companion-coral hover:bg-companion-coral/90 text-white font-black text-xs uppercase py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-companion-coral/20"
+              className="w-full bg-[#E85D75] hover:bg-[#E85D75]/90 text-white font-black text-xs uppercase py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#E85D75]/20"
             >
               <span>Enter Patient Portal</span>
               <ArrowRight className="w-4 h-4" />
@@ -86,13 +86,13 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
 
           {/* Pal Companion Card */}
-          <div className="bg-[#121824] p-8 rounded-3xl border border-navigation-teal/40 shadow-xl flex flex-col justify-between space-y-6 hover:border-navigation-teal transition-all group">
+          <div className="bg-[#1F3449] p-8 rounded-3xl border border-[#48A6A5]/40 shadow-xl flex flex-col justify-between space-y-6 hover:border-[#48A6A5] transition-all group">
             <div className="space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-navigation-teal/20 border border-navigation-teal text-navigation-teal flex items-center justify-center group-hover:scale-110 transition-transform">
+              <div className="w-14 h-14 rounded-2xl bg-[#48A6A5]/20 border border-[#48A6A5] text-[#48A6A5] flex items-center justify-center group-hover:scale-110 transition-transform">
                 <UserCheck className="w-7 h-7" />
               </div>
               <div className="space-y-1">
-                <span className="text-xs font-black uppercase text-navigation-teal tracking-widest">FOR COMPANION PALS & CHWs</span>
+                <span className="text-xs font-black uppercase text-[#48A6A5] tracking-widest">FOR COMPANION PALS & CHWs</span>
                 <h3 className="text-2xl font-black text-white">Pal Companion Portal</h3>
                 <p className="text-xs text-gray-300 leading-relaxed">
                   Accept nearby Pal requests, navigate hospital campuses with turn-by-turn indoor radar, track earnings ($22-$28/hr), and access patient mobility requirements safely.
@@ -100,15 +100,15 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
               <ul className="space-y-2 text-xs text-gray-200 pt-2">
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-navigation-teal shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-[#48A6A5] shrink-0" />
                   <span>Live Pal Assignments Feed & Accept/Decline</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-navigation-teal shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-[#48A6A5] shrink-0" />
                   <span>Stipend & Earnings Calculator ($22-$28/hr)</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-navigation-teal shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-[#48A6A5] shrink-0" />
                   <span>Turn-by-Turn BLE Campus Navigation Radar</span>
                 </li>
               </ul>
@@ -116,7 +116,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
             <button
               onClick={() => onNavigatePage('pal')}
-              className="w-full bg-navigation-teal hover:bg-navigation-teal/90 text-white font-black text-xs uppercase py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-navigation-teal/20"
+              className="w-full bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-black text-xs uppercase py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#48A6A5]/20"
             >
               <span>Enter Pal Portal</span>
               <ArrowRight className="w-4 h-4" />
@@ -124,13 +124,13 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
 
           {/* Hospital Partner Card */}
-          <div className="bg-[#121824] p-8 rounded-3xl border border-[#00F0FF]/30 shadow-xl flex flex-col justify-between space-y-6 hover:border-[#00F0FF]/60 transition-all group">
+          <div className="bg-[#1F3449] p-8 rounded-3xl border border-[#48A6A5]/40 shadow-xl flex flex-col justify-between space-y-6 hover:border-[#48A6A5]/80 transition-all group">
             <div className="space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-[#00F0FF]/15 border border-[#00F0FF] text-[#00F0FF] flex items-center justify-center group-hover:scale-110 transition-transform">
+              <div className="w-14 h-14 rounded-2xl bg-[#48A6A5]/20 border border-[#48A6A5] text-[#48A6A5] flex items-center justify-center group-hover:scale-110 transition-transform">
                 <Building2 className="w-7 h-7" />
               </div>
               <div className="space-y-1">
-                <span className="text-xs font-black uppercase text-[#00F0FF] tracking-widest">FOR HOSPITAL ADMIN & CARE CO-ORDINATORS</span>
+                <span className="text-xs font-black uppercase text-[#48A6A5] tracking-widest">FOR HOSPITAL ADMIN & CARE CO-ORDINATORS</span>
                 <h3 className="text-2xl font-black text-white">Hospital Admin Portal</h3>
                 <p className="text-xs text-gray-300 leading-relaxed">
                   Oversee real-time patient companion dispatch, reduce appointment no-shows, monitor HCAHPS scores, and download CHNA Schedule H community benefit reports.
@@ -138,15 +138,15 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
               <ul className="space-y-2 text-xs text-gray-200 pt-2">
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#00F0FF] shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-[#48A6A5] shrink-0" />
                   <span>Real-Time Patient Companion Dispatch Log</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#00F0FF] shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-[#48A6A5] shrink-0" />
                   <span>No-Show Reduction & Wait Time Metrics</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#00F0FF] shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-[#48A6A5] shrink-0" />
                   <span>Schedule H CHNA Community Benefit Exemption</span>
                 </li>
               </ul>
@@ -154,7 +154,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
             <button
               onClick={() => onNavigatePage('hospital')}
-              className="w-full bg-white/10 hover:bg-white/20 text-[#00F0FF] border border-[#00F0FF]/50 font-black text-xs uppercase py-3.5 rounded-xl transition-all flex items-center justify-center gap-2"
+              className="w-full bg-[#2B425B] hover:bg-white/10 text-white border border-[#48A6A5]/50 font-black text-xs uppercase py-3.5 rounded-xl transition-all flex items-center justify-center gap-2"
             >
               <span>Enter Hospital Hub</span>
               <ArrowRight className="w-4 h-4" />
@@ -165,16 +165,16 @@ export const HomePage: React.FC<HomePageProps> = ({
       </section>
 
       {/* 3. Concise 3-Step Journey Overview */}
-      <section className="bg-[#121824] py-16 border-y border-white/10">
+      <section className="bg-[#1F3449] py-16 border-y border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           <div className="text-center max-w-2xl mx-auto space-y-2">
-            <span className="text-xs font-black uppercase tracking-widest text-[#00F0FF]">HOW PATHPAL WORKS</span>
+            <span className="text-xs font-black uppercase tracking-widest text-[#48A6A5]">HOW PATHPAL WORKS</span>
             <h2 className="text-3xl font-black text-white">3 Simple Steps to Safe Navigation</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div className="bg-[#1A2232] p-6 rounded-2xl border border-white/10 space-y-3">
-              <div className="w-12 h-12 rounded-full bg-companion-coral text-white text-xl font-black mx-auto flex items-center justify-center shadow-lg">
+            <div className="bg-[#2B425B] p-6 rounded-2xl border border-white/10 space-y-3">
+              <div className="w-12 h-12 rounded-full bg-[#E85D75] text-white text-xl font-black mx-auto flex items-center justify-center shadow-lg">
                 1
               </div>
               <h3 className="text-lg font-bold text-white">Request Your Pal</h3>
@@ -183,8 +183,8 @@ export const HomePage: React.FC<HomePageProps> = ({
               </p>
             </div>
 
-            <div className="bg-[#1A2232] p-6 rounded-2xl border border-white/10 space-y-3">
-              <div className="w-12 h-12 rounded-full bg-navigation-teal text-white text-xl font-black mx-auto flex items-center justify-center shadow-lg">
+            <div className="bg-[#2B425B] p-6 rounded-2xl border border-white/10 space-y-3">
+              <div className="w-12 h-12 rounded-full bg-[#48A6A5] text-white text-xl font-black mx-auto flex items-center justify-center shadow-lg">
                 2
               </div>
               <h3 className="text-lg font-bold text-white">Rendezvous at Entrance</h3>
@@ -193,8 +193,8 @@ export const HomePage: React.FC<HomePageProps> = ({
               </p>
             </div>
 
-            <div className="bg-[#1A2232] p-6 rounded-2xl border border-white/10 space-y-3">
-              <div className="w-12 h-12 rounded-full bg-[#00F0FF] text-black text-xl font-black mx-auto flex items-center justify-center shadow-lg">
+            <div className="bg-[#2B425B] p-6 rounded-2xl border border-white/10 space-y-3">
+              <div className="w-12 h-12 rounded-full bg-[#48A6A5] text-white text-xl font-black mx-auto flex items-center justify-center shadow-lg">
                 3
               </div>
               <h3 className="text-lg font-bold text-white">Guided Care Companion</h3>
@@ -215,11 +215,11 @@ export const HomePage: React.FC<HomePageProps> = ({
 
       {/* 5. Quick Action Bar for Navigation & Tools */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-r from-[#121824] via-[#1A2232] to-[#121824] p-6 sm:p-8 rounded-3xl border border-[#00F0FF]/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
+        <div className="bg-gradient-to-r from-[#1F3449] via-[#2B425B] to-[#1F3449] p-6 sm:p-8 rounded-3xl border border-[#48A6A5]/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
           <div className="space-y-2 text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start gap-2">
-              <Navigation className="w-5 h-5 text-[#00F0FF] animate-pulse" />
-              <span className="text-xs font-black uppercase tracking-wider text-[#00F0FF]">CARE COORDINATION & NAVIGATION TOOLS</span>
+              <Navigation className="w-5 h-5 text-[#48A6A5] animate-pulse" />
+              <span className="text-xs font-black uppercase tracking-wider text-[#48A6A5]">CARE COORDINATION & NAVIGATION TOOLS</span>
             </div>
             <h3 className="text-xl sm:text-2xl font-black text-white">Need Hospital Live GPS Radar or Fee Calculations?</h3>
             <p className="text-xs text-gray-300 max-w-xl">
@@ -230,14 +230,14 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={onOpenGpsModal}
-              className="bg-[#00F0FF] hover:bg-[#00F0FF]/90 text-black font-black text-xs uppercase px-5 py-3 rounded-xl flex items-center gap-2 shadow-lg"
+              className="bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-black text-xs uppercase px-5 py-3 rounded-xl flex items-center gap-2 shadow-lg"
             >
-              <Navigation className="w-4 h-4 text-black" />
+              <Navigation className="w-4 h-4 text-white" />
               <span>Live GPS Radar</span>
             </button>
             <button
               onClick={() => onOpenChargesModal('patient_charges')}
-              className="bg-[#1A2232] hover:bg-white/10 text-emerald-400 font-bold text-xs uppercase px-5 py-3 rounded-xl border border-emerald-500/40 flex items-center gap-2"
+              className="bg-[#2B425B] hover:bg-white/10 text-emerald-400 font-bold text-xs uppercase px-5 py-3 rounded-xl border border-emerald-500/40 flex items-center gap-2"
             >
               <Calculator className="w-4 h-4 text-emerald-400" />
               <span>Patient Charges & Coverage</span>
