@@ -29,7 +29,7 @@ export const AboutAndImpactPage: React.FC<AboutAndImpactPageProps> = ({
           <span className="text-xs font-black uppercase tracking-widest text-[#48A6A5] bg-[#48A6A5]/10 px-3 py-1 rounded-full border border-[#48A6A5]/30">
             SOCIAL CAUSE & PLATFORM MISSION
           </span>
-          <h1 className="text-3xl sm:text-5xl font-black text-[#1F3449]">About PathPal, Safety & Impact</h1>
+          <h1 className="text-3xl sm:text-5xl font-black text-[#1F3449]">About PathPal</h1>
           <p className="text-sm sm:text-base text-gray-600">
             Learn why PathPal was built, how our accredited Companion Pals transform health access, and our compliance with healthcare quality standards.
           </p>

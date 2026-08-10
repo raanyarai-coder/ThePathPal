@@ -36,7 +36,7 @@ export const SocialImpactShowcase: React.FC = () => {
             <div className="relative h-64 overflow-hidden">
               <img
                 src={escortImg}
-                alt="Hospital Companion Pal (Inspired by Founder Raanya)"
+                alt="Hospital Companion Pal"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
               <div className="absolute top-4 left-4 bg-[#0A0D14]/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#00F0FF]/30 text-[10px] font-black uppercase text-[#00F0FF] tracking-widest flex items-center gap-1.5">

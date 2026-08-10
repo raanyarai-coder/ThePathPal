@@ -34,13 +34,13 @@ export const SAMPLE_HOSPITALS: Hospital[] = [
 export const SAMPLE_PALS: Pal[] = [
   {
     id: 'pal-founder',
-    name: 'Raanya Rai',
+    name: 'Aria Sharma',
     avatar: raanyaAvatar,
     rating: 5.0,
     completedVisits: 142,
     languages: ['English', 'Hindi', 'Spanish'],
-    specialties: ['Founder & Lead Pal', 'Wheelchair Assistance', 'Anxiety Relief', 'Elderly Care'],
-    bio: 'Founder of PathPal. Passionate about empowering patients and families with compassionate human companions during hospital visits.',
+    specialties: ['Senior Lead Pal', 'Wheelchair Assistance', 'Anxiety Relief', 'Elderly Care'],
+    bio: 'Lead Companion Pal at PathPal. Passionate about empowering patients and families with compassionate human companions during hospital visits.',
     isVerified: true,
     hospitalAffiliations: ['Metro Health Medical Center', 'St. Jude Regional Health Center', 'Valley Care Community Hospital'],
     badgeNumber: 'PAL-0001',

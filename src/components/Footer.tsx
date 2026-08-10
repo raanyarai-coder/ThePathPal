@@ -47,10 +47,6 @@ export const Footer: React.FC<FooterProps> = ({ onRequestPal, onBecomePal, onHos
             <p className="text-xs text-gray-600 max-w-sm leading-relaxed">
               PathPal is a healthcare navigation service pairing patients with trained, compassionate, non-clinical companions — Pals — supported by a smart digital platform that coordinates every step of the journey.
             </p>
-
-            <div className="text-xs text-[#E85D75] font-bold">
-              Prepared by Raanya Rai • July 2026 • Innovation Project
-            </div>
           </div>
 
           {/* Navigation Links */}
@@ -104,7 +100,7 @@ export const Footer: React.FC<FooterProps> = ({ onRequestPal, onBecomePal, onHos
         {/* Bottom Bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-400 pt-4">
           <div>
-            © 2026 PathPal Innovation Project. All rights reserved.
+            © 2026 PathPal. All rights reserved.
           </div>
           <button
             onClick={scrollToTop}
