@@ -126,38 +126,38 @@ export const CareBotChat: React.FC = () => {
 
       {/* Expandable Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-80 sm:w-96 bg-[#1F3449] border border-[#48A6A5]/50 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-white animate-fade-in max-h-[600px] h-[85vh]">
+        <div className="fixed bottom-6 right-6 z-50 w-80 sm:w-96 bg-white border border-gray-200 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-[#1F3449] animate-fade-in max-h-[600px] h-[85vh]">
           
           {/* Header */}
-          <div className="bg-[#2B425B] p-4 border-b border-white/10 flex items-center justify-between">
+          <div className="bg-gray-50 p-4 border-b border-gray-200 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#48A6A5]/20 border border-[#48A6A5] text-[#48A6A5] flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-[#48A6A5]/10 border border-[#48A6A5] text-[#48A6A5] flex items-center justify-center">
                 <Bot className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <h4 className="text-xs font-black uppercase text-white tracking-wider">PathPal Assistant</h4>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                  <h4 className="text-xs font-black uppercase text-[#1F3449] tracking-wider">PathPal Assistant</h4>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                 </div>
-                <p className="text-[10px] text-gray-300 font-light">Instant answers & human hand-off</p>
+                <p className="text-[10px] text-gray-500 font-light">Instant answers & human hand-off</p>
               </div>
             </div>
 
             <button
               onClick={() => setIsOpen(false)}
-              className="p-1.5 rounded-full text-gray-300 hover:text-white hover:bg-white/10"
+              className="p-1.5 rounded-full text-gray-500 hover:text-[#1F3449] hover:bg-gray-100"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Quick Topic Chips */}
-          <div className="p-2.5 bg-[#152535] border-b border-white/5 flex gap-1.5 overflow-x-auto no-scrollbar">
+          <div className="p-2.5 bg-gray-100 border-b border-gray-200 flex gap-1.5 overflow-x-auto no-scrollbar">
             {PRESET_TOPICS.map((topic, i) => (
               <button
                 key={i}
                 onClick={() => handleSendMessage(topic.prompt)}
-                className="shrink-0 text-[10px] font-bold bg-[#2B425B] text-gray-200 hover:text-[#48A6A5] hover:border-[#48A6A5]/40 border border-white/10 px-2.5 py-1 rounded-full transition-all"
+                className="shrink-0 text-[10px] font-bold bg-white text-gray-700 hover:text-[#48A6A5] hover:border-[#48A6A5] border border-gray-200 px-2.5 py-1 rounded-full transition-all shadow-xs"
               >
                 {topic.label}
               </button>
@@ -174,14 +174,14 @@ export const CareBotChat: React.FC = () => {
                 <div
                   className={`max-w-[85%] p-3.5 rounded-2xl leading-relaxed ${
                     m.sender === 'user'
-                      ? 'bg-[#48A6A5] text-white font-medium rounded-br-none'
-                      : 'bg-[#2B425B] text-gray-200 border border-white/10 rounded-bl-none'
+                      ? 'bg-[#48A6A5] text-white font-medium rounded-br-none shadow-sm'
+                      : 'bg-gray-100 text-gray-800 border border-gray-200 rounded-bl-none shadow-xs'
                   }`}
                 >
                   {m.text}
 
                   {m.isHumanRequest && (
-                    <div className="mt-3 pt-2 border-t border-white/10">
+                    <div className="mt-3 pt-2 border-t border-gray-200">
                       <button
                         onClick={() => setShowHumanModal(true)}
                         className="w-full py-2 rounded-xl bg-[#E85D75] text-white text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md hover:bg-[#E85D75]/90"
@@ -192,12 +192,12 @@ export const CareBotChat: React.FC = () => {
                     </div>
                   )}
                 </div>
-                <span className="text-[9px] text-gray-400 mt-1 px-1">{m.timestamp}</span>
+                <span className="text-[9px] text-gray-500 mt-1 px-1">{m.timestamp}</span>
               </div>
             ))}
 
             {isTyping && (
-              <div className="flex items-center gap-2 text-gray-300 text-[11px] italic p-2 bg-[#2B425B] rounded-xl w-32 border border-white/10">
+              <div className="flex items-center gap-2 text-gray-600 text-[11px] italic p-2 bg-gray-100 rounded-xl w-32 border border-gray-200">
                 <Sparkles className="w-3.5 h-3.5 text-[#48A6A5] animate-spin" />
                 <span>CareBot typing...</span>
               </div>
@@ -207,8 +207,8 @@ export const CareBotChat: React.FC = () => {
           </div>
 
           {/* Connect Human Banner */}
-          <div className="px-4 py-2 bg-[#2B425B]/80 border-t border-white/5 flex items-center justify-between text-[10px]">
-            <span className="text-gray-300">Need immediate live phone support?</span>
+          <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-[10px]">
+            <span className="text-gray-600">Need immediate live phone support?</span>
             <button
               onClick={() => setShowHumanModal(true)}
               className="text-[#48A6A5] font-bold uppercase hover:underline flex items-center gap-1"
@@ -223,18 +223,18 @@ export const CareBotChat: React.FC = () => {
               e.preventDefault();
               handleSendMessage();
             }}
-            className="p-3 bg-[#1F3449] border-t border-white/10 flex items-center gap-2"
+            className="p-3 bg-white border-t border-gray-200 flex items-center gap-2"
           >
             <input
               type="text"
               placeholder="Ask a question or request human support..."
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              className="flex-1 bg-[#2B425B] text-xs text-white px-3 py-2.5 rounded-xl border border-white/10 focus:border-[#48A6A5] focus:outline-none"
+              className="flex-1 bg-gray-50 text-xs text-[#1F3449] px-3 py-2.5 rounded-xl border border-gray-300 focus:border-[#48A6A5] focus:outline-none"
             />
             <button
               type="submit"
-              className="p-2.5 bg-[#48A6A5] text-white rounded-xl hover:bg-[#48A6A5]/90 transition-all"
+              className="p-2.5 bg-[#48A6A5] text-white rounded-xl hover:bg-[#48A6A5]/90 transition-all shadow-sm"
             >
               <Send className="w-4 h-4" />
             </button>
@@ -245,11 +245,11 @@ export const CareBotChat: React.FC = () => {
 
       {/* Human Support Modal */}
       {showHumanModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in text-white">
-          <div className="bg-[#1F3449] rounded-3xl max-w-md w-full p-6 border border-[#48A6A5]/40 shadow-2xl relative space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in text-[#1F3449]">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 border border-gray-200 shadow-2xl relative space-y-4">
             <button
               onClick={() => setShowHumanModal(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-full text-gray-400 hover:bg-white/10"
+              className="absolute top-4 right-4 p-1.5 rounded-full text-gray-500 hover:bg-gray-100"
             >
               <X className="w-4 h-4" />
             </button>
@@ -261,39 +261,39 @@ export const CareBotChat: React.FC = () => {
                     <Headphones className="w-3.5 h-3.5" />
                     <span>HUMAN CARE COORDINATOR</span>
                   </div>
-                  <h3 className="text-xl font-black uppercase text-white">Request Live Call / Support</h3>
-                  <p className="text-xs text-gray-300 font-light">
+                  <h3 className="text-xl font-black uppercase text-[#1F3449]">Request Live Call / Support</h3>
+                  <p className="text-xs text-gray-600 font-light">
                     Enter your phone number below and a PathPal Care Specialist will call you within 3 minutes.
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-300 mb-1">Your Name</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Your Name</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Eleanor Vance"
                     value={humanName}
                     onChange={(e) => setHumanName(e.target.value)}
-                    className="w-full bg-[#2B425B] text-xs text-white p-3 rounded-xl border border-white/10 focus:border-[#48A6A5] focus:outline-none"
+                    className="w-full bg-gray-50 text-xs text-[#1F3449] p-3 rounded-xl border border-gray-300 focus:border-[#48A6A5] focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-300 mb-1">Phone Number for Callback</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Phone Number for Callback</label>
                   <input
                     type="tel"
                     required
                     placeholder="(555) 019-2831"
                     value={humanPhone}
                     onChange={(e) => setHumanPhone(e.target.value)}
-                    className="w-full bg-[#2B425B] text-xs text-white p-3 rounded-xl border border-white/10 focus:border-[#48A6A5] focus:outline-none"
+                    className="w-full bg-gray-50 text-xs text-[#1F3449] p-3 rounded-xl border border-gray-300 focus:border-[#48A6A5] focus:outline-none"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full py-3.5 rounded-xl bg-[#48A6A5] text-white font-black uppercase tracking-wider text-xs hover:bg-[#48A6A5]/90 shadow-md shadow-[#48A6A5]/20 flex items-center justify-center gap-2"
+                  className="w-full py-3.5 rounded-xl bg-[#48A6A5] text-white font-black uppercase tracking-wider text-xs hover:bg-[#48A6A5]/90 shadow-md flex items-center justify-center gap-2"
                 >
                   <PhoneCall className="w-4 h-4" />
                   <span>Request Instant Callback</span>
@@ -301,11 +301,11 @@ export const CareBotChat: React.FC = () => {
               </form>
             ) : (
               <div className="text-center py-6 space-y-3">
-                <div className="w-12 h-12 bg-[#48A6A5]/20 text-[#48A6A5] rounded-full mx-auto flex items-center justify-center border border-[#48A6A5]">
+                <div className="w-12 h-12 bg-[#48A6A5]/10 text-[#48A6A5] rounded-full mx-auto flex items-center justify-center border border-[#48A6A5]">
                   <PhoneCall className="w-6 h-6 animate-pulse" />
                 </div>
-                <h4 className="text-lg font-black uppercase text-white">Coordinator Dispatched!</h4>
-                <p className="text-xs text-gray-300 font-light">
+                <h4 className="text-lg font-black uppercase text-[#1F3449]">Coordinator Dispatched!</h4>
+                <p className="text-xs text-gray-600 font-light">
                   A live PathPal Care Specialist is calling <span className="text-[#48A6A5] font-bold">{humanPhone}</span> right now.
                 </p>
                 <button

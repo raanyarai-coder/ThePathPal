@@ -13,17 +13,17 @@ export const Footer: React.FC<FooterProps> = ({ onRequestPal, onBecomePal, onHos
   };
 
   return (
-    <footer className="bg-[#1F3449] text-white pt-16 pb-12 border-t border-white/10">
+    <footer className="bg-white text-[#1F3449] pt-16 pb-12 border-t border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 pb-12 border-b border-white/10">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 pb-12 border-b border-gray-200">
           
           {/* Brand Info */}
           <div className="md:col-span-5 space-y-4">
             <div className="flex items-center gap-3">
               {/* Primary Logo Icon Mark with Pin & Teal Arch */}
               <div className="relative flex flex-col items-center">
-                <div className="relative w-10 h-10 bg-[#1F3449] rounded-xl flex items-center justify-center">
+                <div className="relative w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-gray-200 shadow-sm">
                   <MapPin className="w-8 h-8 text-[#E85D75] fill-[#E85D75]" />
                   <Heart className="w-3.5 h-3.5 text-white fill-white absolute top-2" />
                 </div>
@@ -35,28 +35,28 @@ export const Footer: React.FC<FooterProps> = ({ onRequestPal, onBecomePal, onHos
               </div>
 
               <div className="flex flex-col">
-                <span className="text-2xl font-black tracking-tight text-white flex items-center gap-0.5">
+                <span className="text-2xl font-black tracking-tight text-[#1F3449] flex items-center gap-0.5">
                   Path<span className="text-[#E85D75]">Pal</span>
                 </span>
-                <span className="text-[8.5px] uppercase tracking-widest font-medium text-gray-300 -mt-0.5">
+                <span className="text-[8.5px] uppercase tracking-widest font-medium text-gray-500 -mt-0.5">
                   NEVER NAVIGATE THE HOSPITAL ALONE
                 </span>
               </div>
             </div>
 
-            <p className="text-xs text-gray-300 max-w-sm leading-relaxed">
+            <p className="text-xs text-gray-600 max-w-sm leading-relaxed">
               PathPal is a healthcare navigation service pairing patients with trained, compassionate, non-clinical companions — Pals — supported by a smart digital platform that coordinates every step of the journey.
             </p>
 
-            <div className="text-xs text-[#FCE9EC] font-bold">
+            <div className="text-xs text-[#E85D75] font-bold">
               Prepared by Raanya Rai • July 2026 • Innovation Project
             </div>
           </div>
 
           {/* Navigation Links */}
           <div className="md:col-span-3 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[#FCE9EC]">Navigation</h4>
-            <ul className="space-y-2 text-xs text-gray-300">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#1F3449]">Navigation</h4>
+            <ul className="space-y-2 text-xs text-gray-600">
               <li><a href="#about" className="hover:text-[#E85D75] transition-colors">About PathPal</a></li>
               <li><a href="#challenge" className="hover:text-[#E85D75] transition-colors">The Challenge</a></li>
               <li><a href="#how-it-works" className="hover:text-[#E85D75] transition-colors">5-Step Journey</a></li>
@@ -68,7 +68,7 @@ export const Footer: React.FC<FooterProps> = ({ onRequestPal, onBecomePal, onHos
 
           {/* Action Callouts */}
           <div className="md:col-span-4 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[#FCE9EC]">Get Involved</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#1F3449]">Get Involved</h4>
             <div className="space-y-2">
               <button
                 onClick={onRequestPal}
@@ -85,7 +85,7 @@ export const Footer: React.FC<FooterProps> = ({ onRequestPal, onBecomePal, onHos
               </button>
               <button
                 onClick={onHospitalPartner}
-                className="w-full text-xs font-bold text-[#1F3449] bg-[#FCE9EC] hover:bg-white py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md"
+                className="w-full text-xs font-bold text-[#1F3449] bg-[#FCE9EC] hover:bg-[#FCE9EC]/80 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm border border-[#E85D75]/20"
               >
                 Hospital Partnership Inquiry
               </button>
@@ -94,10 +94,10 @@ export const Footer: React.FC<FooterProps> = ({ onRequestPal, onBecomePal, onHos
         </div>
 
         {/* Mandatory Non-Clinical Legal Disclaimer Box */}
-        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-3 text-[11px] text-gray-300">
-          <ShieldAlert className="w-5 h-5 text-[#F1B84C] shrink-0 mt-0.5" />
+        <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 flex items-start gap-3 text-[11px] text-gray-600 shadow-sm">
+          <ShieldAlert className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
           <p className="leading-relaxed">
-            <strong className="text-white font-semibold">Non-Clinical Scope Notice:</strong> PathPal companions ("Pals") provide non-clinical navigation support, accompaniment, and physical environment guidance within healthcare facilities. Pals are strictly non-clinical personnel and do not provide medical advice, diagnosis, clinical nursing care, or medical decision-making.
+            <strong className="text-[#1F3449] font-semibold">Non-Clinical Scope Notice:</strong> PathPal companions ("Pals") provide non-clinical navigation support, accompaniment, and physical environment guidance within healthcare facilities. Pals are strictly non-clinical personnel and do not provide medical advice, diagnosis, clinical nursing care, or medical decision-making.
           </p>
         </div>
 

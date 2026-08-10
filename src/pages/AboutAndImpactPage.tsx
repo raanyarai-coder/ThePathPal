@@ -24,13 +24,13 @@ export const AboutAndImpactPage: React.FC<AboutAndImpactPageProps> = ({
     <div className="space-y-16 animate-fade-in pb-16">
       
       {/* Page Title Header */}
-      <div className="bg-[#1F3449] py-12 border-b border-white/10 text-center">
+      <div className="bg-white py-12 border-b border-gray-200 text-center shadow-sm">
         <div className="max-w-4xl mx-auto px-4 space-y-3">
-          <span className="text-xs font-black uppercase tracking-widest text-[#48A6A5] bg-[#48A6A5]/15 px-3 py-1 rounded-full border border-[#48A6A5]/30">
+          <span className="text-xs font-black uppercase tracking-widest text-[#48A6A5] bg-[#48A6A5]/10 px-3 py-1 rounded-full border border-[#48A6A5]/30">
             SOCIAL CAUSE & PLATFORM MISSION
           </span>
-          <h1 className="text-3xl sm:text-5xl font-black text-white">About PathPal, Safety & Impact</h1>
-          <p className="text-sm sm:text-base text-gray-300">
+          <h1 className="text-3xl sm:text-5xl font-black text-[#1F3449]">About PathPal, Safety & Impact</h1>
+          <p className="text-sm sm:text-base text-gray-600">
             Learn why PathPal was built, how our accredited Companion Pals transform health access, and our compliance with healthcare quality standards.
           </p>
         </div>
