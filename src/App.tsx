@@ -21,6 +21,7 @@ import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { CalendarIntegrationModal } from './components/CalendarIntegrationModal';
 import { OfflineStatusBanner } from './components/OfflineStatusBanner';
 import { CareBotChat } from './components/CareBotChat';
+import { SupabaseAuthModal } from './components/SupabaseAuthModal';
 
 type PageType = 'home' | 'patient' | 'pal' | 'hospital' | 'about';
 
@@ -37,6 +38,7 @@ export default function App() {
   const [pushModalOpen, setPushModalOpen] = useState(false);
   const [keyboardModalOpen, setKeyboardModalOpen] = useState(false);
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
+  const [supabaseAuthModalOpen, setSupabaseAuthModalOpen] = useState(false);
 
   const handleOpenChargesModal = (tab: 'patient_charges' | 'pal_earnings' = 'patient_charges') => {
     setChargesModalTab(tab);
@@ -140,6 +142,7 @@ export default function App() {
             onOpenPushNotifications={() => setPushModalOpen(true)}
             onOpenKeyboardModal={() => setKeyboardModalOpen(true)}
             onOpenCalendarModal={() => setCalendarModalOpen(true)}
+            onOpenSupabaseAuth={() => setSupabaseAuthModalOpen(true)}
           />
 
           {/* Dedicated Page Views */}
@@ -159,6 +162,7 @@ export default function App() {
               <PatientPortalPage
                 onOpenGpsModal={() => setGpsModalOpen(true)}
                 onOpenChargesModal={(tab) => handleOpenChargesModal(tab || 'patient_charges')}
+                onOpenSupabaseAuth={() => setSupabaseAuthModalOpen(true)}
               />
             )}
 
@@ -234,6 +238,10 @@ export default function App() {
           isOpen={calendarModalOpen}
           onClose={() => setCalendarModalOpen(false)}
           userRole={currentPage === 'pal' ? 'pal' : 'patient'}
+        />
+        <SupabaseAuthModal
+          isOpen={supabaseAuthModalOpen}
+          onClose={() => setSupabaseAuthModalOpen(false)}
         />
 
         {/* Interactive CareBot Chatbot */}

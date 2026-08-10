@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, MapPin, Navigation, Menu, X, Shield, Users, Building2, CreditCard, UserCheck, HelpCircle, Calculator, Bell, ShieldAlert, Globe, ChevronDown, Keyboard, Calendar } from 'lucide-react';
+import { Heart, MapPin, Navigation, Menu, X, Shield, Users, Building2, CreditCard, UserCheck, HelpCircle, Calculator, Bell, ShieldAlert, Globe, ChevronDown, Keyboard, Calendar, Database, LogIn } from 'lucide-react';
 import { useLanguage, LANGUAGES, SupportedLanguage } from '../context/LanguageContext';
 
 interface NavbarProps {
@@ -15,6 +15,7 @@ interface NavbarProps {
   onOpenPushNotifications?: () => void;
   onOpenKeyboardModal?: () => void;
   onOpenCalendarModal?: () => void;
+  onOpenSupabaseAuth?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -30,6 +31,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenPushNotifications,
   onOpenKeyboardModal,
   onOpenCalendarModal,
+  onOpenSupabaseAuth,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
@@ -182,6 +184,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                   className="p-1.5 rounded-lg hover:bg-white text-gray-600 hover:text-[#48A6A5] transition-all"
                 >
                   <Keyboard className="w-4 h-4" />
+                </button>
+              )}
+
+              {/* Supabase Patient Auth */}
+              {onOpenSupabaseAuth && (
+                <button
+                  onClick={onOpenSupabaseAuth}
+                  title="Supabase Patient Sign Up & Login"
+                  className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 transition-all flex items-center gap-1.5 text-xs font-bold shadow-xs"
+                >
+                  <Database className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Patient Auth</span>
                 </button>
               )}
             </div>

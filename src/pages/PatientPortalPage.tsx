@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Heart, ShieldCheck, MapPin, Clock, Calendar, Phone, CheckCircle2, AlertCircle, Calculator, Navigation, ShieldAlert, FileText, ChevronRight, UserCheck, Lock, Globe, Activity, Video } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Heart, ShieldCheck, MapPin, Clock, Calendar, Phone, CheckCircle2, AlertCircle, Calculator, Navigation, ShieldAlert, FileText, ChevronRight, UserCheck, Lock, Globe, Activity, Video, Database, UserPlus } from 'lucide-react';
 import { SAMPLE_HOSPITALS, SAMPLE_PALS, INITIAL_REQUESTS } from '../data/mockData';
 import { PalRequest } from '../types';
 import { MedicalSummaryWidget } from '../components/MedicalSummaryWidget';
@@ -8,21 +8,46 @@ import { RecoveryTrendsWidget } from '../components/RecoveryTrendsWidget';
 import { PatientVideoBroadcastModal } from '../components/PatientVideoBroadcastModal';
 import { useLanguage } from '../context/LanguageContext';
 import { createGoogleCalendarUrl, downloadIcsFile } from '../utils/calendarUtils';
+import { supabase } from '../lib/supabase';
 
 interface PatientPortalPageProps {
   onOpenGpsModal: () => void;
   onOpenChargesModal: (tab?: 'patient_charges' | 'pal_earnings') => void;
+  onOpenSupabaseAuth?: () => void;
 }
 
 export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
   onOpenGpsModal,
   onOpenChargesModal,
+  onOpenSupabaseAuth,
 }) => {
   const { t, language, setLanguage } = useLanguage();
   const [activeTab, setActiveTab] = useState<'request' | 'my_escorts' | 'eta_calculator' | 'recovery_trends' | 'medical_summary' | 'financials'>('request');
   const [requests, setRequests] = useState<PalRequest[]>(INITIAL_REQUESTS);
   const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
   const [activeBroadcastReq, setActiveBroadcastReq] = useState<PalRequest | null>(null);
+  
+  // Supabase Auth state
+  const [authUser, setAuthUser] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setAuthUser(user);
+        if (user.email) setPatientName(user.user_metadata?.full_name || user.email.split('@')[0]);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user ?? null;
+      setAuthUser(user);
+      if (user?.email) {
+        setPatientName(user.user_metadata?.full_name || user.email.split('@')[0]);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
   
   // Patient Form State
   const [patientName, setPatientName] = useState('Maria Santos');
@@ -87,13 +112,25 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
               Subsidized Vouchers Available
             </span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-[#1F3449]">Welcome, Maria Santos</h1>
+          <h1 className="text-3xl sm:text-4xl font-black text-[#1F3449]">
+            Welcome, {authUser ? (patientName || authUser.email) : 'Maria Santos'}
+          </h1>
           <p className="text-xs sm:text-sm text-gray-600 max-w-xl">
             Book compassionate companion escorts for hospital appointments, track your assigned Pal live on campus, and view your encrypted HIPAA medical summary.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 relative z-10">
+          {onOpenSupabaseAuth && (
+            <button
+              onClick={onOpenSupabaseAuth}
+              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs uppercase px-4 py-3 rounded-xl border border-emerald-300 flex items-center gap-2 shadow-sm transition-all"
+            >
+              <Database className="w-4 h-4 text-emerald-600" />
+              <span>{authUser ? 'Supabase Account' : 'Patient Sign Up / Login'}</span>
+            </button>
+          )}
+
           <button
             onClick={onOpenGpsModal}
             className="bg-gray-50 hover:bg-gray-100 text-[#48A6A5] font-bold text-xs uppercase px-4 py-3 rounded-xl border border-[#48A6A5]/30 flex items-center gap-2 shadow-sm"
