@@ -1,70 +1,143 @@
-import { createClient } from '@supabase/supabase-js';
+import {
+  supabase,
+  supabaseClient,
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY,
+  DEFAULT_SUPABASE_URL,
+  DEFAULT_SUPABASE_ANON_KEY,
+  getValidSupabaseUrl,
+  getValidSupabaseAnonKey,
+} from './supabaseClient';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://pzzrgstawlqxanfdjnbq.supabase.co';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6enJnc3Rhd2xxeGFuZmRqbmJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYzNzAxOTMsImV4cCI6MjEwMTk0NjE5M30.W6E0k16XXSLqp2NmiTecviaXYOPEsX2wZjV3DacvlSA';
+export {
+  supabase,
+  supabaseClient,
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY,
+  DEFAULT_SUPABASE_URL,
+  DEFAULT_SUPABASE_ANON_KEY,
+  getValidSupabaseUrl,
+  getValidSupabaseAnonKey,
+};
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-export interface PatientAuthData {
-  name: string;
-  email: string;
-  phone?: string;
-  password?: string;
+export interface AuthResult {
+  data: any | null;
+  error: { message: string } | null;
 }
 
 /**
- * Sign up a new patient with Supabase Auth and insert record into 'patients' table.
+ * Directly signs up a new patient using production Supabase Auth.
  */
-export async function signUpPatient(email: string, password: string, name: string, phone: string = '') {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
-
-  if (error) {
-    return { data: null, error };
-  }
-
-  if (data?.user) {
-    const { error: patientInsertError } = await supabase.from('patients').insert({
-      auth_user_id: data.user.id,
-      name,
-      phone,
+export async function signUpPatient(
+  email: string,
+  password: string,
+  name: string,
+  phone: string = ''
+): Promise<AuthResult> {
+  try {
+    const { data, error } = await supabase.auth.signUp({
       email,
+      password,
+      options: {
+        data: {
+          full_name: name,
+          phone,
+        },
+      },
     });
 
-    if (patientInsertError) {
-      console.warn('Supabase patients table insert notice:', patientInsertError.message);
+    if (error) {
+      if (error.message.toLowerCase().includes('rate limit')) {
+        return {
+          data: null,
+          error: {
+            message: 'Supabase email rate limit exceeded. Please wait a few minutes before registering another new account, or log in with an existing account.'
+          }
+        };
+      }
+      return { data: null, error: { message: error.message } };
     }
+
+    // Try inserting metadata into 'patients' table if available
+    if (data?.user) {
+      try {
+        await supabase.from('patients').insert({
+          auth_user_id: data.user.id,
+          name,
+          phone,
+        });
+      } catch (insertErr) {
+        console.info('Notice inserting to patients table:', insertErr);
+      }
+    }
+
+    return { data, error: null };
+  } catch (err: any) {
+    const msg = err?.message || 'An unexpected error occurred during signup.';
+    if (msg.includes('Failed to fetch')) {
+      return {
+        data: null,
+        error: {
+          message: 'Network connection issue connecting to Supabase. Please check your internet connection or URL settings.'
+        }
+      };
+    }
+    return { data: null, error: { message: msg } };
   }
-
-  return { data, error: null };
 }
 
 /**
- * Log in an existing user with Supabase Auth.
+ * Directly logs in an existing patient using production Supabase Auth.
  */
-export async function loginPatient(email: string, password: string) {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+export async function loginPatient(email: string, password: string): Promise<AuthResult> {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-  return { data, error };
+    if (error) {
+      return { data: null, error: { message: error.message } };
+    }
+
+    return { data, error: null };
+  } catch (err: any) {
+    const msg = err?.message || 'An unexpected error occurred during login.';
+    if (msg.includes('Failed to fetch')) {
+      return {
+        data: null,
+        error: {
+          message: 'Network connection issue connecting to Supabase. Please check your internet connection or URL settings.'
+        }
+      };
+    }
+    return { data: null, error: { message: msg } };
+  }
 }
 
 /**
- * Sign out current user session.
+ * Signs out the current patient session.
  */
 export async function signOutPatient() {
-  const { error } = await supabase.auth.signOut();
-  return { error };
+  try {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      return { error: { message: error.message } };
+    }
+  } catch (err: any) {
+    return { error: { message: err?.message || 'Error signing out.' } };
+  }
+  return { error: null };
 }
 
 /**
- * Get current authenticated user session.
+ * Gets current authenticated patient user.
  */
 export async function getCurrentPatientUser() {
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user;
+  } catch {
+    return null;
+  }
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Lock, Mail, Phone, LogIn, UserPlus, LogOut, CheckCircle2, ShieldCheck, Database, AlertCircle } from 'lucide-react';
-import { supabase, signUpPatient, loginPatient, signOutPatient } from '../lib/supabase';
+import { signUpPatient, loginPatient, signOutPatient } from '../lib/supabase';
+import { supabase } from '../lib/supabaseClient';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface SupabaseAuthModalProps {
@@ -29,9 +30,16 @@ export const SupabaseAuthModal: React.FC<SupabaseAuthModalProps> = ({
 
   // Sync Supabase Auth Session
   useEffect(() => {
+    try {
+      localStorage.removeItem('pathpal_fallback_user');
+      localStorage.removeItem('pathpal_fallback_patient');
+    } catch {}
+
     supabase.auth.getUser().then(({ data: { user } }) => {
       setCurrentUser(user);
       if (user) fetchPatientRecord(user.id);
+    }).catch(() => {
+      setCurrentUser(null);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -77,14 +85,15 @@ export const SupabaseAuthModal: React.FC<SupabaseAuthModalProps> = ({
         return;
       }
 
-      const { data, error } = await signUpPatient(email, password, name, phone);
+      const res = await signUpPatient(email, password, name, phone);
 
-      if (error) {
-        setErrorMessage(error.message);
+      if (res.error) {
+        setErrorMessage(res.error.message || 'Failed to sign up patient.');
       } else {
-        setSuccessMessage('Patient account created successfully with Supabase!');
-        if (data?.user) {
-          onAuthSuccess?.(data.user, { name, phone });
+        setSuccessMessage('Patient account registered successfully with Supabase!');
+        if (res.data?.user) {
+          setCurrentUser(res.data.user);
+          onAuthSuccess?.(res.data.user, { name, phone });
         }
       }
     } else {
@@ -94,14 +103,15 @@ export const SupabaseAuthModal: React.FC<SupabaseAuthModalProps> = ({
         return;
       }
 
-      const { data, error } = await loginPatient(email, password);
+      const res = await loginPatient(email, password);
 
-      if (error) {
-        setErrorMessage(error.message);
+      if (res.error) {
+        setErrorMessage(res.error.message || 'Failed to log in.');
       } else {
-        setSuccessMessage('Logged in successfully!');
-        if (data?.user) {
-          onAuthSuccess?.(data.user);
+        setSuccessMessage('Logged in successfully via Supabase!');
+        if (res.data?.user) {
+          setCurrentUser(res.data.user);
+          onAuthSuccess?.(res.data.user);
         }
       }
     }

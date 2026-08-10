@@ -8,7 +8,8 @@ import { RecoveryTrendsWidget } from '../components/RecoveryTrendsWidget';
 import { PatientVideoBroadcastModal } from '../components/PatientVideoBroadcastModal';
 import { useLanguage } from '../context/LanguageContext';
 import { createGoogleCalendarUrl, downloadIcsFile } from '../utils/calendarUtils';
-import { supabase } from '../lib/supabase';
+import { getCurrentPatientUser } from '../lib/supabase';
+import { supabase } from '../lib/supabaseClient';
 
 interface PatientPortalPageProps {
   onOpenGpsModal: () => void;
