@@ -47,11 +47,20 @@ export async function signUpPatient(
     });
 
     if (error) {
-      if (error.message.toLowerCase().includes('rate limit')) {
+      const errMsg = error.message || '';
+      if (errMsg.toLowerCase().includes('rate limit')) {
         return {
           data: null,
           error: {
             message: 'Supabase email rate limit exceeded. Please wait a few minutes before registering another new account, or log in with an existing account.'
+          }
+        };
+      }
+      if (errMsg.toLowerCase().includes('failed to fetch') || errMsg.toLowerCase().includes('fetch failed')) {
+        return {
+          data: null,
+          error: {
+            message: 'Unable to reach Supabase servers (Failed to fetch). Please check your network connection, verify your Supabase project URL & Anon Key, or disable any ad-blocker blocking supabase.co.'
           }
         };
       }
@@ -97,6 +106,15 @@ export async function loginPatient(email: string, password: string): Promise<Aut
     });
 
     if (error) {
+      const errMsg = error.message || '';
+      if (errMsg.toLowerCase().includes('failed to fetch') || errMsg.toLowerCase().includes('fetch failed')) {
+        return {
+          data: null,
+          error: {
+            message: 'Unable to reach Supabase servers (Failed to fetch). Please check your network connection, verify your Supabase project URL & Anon Key, or disable any ad-blocker blocking supabase.co.'
+          }
+        };
+      }
       return { data: null, error: { message: error.message } };
     }
 

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type SupportedLanguage = 'en' | 'es';
+export type SupportedLanguage = 'en' | 'es' | 'hi';
 
 export interface Language {
   code: SupportedLanguage;
@@ -13,6 +13,7 @@ export interface Language {
 export const LANGUAGES: Language[] = [
   { code: 'en', name: 'English', nativeName: 'English', flag: '🇺🇸', dir: 'ltr' },
   { code: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇲🇽', dir: 'ltr' },
+  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', flag: '🇮🇳', dir: 'ltr' },
 ];
 
 export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
@@ -162,6 +163,80 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     call911: 'Llamar al 911 Inmediatamente',
     alertSecurity: 'Alertar a la Seguridad del Campus',
     triggerSosBtn: 'Activar Secuencia de Despacho SOS',
+  },
+
+  hi: {
+    // Nav & Common
+    appName: 'PathPal',
+    tagline: 'अकेले कभी अस्पताल न जाएं',
+    navHome: 'होम',
+    navPatient: 'मरीज़ पोर्टल',
+    navPal: 'पाल (साथी) पोर्टल',
+    navHospital: 'अस्पताल एडमिन',
+    navAbout: 'हमारे बारे में और प्रभाव',
+    btnRequestPal: 'अस्पताल साथी का अनुरोध करें',
+    btnBecomePal: 'साथी (पाल) बनें',
+    btnHospitalPartner: 'अस्पताल पार्टनर',
+    btnEmergencySos: 'आपातकालीन SOS 911',
+    btnLiveGps: 'लाइव GPS रडार',
+
+    // Hero
+    heroBadge: 'स्वास्थ्य योजना और बीमा द्वारा कवर • $0 अपनी जेब से',
+    heroTitlePrefix: 'सहानुभूतिपूर्ण अस्पताल',
+    heroTitleHighlight: 'साथी और मार्गदर्शन',
+    heroSubtitle: 'बुजुर्गों, दिव्यांगों और गैर-अंग्रेजी भाषी मरीज़ों को तनावमुक्त अस्पताल दौरों के लिए पृष्ठभूमि-सत्यापित सामुदायिक स्वास्थ्य कार्यकर्ताओं से जोड़ना।',
+    heroStat1: 'दरवाजे से क्लिनिक तक साथी',
+    heroStat2: 'स्वास्थ्य योजना द्वारा सब्सिडी प्राप्त',
+    heroStat3: 'बहुभाषी सामुदायिक स्वास्थ्य कार्यकर्ता',
+
+    // Portals Selector
+    portalTitle: 'हर भूमिका के लिए अनुकूलित अनुभव',
+    portalSubtitle: 'मरीज़ों, साथी पाल्स और अस्पताल देखभाल टीमों के लिए विशेष रूप से डिज़ाइन किए गए इंटरफ़ेस।',
+    patientPortalTitle: 'मरीज़ और परिवार पोर्टल',
+    patientPortalDesc: 'एक साथी का अनुरोध करें, लाइव GPS स्थान ट्रैक करें, और अपना एन्क्रिप्टेड HIPAA मेडिकल सारांश प्रबंधित करें।',
+    palPortalTitle: 'साथी पाल पोर्टल',
+    palPortalDesc: 'आस-पास के पाल असाइनमेंट स्वीकार करें, वजीफा ($22-$28/घंटा) ट्रैक करें, और मरीज़ सहायता ज़रूरतें देखें।',
+    hospitalPortalTitle: 'अस्पताल एडमिन पोर्टल',
+    hospitalPortalDesc: 'रीयल-टाइम मरीज़ साथी प्रेषण की निगरानी करें, अपॉइंटमेंट चूक को कम करें, और HCAHPS स्कोर बढ़ाएं।',
+
+    // Patient Portal
+    welcomePatient: 'स्वागत है, मारिया सैंटोस',
+    voucherSubsidized: '100% सब्सिडी प्राप्त / $0 लागत',
+    bookEscortTitle: 'अस्पताल साथी पाल शेड्यूल करें',
+    patientName: 'मरीज़ का पूरा नाम',
+    phoneLabel: 'अपडेट के लिए फ़ोन नंबर',
+    hospitalLabel: 'गंतव्य अस्पताल',
+    clinicLabel: 'क्लिनिक / विभाग',
+    dateLabel: 'अपॉइंटमेंट की तारीख',
+    timeLabel: 'अपॉइंटमेंट का समय',
+    meetingPointLabel: 'परिसर में मिलने का स्थान',
+    languagePrefLabel: 'भाषा प्राथमिकता',
+    accommodationsLabel: 'आवश्यक विशेष सहायता',
+    wheelchairOption: 'व्हीलचेयर पाल सहायता',
+    armAssistanceOption: 'हाथ का सहारा / आर्म सपोर्ट',
+    submitEscortBtn: 'पाल अनुरोध सबमिट करें',
+    scheduledEscortsTitle: 'आपकी आगामी साथी मुलाकातें',
+
+    // Pal Portal
+    welcomePal: 'स्वागत है, ऐलेना रोस्तोवा',
+    dutyStatus: 'ड्यूटी स्थिति:',
+    onDuty: 'ड्यूटी पर (असाइनमेंट प्राप्त कर रहे हैं)',
+    offDuty: 'ड्यूटी से बाहर',
+    availableEscortsFeed: 'लंबित मरीज़ पाल अनुरोध',
+    acceptEscortBtn: 'पाल असाइनमेंट स्वीकार करें',
+    stipendRate: 'प्रति घंटा वजीफा दर',
+
+    // Hospital Portal
+    hospitalTitle: 'मेट्रो हेल्थ मेडिकल सेंटर',
+    noShowReduction: 'अनुपस्थिति में कमी',
+    hcahpsBoost: 'HCAHPS रेटिंग में बढ़ोतरी',
+    liveDispatchTable: 'लाइव कैंपस साथी प्रेषण तालिका',
+
+    // Emergency SOS
+    sosModalTitle: 'तत्काल आपातकालीन SOS अनुक्रम',
+    call911: '911 डिस्पैच को कॉल करें',
+    alertSecurity: 'परिसर सुरक्षा डेस्क को सचेत करें',
+    triggerSosBtn: 'तत्काल SOS डिस्पैच अनुक्रम ट्रिगर करें',
   },
 };
 

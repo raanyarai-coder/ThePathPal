@@ -49,7 +49,7 @@ export const CareBotChat: React.FC = () => {
     }
 
     if (q.includes('match') || q.includes('pair') || q.includes('choose') || q.includes('language')) {
-      return 'PathPal pairs you based on your mobility requirements, primary language (English or Spanish), appointment location, and personal preferences. Pals meet you directly at the hospital entrance valet or lobby check-in.';
+      return 'PathPal pairs you based on your mobility requirements, primary language (English, Spanish, or Hindi), appointment location, and personal preferences. Pals meet you directly at the hospital entrance valet or lobby check-in.';
     }
 
     if (q.includes('cost') || q.includes('price') || q.includes('insurance') || q.includes('free') || q.includes('pay') || q.includes('voucher')) {

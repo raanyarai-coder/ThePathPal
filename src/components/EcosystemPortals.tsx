@@ -295,6 +295,7 @@ export const EcosystemPortals: React.FC = () => {
                           >
                             <option value="English">English</option>
                             <option value="Spanish">Spanish (Español)</option>
+                            <option value="Hindi">Hindi (हिन्दी)</option>
                           </select>
                         </div>
                       </div>

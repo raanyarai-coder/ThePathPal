@@ -23,7 +23,7 @@ export const VideoGuidesSection: React.FC<VideoGuidesSectionProps> = ({ onReques
   const [activeVideo, setActiveVideo] = useState<VideoGuideItem | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [videoProgress, setVideoProgress] = useState(35);
-  const [selectedLanguage, setSelectedLanguage] = useState<'EN' | 'ES' | 'ZH' | 'TL'>('EN');
+  const [selectedLanguage, setSelectedLanguage] = useState<'EN' | 'ES' | 'HI' | 'ZH' | 'TL'>('EN');
 
   const guides: VideoGuideItem[] = [
     {
@@ -214,6 +214,7 @@ export const VideoGuidesSection: React.FC<VideoGuidesSectionProps> = ({ onReques
                 <span className="bg-black/80 text-[#48A6A5] px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold tracking-wide border border-white/10">
                   {selectedLanguage === 'EN' && "“PathPal companions meet you directly at the hospital entrance with verified badge clearance.”"}
                   {selectedLanguage === 'ES' && "“Los compañeros de PathPal lo reciben directamente en la entrada del hospital con identificación verificada.”"}
+                  {selectedLanguage === 'HI' && "“पाथपाल साथी आपसे सत्यापित पहचान पत्र के साथ सीधे अस्पताल के प्रवेश द्वार पर मिलेंगे।”"}
                   {selectedLanguage === 'ZH' && "“PathPal 陪伴员将在医院门口直接与您会面，并带有经认证的徽章。”"}
                   {selectedLanguage === 'TL' && "“Ang mga kasama sa PathPal ay nakikipagpalitan sa iyo sa pasukan ng ospital gamit ang na-verify na badge.”"}
                 </span>
@@ -246,7 +247,7 @@ export const VideoGuidesSection: React.FC<VideoGuidesSectionProps> = ({ onReques
                   <div className="flex items-center gap-1.5">
                     <Globe className="w-3.5 h-3.5 text-[#48A6A5]" />
                     <span className="text-[10px] font-bold text-gray-400">CC:</span>
-                    {(['EN', 'ES', 'ZH', 'TL'] as const).map((lang) => (
+                    {(['EN', 'ES', 'HI', 'ZH', 'TL'] as const).map((lang) => (
                       <button
                         key={lang}
                         onClick={() => setSelectedLanguage(lang)}

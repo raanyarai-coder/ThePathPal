@@ -315,6 +315,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                   >
                     <option value="English" className="bg-white text-[#1F3449]">English</option>
                     <option value="Spanish" className="bg-white text-[#1F3449]">Spanish (Español)</option>
+                    <option value="Hindi" className="bg-white text-[#1F3449]">Hindi (हिन्दी)</option>
                   </select>
                 </div>
               </div>
