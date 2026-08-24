@@ -62,11 +62,26 @@ export const SupabaseAuthModal: React.FC<SupabaseAuthModalProps> = ({
         .eq('auth_user_id', userId)
         .maybeSingle();
 
-      if (!error && data) {
+      if (error) {
+        console.error('Failed to fetch patient record:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        });
+        setPatientRecord(null);
+        return;
+      }
+
+      if (data) {
         setPatientRecord(data);
+      } else {
+        console.warn('No patient record found for auth user:', userId);
+        setPatientRecord(null);
       }
     } catch (err) {
-      console.warn('Patient fetch notice:', err);
+      console.error('Unexpected error fetching patient record:', err);
+      setPatientRecord(null);
     }
   };
 
@@ -89,12 +104,21 @@ export const SupabaseAuthModal: React.FC<SupabaseAuthModalProps> = ({
 
       if (res.error) {
         setErrorMessage(res.error.message || 'Failed to sign up patient.');
+      } else if (res.data?.user && res.data?.session) {
+        // Immediate session active (email confirmation disabled or auto-confirmed)
+        setSuccessMessage('Patient account registered and signed in successfully with Supabase!');
+        setCurrentUser(res.data.user);
+        fetchPatientRecord(res.data.user.id);
+        onAuthSuccess?.(res.data.user, { name, phone });
+      } else if (res.data?.user && !res.data?.session) {
+        // Email confirmation required by Supabase project settings
+        setSuccessMessage(
+          'Account created successfully. Please check your email and click the confirmation link before logging in.'
+        );
+        setCurrentUser(null);
+        setPatientRecord(null);
       } else {
-        setSuccessMessage('Patient account registered successfully with Supabase!');
-        if (res.data?.user) {
-          setCurrentUser(res.data.user);
-          onAuthSuccess?.(res.data.user, { name, phone });
-        }
+        setErrorMessage('Unable to complete signup. Please verify your credentials.');
       }
     } else {
       if (!email || !password) {
@@ -107,12 +131,17 @@ export const SupabaseAuthModal: React.FC<SupabaseAuthModalProps> = ({
 
       if (res.error) {
         setErrorMessage(res.error.message || 'Failed to log in.');
-      } else {
+      } else if (res.data?.user && res.data?.session) {
         setSuccessMessage('Logged in successfully via Supabase!');
-        if (res.data?.user) {
-          setCurrentUser(res.data.user);
-          onAuthSuccess?.(res.data.user);
-        }
+        setCurrentUser(res.data.user);
+        fetchPatientRecord(res.data.user.id);
+        onAuthSuccess?.(res.data.user);
+      } else if (res.data?.user && !res.data?.session) {
+        setErrorMessage('Login pending email confirmation. Please check your email to confirm your account first.');
+        setCurrentUser(null);
+        setPatientRecord(null);
+      } else {
+        setErrorMessage('Invalid login credentials or session could not be established.');
       }
     }
 

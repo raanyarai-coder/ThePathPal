@@ -26,7 +26,8 @@ export interface AuthResult {
 }
 
 /**
- * Directly signs up a new patient using production Supabase Auth.
+ * Directly signs up a new patient using Supabase Auth.
+ * Profile creation in the 'patients' table is handled by a PostgreSQL database trigger on auth.users.
  */
 export async function signUpPatient(
   email: string,
@@ -52,43 +53,36 @@ export async function signUpPatient(
         return {
           data: null,
           error: {
-            message: 'Supabase email rate limit exceeded. Please wait a few minutes before registering another new account, or log in with an existing account.'
-          }
+            message:
+              'Supabase email rate limit exceeded. Please wait a few minutes before registering another new account, or log in with an existing account.',
+          },
         };
       }
-      if (errMsg.toLowerCase().includes('failed to fetch') || errMsg.toLowerCase().includes('fetch failed')) {
+      if (
+        errMsg.toLowerCase().includes('failed to fetch') ||
+        errMsg.toLowerCase().includes('fetch failed')
+      ) {
         return {
           data: null,
           error: {
-            message: 'Unable to reach Supabase servers (Failed to fetch). Please check your network connection, verify your Supabase project URL & Anon Key, or disable any ad-blocker blocking supabase.co.'
-          }
+            message:
+              'Unable to reach Supabase servers (Failed to fetch). Please check your network connection, verify your Supabase project URL & Anon Key, or disable any ad-blocker blocking supabase.co.',
+          },
         };
       }
       return { data: null, error: { message: error.message } };
     }
 
-    // Try inserting metadata into 'patients' table if available
-    if (data?.user) {
-      try {
-        await supabase.from('patients').insert({
-          auth_user_id: data.user.id,
-          name,
-          phone,
-        });
-      } catch (insertErr) {
-        console.info('Notice inserting to patients table:', insertErr);
-      }
-    }
-
     return { data, error: null };
   } catch (err: any) {
     const msg = err?.message || 'An unexpected error occurred during signup.';
-    if (msg.includes('Failed to fetch')) {
+    if (msg.includes('Failed to fetch') || msg.includes('fetch failed')) {
       return {
         data: null,
         error: {
-          message: 'Network connection issue connecting to Supabase. Please check your internet connection or URL settings.'
-        }
+          message:
+            'Network connection issue connecting to Supabase. Please check your internet connection or URL settings.',
+        },
       };
     }
     return { data: null, error: { message: msg } };
