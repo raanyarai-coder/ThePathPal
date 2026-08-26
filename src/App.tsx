@@ -51,9 +51,15 @@ export default function App() {
   useEffect(() => {
     const handleHashChange = () => {
       const rawHash = window.location.hash.replace('#', '');
-      const hashPage = rawHash.split('?')[0] as PageType;
+      const hashPage = rawHash.split('?')[0];
+
+      if (hashPage === 'pal-apply' || hashPage === 'become-pal' || hashPage === 'apply-pal') {
+        setBecomePalModalOpen(true);
+        return;
+      }
+
       if (['home', 'patient', 'pal', 'hospital', 'about', 'pal-signup', 'pal-verify'].includes(hashPage)) {
-        setCurrentPage(hashPage);
+        setCurrentPage(hashPage as PageType);
       }
     };
 
@@ -173,6 +179,7 @@ export default function App() {
               <PalPortalPage
                 onOpenGpsModal={() => setGpsModalOpen(true)}
                 onOpenChargesModal={(tab) => handleOpenChargesModal(tab || 'pal_earnings')}
+                onBecomePal={() => setBecomePalModalOpen(true)}
               />
             )}
 

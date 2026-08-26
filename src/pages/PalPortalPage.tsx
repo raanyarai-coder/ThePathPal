@@ -35,11 +35,13 @@ import { createGoogleCalendarUrl } from '../utils/calendarUtils';
 interface PalPortalPageProps {
   onOpenGpsModal: () => void;
   onOpenChargesModal: (tab?: 'patient_charges' | 'pal_earnings') => void;
+  onBecomePal?: () => void;
 }
 
 export const PalPortalPage: React.FC<PalPortalPageProps> = ({
   onOpenGpsModal,
   onOpenChargesModal,
+  onBecomePal,
 }) => {
   // Authentication & Pal Profile State
   const [authUser, setAuthUser] = useState<any | null>(null);
@@ -350,12 +352,20 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <a
-              href="#pal-apply"
-              className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-black uppercase text-[#1F3449] border border-gray-300 transition-all flex items-center gap-1.5"
+            <button
+              type="button"
+              onClick={() => {
+                if (onBecomePal) {
+                  onBecomePal();
+                } else {
+                  window.location.hash = 'pal-apply';
+                }
+              }}
+              className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-black uppercase text-[#1F3449] border border-gray-300 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
             >
+              <UserCheck className="w-3.5 h-3.5 text-[#48A6A5]" />
               <span>Apply to Become a Pal</span>
-            </a>
+            </button>
           </div>
         </div>
 
@@ -462,11 +472,40 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
                 <span>Official Pal Onboarding Steps</span>
               </div>
               <ol className="text-xs text-emerald-900 space-y-2 font-medium list-decimal pl-4">
-                <li>Submit your Pal application with language & mobility experience.</li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onBecomePal) {
+                        onBecomePal();
+                      } else {
+                        window.location.hash = 'pal-apply';
+                      }
+                    }}
+                    className="text-[#48A6A5] font-bold underline hover:text-[#48A6A5]/80 text-left cursor-pointer"
+                  >
+                    Submit your Pal application
+                  </button>{' '}
+                  with language & mobility experience.
+                </li>
                 <li>Hospital Administrator reviews and approves your application.</li>
                 <li>Follow the approved signup link to create your Supabase Auth account.</li>
                 <li>Click the email confirmation link to activate your Pal record.</li>
               </ol>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onBecomePal) {
+                    onBecomePal();
+                  } else {
+                    window.location.hash = 'pal-apply';
+                  }
+                }}
+                className="w-full mt-2 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <UserCheck className="w-4 h-4" />
+                <span>Open Pal Application Form</span>
+              </button>
             </div>
 
             <div className="bg-gray-50 p-6 rounded-3xl border border-gray-200 space-y-3">
