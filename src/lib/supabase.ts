@@ -153,7 +153,7 @@ function saveSentPalEmail(email: PalEmailNotification) {
  * ========================================================================= */
 
 /**
- * Saves a new Pal companion application into `pal_applications`.
+ * Saves a new Pal companion application into `pal_applications` in Supabase.
  * Does NOT create the final login account at this stage.
  */
 export async function submitPalApplication(data: {
@@ -165,20 +165,22 @@ export async function submitPalApplication(data: {
   bio?: string;
 }): Promise<{ data: PalApplication | null; error: { message: string } | null }> {
   try {
-    const appId = `app-${Date.now().toString().slice(-6)}`;
+    const generatedId = `app-${Date.now().toString().slice(-6)}`;
+    const emailNorm = data.email.trim().toLowerCase();
+    
     const newApp: PalApplication = {
-      id: appId,
+      id: generatedId,
       full_name: data.full_name.trim(),
-      email: data.email.trim().toLowerCase(),
+      email: emailNorm,
       phone: data.phone.trim(),
       languages: data.languages.trim(),
-      specialties: data.specialties || 'Companion Mobility & Hospital Escort',
-      bio: data.bio || 'Compassionate community health advocate eager to support patients.',
+      specialties: data.specialties?.trim() || 'Companion Mobility & Hospital Escort',
+      bio: data.bio?.trim() || 'Compassionate community health advocate eager to support patients.',
       status: 'pending',
       created_at: new Date().toISOString(),
     };
 
-    // Attempt Supabase insert
+    // 1. Attempt Supabase insert to pal_applications table
     try {
       const { data: dbData, error: dbError } = await supabase
         .from('pal_applications')
@@ -198,14 +200,45 @@ export async function submitPalApplication(data: {
         .select()
         .single();
 
-      if (!dbError && dbData) {
-        // Sync local cache
+      if (dbError) {
+        console.error('Supabase pal_applications insert error:', {
+          message: dbError.message,
+          details: dbError.details,
+          hint: dbError.hint,
+          code: dbError.code,
+        });
+
+        // Retry insert without custom ID in case schema uses auto-generated UUID/serial
+        const { data: retryData, error: retryError } = await supabase
+          .from('pal_applications')
+          .insert([
+            {
+              full_name: newApp.full_name,
+              email: newApp.email,
+              phone: newApp.phone,
+              languages: newApp.languages,
+              specialties: newApp.specialties,
+              bio: newApp.bio,
+              status: 'pending',
+            },
+          ])
+          .select()
+          .single();
+
+        if (!retryError && retryData) {
+          const formatted = retryData as PalApplication;
+          const current = getStoredApplications();
+          saveStoredApplications([formatted, ...current.filter((a) => a.id !== formatted.id)]);
+          return { data: formatted, error: null };
+        }
+      } else if (dbData) {
+        const formatted = dbData as PalApplication;
         const current = getStoredApplications();
-        saveStoredApplications([dbData as PalApplication, ...current.filter((a) => a.id !== dbData.id)]);
-        return { data: dbData as PalApplication, error: null };
+        saveStoredApplications([formatted, ...current.filter((a) => a.id !== formatted.id)]);
+        return { data: formatted, error: null };
       }
     } catch (dbErr) {
-      console.warn('Supabase pal_applications insert notice:', dbErr);
+      console.error('Exception inserting into pal_applications in Supabase:', dbErr);
     }
 
     // Always maintain local persistent fallback
@@ -215,6 +248,7 @@ export async function submitPalApplication(data: {
 
     return { data: newApp, error: null };
   } catch (err: any) {
+    console.error('Error in submitPalApplication:', err);
     return { data: null, error: { message: err?.message || 'Error submitting application' } };
   }
 }
@@ -229,7 +263,14 @@ export async function fetchPalApplications(): Promise<PalApplication[]> {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data && data.length > 0) {
+    if (error) {
+      console.error('Supabase fetchPalApplications error:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
+    } else if (data && data.length > 0) {
       // Merge with local storage
       const localApps = getStoredApplications();
       const combined = [...data];
@@ -242,7 +283,7 @@ export async function fetchPalApplications(): Promise<PalApplication[]> {
       return combined as PalApplication[];
     }
   } catch (err) {
-    console.warn('Supabase fetchPalApplications note:', err);
+    console.error('Exception in fetchPalApplications:', err);
   }
 
   return getStoredApplications();
@@ -275,9 +316,9 @@ export async function approvePalApplication(
       admin_notes: adminNotes,
     };
 
-    // Update in Supabase
+    // 1. Update in Supabase pal_applications table
     try {
-      await supabase
+      const { error: updateAppErr } = await supabase
         .from('pal_applications')
         .update({
           status: 'approved',
@@ -285,27 +326,32 @@ export async function approvePalApplication(
           admin_notes: adminNotes,
         })
         .eq('id', applicationId);
+
+      if (updateAppErr) {
+        console.error('Failed to update pal_applications status in Supabase:', updateAppErr);
+      }
     } catch (e) {
-      console.warn('Supabase approve note:', e);
+      console.error('Exception updating pal_applications in Supabase:', e);
     }
 
     // Update local cache
     saveStoredApplications(allApps.map((a) => (a.id === applicationId ? updatedApp : a)));
 
-    // Ensure the corresponding record exists in `pals` table in 'approved_pending_verification' status
+    // 2. Ensure the corresponding record exists in `pals` table in 'approved_pending_verification' status
     const allPals = getStoredPals();
-    const existingPal = allPals.find((p) => p.email?.toLowerCase() === app.email.toLowerCase());
+    const appEmail = app.email.trim().toLowerCase();
+    const existingPal = allPals.find((p) => p.email?.toLowerCase() === appEmail);
 
     const badgeNum = `PAL-${Math.floor(1000 + Math.random() * 9000)}`;
     const palRecord: Pal = existingPal || {
       id: `pal-${Date.now().toString().slice(-6)}`,
       name: app.full_name,
-      email: app.email,
+      email: appEmail,
       phone: app.phone,
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
       rating: 5.0,
       completedVisits: 0,
-      languages: app.languages.split(',').map((s) => s.trim()),
+      languages: app.languages ? app.languages.split(',').map((s) => s.trim()) : ['English'],
       specialties: app.specialties ? app.specialties.split(',').map((s) => s.trim()) : ['Hospital Escort', 'Companion Care'],
       bio: app.bio || 'Compassionate healthcare companion.',
       isVerified: false,
@@ -314,11 +360,12 @@ export async function approvePalApplication(
       hospitalAffiliations: ['Metro Health Medical Center'],
       badgeNumber: badgeNum,
       created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
     // Upsert into Supabase pals table
     try {
-      await supabase
+      const { error: palUpsertErr } = await supabase
         .from('pals')
         .upsert({
           id: palRecord.id,
@@ -336,9 +383,18 @@ export async function approvePalApplication(
           email_verified: false,
           hospital_affiliations: palRecord.hospitalAffiliations,
           badge_number: palRecord.badgeNumber,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'email' });
+
+      if (palUpsertErr) {
+        console.error('Supabase pals table upsert error during approval:', {
+          message: palUpsertErr.message,
+          details: palUpsertErr.details,
+          code: palUpsertErr.code,
         });
+      }
     } catch (e) {
-      console.warn('Supabase initial pals record insert notice:', e);
+      console.error('Exception upserting to pals table in Supabase:', e);
     }
 
     if (!existingPal) {
@@ -351,6 +407,7 @@ export async function approvePalApplication(
 
     return { data: { application: updatedApp, signupLink }, error: null };
   } catch (err: any) {
+    console.error('Failed to approve pal application:', err);
     return { data: null, error: { message: err?.message || 'Failed to approve application' } };
   }
 }
@@ -371,7 +428,9 @@ export async function getApprovedPalApplication(
         .eq('id', applicationId)
         .single();
 
-      if (!error && data) {
+      if (error) {
+        console.error('Supabase getApprovedPalApplication error:', error);
+      } else if (data) {
         if (data.status !== 'approved') {
           return {
             data: null,
@@ -383,7 +442,7 @@ export async function getApprovedPalApplication(
         return { data: data as PalApplication, error: null };
       }
     } catch (e) {
-      console.warn('Supabase getApprovedPalApplication note:', e);
+      console.error('Supabase getApprovedPalApplication exception:', e);
     }
 
     // Check local storage
@@ -408,6 +467,7 @@ export async function getApprovedPalApplication(
 
     return { data: app, error: null };
   } catch (err: any) {
+    console.error('Error validating application:', err);
     return { data: null, error: { message: err?.message || 'Error validating application' } };
   }
 }
@@ -436,7 +496,7 @@ export async function signUpPal(
     }
 
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: email.trim().toLowerCase(),
       password,
       options: {
         data: {
@@ -450,6 +510,10 @@ export async function signUpPal(
     });
 
     if (error) {
+      console.error('Supabase Pal signUp error:', {
+        message: error.message,
+        status: (error as any).status,
+      });
       const errMsg = error.message || '';
       if (errMsg.toLowerCase().includes('rate limit')) {
         return {
@@ -471,6 +535,7 @@ export async function signUpPal(
 
     return { data, error: null };
   } catch (err: any) {
+    console.error('Unexpected error during Pal signup:', err);
     return {
       data: null,
       error: { message: err?.message || 'An unexpected error occurred during Pal signup.' },
@@ -485,8 +550,8 @@ export async function signUpPal(
 /**
  * Reliable email verification and account activation:
  * 1. Obtains authenticated user via `supabase.auth.getUser()`.
- * 2. Confirms `user.email_confirmed_at` (or session confirmation state) is populated.
- * 3. Associates `pals.auth_user_id = auth.users.id`.
+ * 2. Confirms `user.email_confirmed_at` (or confirmed session state) is populated.
+ * 3. Associates `pals.auth_user_id = auth.users.id` via SQL update on `pals` WHERE `email = user.email`.
  * 4. Updates `account_status = 'active'`, `email_verified = true`, `is_verified = true`.
  * 5. Sends the "Your Pal Account Is Ready" confirmation email.
  */
@@ -505,6 +570,7 @@ export async function verifyPalEmailAndActivate(): Promise<{
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
+      console.error('Failed to get authenticated user during verification:', userError);
       return {
         data: null,
         error: {
@@ -529,10 +595,80 @@ export async function verifyPalEmailAndActivate(): Promise<{
     }
 
     const authUserId = user.id;
-    const userEmail = user.email || '';
+    const userEmail = (user.email || '').trim().toLowerCase();
     const userName = user.user_metadata?.full_name || userEmail.split('@')[0];
 
-    // Find existing Pal record to update (preventing duplicate rows)
+    // Explicitly update the existing Pal record in Supabase using the approved application email
+    let updatedDbPal: any = null;
+
+    try {
+      const { data: updateData, error: updateErr } = await supabase
+        .from('pals')
+        .update({
+          auth_user_id: authUserId,
+          email: userEmail,
+          is_verified: true,
+          email_verified: true,
+          account_status: 'active',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('email', userEmail)
+        .select()
+        .maybeSingle();
+
+      if (updateErr) {
+        console.error('Failed to update Pal in Supabase by email:', {
+          message: updateErr.message,
+          details: updateErr.details,
+          code: updateErr.code,
+        });
+      } else if (updateData) {
+        updatedDbPal = updateData;
+      }
+    } catch (dbE) {
+      console.error('Exception updating pals table in Supabase:', dbE);
+    }
+
+    // If record did not exist by email in Supabase, create/upsert it
+    if (!updatedDbPal) {
+      try {
+        const badgeNum = `PAL-${Math.floor(1000 + Math.random() * 9000)}`;
+        const palId = `pal-${authUserId.slice(0, 8)}`;
+        const { data: insertData, error: insertErr } = await supabase
+          .from('pals')
+          .upsert({
+            id: palId,
+            auth_user_id: authUserId,
+            email: userEmail,
+            name: userName,
+            phone: user.user_metadata?.phone || '',
+            avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
+            rating: 5.0,
+            completed_visits: 0,
+            languages: ['English'],
+            specialties: ['Hospital Companion', 'Escort Guidance'],
+            bio: 'Certified PathPal Companion Pal.',
+            is_verified: true,
+            email_verified: true,
+            account_status: 'active',
+            hospital_affiliations: ['Metro Health Medical Center'],
+            badge_number: badgeNum,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'email' })
+          .select()
+          .maybeSingle();
+
+        if (insertErr) {
+          console.error('Failed to insert activated Pal in Supabase:', insertErr);
+        } else if (insertData) {
+          updatedDbPal = insertData;
+        }
+      } catch (upsertEx) {
+        console.error('Exception upserting activated Pal into Supabase:', upsertEx);
+      }
+    }
+
+    // Update local cache
     const allPals = getStoredPals();
     let existingIndex = allPals.findIndex(
       (p) =>
@@ -556,67 +692,35 @@ export async function verifyPalEmailAndActivate(): Promise<{
       allPals[existingIndex] = targetPal;
     } else {
       targetPal = {
-        id: `pal-${authUserId.slice(0, 8)}`,
+        id: updatedDbPal?.id || `pal-${authUserId.slice(0, 8)}`,
         auth_user_id: authUserId,
-        name: userName,
+        name: updatedDbPal?.name || userName,
         email: userEmail,
         phone: user.user_metadata?.phone || '(555) 019-2834',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
-        rating: 5.0,
-        completedVisits: 0,
-        languages: ['English', 'Spanish'],
-        specialties: ['Hospital Companion', 'Anxiety Relief', 'Wheelchair Guidance'],
-        bio: 'Certified PathPal Companion Pal.',
+        avatar: updatedDbPal?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
+        rating: updatedDbPal?.rating || 5.0,
+        completedVisits: updatedDbPal?.completed_visits || 0,
+        languages: Array.isArray(updatedDbPal?.languages) ? updatedDbPal.languages : ['English', 'Spanish'],
+        specialties: Array.isArray(updatedDbPal?.specialties) ? updatedDbPal.specialties : ['Hospital Companion', 'Anxiety Relief'],
+        bio: updatedDbPal?.bio || 'Certified PathPal Companion Pal.',
         isVerified: true,
         account_status: 'active',
         email_verified: true,
-        hospitalAffiliations: ['Metro Health Medical Center'],
-        badgeNumber: `PAL-${Math.floor(1000 + Math.random() * 9000)}`,
+        hospitalAffiliations: Array.isArray(updatedDbPal?.hospital_affiliations) ? updatedDbPal.hospital_affiliations : ['Metro Health Medical Center'],
+        badgeNumber: updatedDbPal?.badge_number || `PAL-${Math.floor(1000 + Math.random() * 9000)}`,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
       allPals.unshift(targetPal);
     }
 
-    // Save updated pals to local storage
     saveStoredPals(allPals);
 
-    // Update in Supabase pals table
-    try {
-      const { error: updateErr } = await supabase
-        .from('pals')
-        .upsert({
-          id: targetPal.id,
-          auth_user_id: authUserId,
-          name: targetPal.name,
-          email: targetPal.email,
-          phone: targetPal.phone,
-          avatar: targetPal.avatar,
-          rating: targetPal.rating,
-          completed_visits: targetPal.completedVisits,
-          languages: targetPal.languages,
-          specialties: targetPal.specialties,
-          bio: targetPal.bio,
-          is_verified: true,
-          account_status: 'active',
-          email_verified: true,
-          hospital_affiliations: targetPal.hospitalAffiliations,
-          badge_number: targetPal.badgeNumber,
-          updated_at: new Date().toISOString(),
-        });
-
-      if (updateErr) {
-        console.warn('Supabase update pals warning:', updateErr.message);
-      }
-    } catch (dbE) {
-      console.warn('Supabase update pals table note:', dbE);
-    }
-
-    // Step 7: Send "Your Account Is Ready" confirmation email
+    // Send "Your Account Is Ready" confirmation email
     const emailNotification: PalEmailNotification = {
       id: `email-${Date.now()}`,
       recipient_email: userEmail,
-      recipient_name: userName,
+      recipient_name: targetPal.name || userName,
       subject: 'Your Pal Account Is Ready',
       message:
         'Your email has been successfully verified and your Pal account is now ready. You can log in using your registered email address and password.',
@@ -635,6 +739,7 @@ export async function verifyPalEmailAndActivate(): Promise<{
       error: null,
     };
   } catch (err: any) {
+    console.error('Verification & activation error:', err);
     return {
       data: null,
       error: { message: err?.message || 'Verification & activation failed.' },
@@ -664,11 +769,12 @@ export async function loginPal(
 }> {
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: email.trim().toLowerCase(),
       password,
     });
 
     if (error) {
+      console.error('Supabase loginPal error:', error);
       const errMsg = error.message || '';
       if (
         errMsg.toLowerCase().includes('failed to fetch') ||
@@ -690,40 +796,49 @@ export async function loginPal(
     }
 
     const authUserId = data.user.id;
-    const userEmail = data.user.email || '';
+    const userEmail = (data.user.email || '').trim().toLowerCase();
 
-    // Fetch corresponding Pal record
-    let palRecord: Pal | null = null;
+    // Fetch corresponding Pal record from Supabase where auth_user_id = user.id
+    let palRecord: Pal | null = await fetchPalByAuthUserId(authUserId);
 
-    try {
-      const { data: palDb, error: palDbError } = await supabase
-        .from('pals')
-        .select('*')
-        .eq('auth_user_id', authUserId)
-        .single();
+    // If not yet linked by auth_user_id, try linking by email
+    if (!palRecord) {
+      try {
+        const { data: palByEmail, error: emailErr } = await supabase
+          .from('pals')
+          .select('*')
+          .eq('email', userEmail)
+          .maybeSingle();
 
-      if (!palDbError && palDb) {
-        palRecord = {
-          id: palDb.id,
-          auth_user_id: palDb.auth_user_id,
-          name: palDb.name,
-          email: palDb.email,
-          phone: palDb.phone,
-          avatar: palDb.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
-          rating: palDb.rating || 5.0,
-          completedVisits: palDb.completed_visits || 0,
-          languages: Array.isArray(palDb.languages) ? palDb.languages : ['English'],
-          specialties: Array.isArray(palDb.specialties) ? palDb.specialties : ['Hospital Escort'],
-          bio: palDb.bio || '',
-          isVerified: palDb.is_verified ?? true,
-          account_status: palDb.account_status || 'active',
-          email_verified: palDb.email_verified ?? true,
-          hospitalAffiliations: Array.isArray(palDb.hospital_affiliations) ? palDb.hospital_affiliations : ['Metro Health Medical Center'],
-          badgeNumber: palDb.badge_number || 'PAL-8802',
-        };
+        if (!emailErr && palByEmail) {
+          // Update the auth_user_id link
+          await supabase
+            .from('pals')
+            .update({ auth_user_id: authUserId, email_verified: true, account_status: 'active' })
+            .eq('id', palByEmail.id);
+
+          palRecord = {
+            id: palByEmail.id,
+            auth_user_id: authUserId,
+            name: palByEmail.name,
+            email: palByEmail.email,
+            phone: palByEmail.phone,
+            avatar: palByEmail.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
+            rating: palByEmail.rating || 5.0,
+            completedVisits: palByEmail.completed_visits || 0,
+            languages: Array.isArray(palByEmail.languages) ? palByEmail.languages : ['English'],
+            specialties: Array.isArray(palByEmail.specialties) ? palByEmail.specialties : ['Hospital Escort'],
+            bio: palByEmail.bio || '',
+            isVerified: palByEmail.is_verified ?? true,
+            account_status: palByEmail.account_status || 'active',
+            email_verified: true,
+            hospitalAffiliations: Array.isArray(palByEmail.hospital_affiliations) ? palByEmail.hospital_affiliations : ['Metro Health Medical Center'],
+            badgeNumber: palByEmail.badge_number || 'PAL-ACTIVE',
+          };
+        }
+      } catch (linkErr) {
+        console.error('Error linking pal by email during login:', linkErr);
       }
-    } catch (e) {
-      console.warn('Supabase fetch pal record note:', e);
     }
 
     // Fallback to local store if db row not linked yet
@@ -742,7 +857,6 @@ export async function loginPal(
           email_verified: true,
           account_status: 'active',
         };
-        // Update local store with auth_user_id
         saveStoredPals(storedPals.map((p) => (p.id === matched.id ? palRecord! : p)));
       }
     }
@@ -756,11 +870,100 @@ export async function loginPal(
       error: null,
     };
   } catch (err: any) {
+    console.error('Unexpected error during loginPal:', err);
     return {
       data: null,
       error: { message: err?.message || 'An unexpected error occurred during Pal login.' },
     };
   }
+}
+
+/**
+ * Fetch pal record from Supabase table where `auth_user_id = user.id`.
+ */
+export async function fetchPalByAuthUserId(authUserId: string): Promise<Pal | null> {
+  try {
+    const { data: palDb, error: palDbError } = await supabase
+      .from('pals')
+      .select('*')
+      .eq('auth_user_id', authUserId)
+      .maybeSingle();
+
+    if (palDbError) {
+      console.error('Supabase fetchPalByAuthUserId error:', {
+        message: palDbError.message,
+        details: palDbError.details,
+        code: palDbError.code,
+      });
+      return null;
+    }
+
+    if (palDb) {
+      return {
+        id: palDb.id,
+        auth_user_id: palDb.auth_user_id,
+        name: palDb.name,
+        email: palDb.email,
+        phone: palDb.phone,
+        avatar: palDb.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
+        rating: palDb.rating || 5.0,
+        completedVisits: palDb.completed_visits ?? 0,
+        languages: Array.isArray(palDb.languages) ? palDb.languages : (typeof palDb.languages === 'string' ? palDb.languages.split(',') : ['English']),
+        specialties: Array.isArray(palDb.specialties) ? palDb.specialties : (typeof palDb.specialties === 'string' ? palDb.specialties.split(',') : ['Hospital Escort']),
+        bio: palDb.bio || '',
+        isVerified: palDb.is_verified ?? true,
+        account_status: palDb.account_status || 'active',
+        email_verified: palDb.email_verified ?? true,
+        hospitalAffiliations: Array.isArray(palDb.hospital_affiliations) ? palDb.hospital_affiliations : ['Metro Health Medical Center'],
+        badgeNumber: palDb.badge_number || 'PAL-ACTIVE',
+      };
+    }
+  } catch (e) {
+    console.error('Exception fetching pal record from Supabase:', e);
+  }
+  return null;
+}
+
+/**
+ * Fetch all registered pals directly from Supabase.
+ */
+export async function fetchAllPals(): Promise<Pal[]> {
+  try {
+    const { data, error } = await supabase
+      .from('pals')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase fetchAllPals error:', error);
+    } else if (data && data.length > 0) {
+      const mapped: Pal[] = data.map((palDb: any) => ({
+        id: palDb.id,
+        auth_user_id: palDb.auth_user_id,
+        name: palDb.name,
+        email: palDb.email,
+        phone: palDb.phone,
+        avatar: palDb.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
+        rating: palDb.rating || 5.0,
+        completedVisits: palDb.completed_visits ?? 0,
+        languages: Array.isArray(palDb.languages) ? palDb.languages : (typeof palDb.languages === 'string' ? palDb.languages.split(',') : ['English']),
+        specialties: Array.isArray(palDb.specialties) ? palDb.specialties : (typeof palDb.specialties === 'string' ? palDb.specialties.split(',') : ['Hospital Escort']),
+        bio: palDb.bio || '',
+        isVerified: palDb.is_verified ?? true,
+        account_status: palDb.account_status || 'active',
+        email_verified: palDb.email_verified ?? true,
+        hospitalAffiliations: Array.isArray(palDb.hospital_affiliations) ? palDb.hospital_affiliations : ['Metro Health Medical Center'],
+        badgeNumber: palDb.badge_number || 'PAL-ACTIVE',
+        created_at: palDb.created_at,
+        updated_at: palDb.updated_at,
+      }));
+      saveStoredPals(mapped);
+      return mapped;
+    }
+  } catch (e) {
+    console.error('Exception in fetchAllPals:', e);
+  }
+  return getStoredPals();
 }
 
 /**
@@ -788,6 +991,11 @@ export async function getCurrentPalUser(): Promise<{ user: any | null; palRecord
     } = await supabase.auth.getUser();
 
     if (!user) return { user: null, palRecord: null };
+
+    const palRecord = await fetchPalByAuthUserId(user.id);
+    if (palRecord) {
+      return { user, palRecord };
+    }
 
     const storedPals = getStoredPals();
     const matched =

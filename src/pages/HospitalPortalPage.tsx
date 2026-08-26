@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { SAMPLE_HOSPITALS, INITIAL_REQUESTS, SAMPLE_PALS } from '../data/mockData';
 import { PalRequest, PalApplication, Pal } from '../types';
-import { fetchPalApplications, approvePalApplication } from '../lib/supabase';
+import { fetchPalApplications, approvePalApplication, fetchAllPals } from '../lib/supabase';
 
 export const HospitalPortalPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dispatch' | 'applications' | 'pals'>('dispatch');
@@ -46,11 +46,11 @@ export const HospitalPortalPage: React.FC = () => {
     setApplications(apps);
   };
 
-  const loadPals = () => {
+  const loadPals = async () => {
     try {
-      const stored = localStorage.getItem('pathpal_pals_records');
-      if (stored) {
-        setPalsList(JSON.parse(stored));
+      const pals = await fetchAllPals();
+      if (pals && pals.length > 0) {
+        setPalsList(pals);
       }
     } catch {
       setPalsList(SAMPLE_PALS);
@@ -65,7 +65,7 @@ export const HospitalPortalPage: React.FC = () => {
         [appId]: res.data!.signupLink,
       }));
       await loadApplications();
-      loadPals();
+      await loadPals();
     }
   };
 

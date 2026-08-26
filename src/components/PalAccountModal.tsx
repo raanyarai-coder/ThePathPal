@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { X, Star, Award, CheckCircle2, ShieldCheck, Heart, User, Calendar, DollarSign, Clock, ToggleLeft, ToggleRight, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Star, Award, CheckCircle2, ShieldCheck, Heart, User, Calendar, DollarSign, Clock, ToggleLeft, ToggleRight, MessageSquare, Sparkles } from 'lucide-react';
 import { SAMPLE_PALS } from '../data/mockData';
+import { supabase, fetchAllPals } from '../lib/supabase';
+import { Pal } from '../types';
 
 interface PalAccountModalProps {
   isOpen: boolean;
@@ -8,13 +10,45 @@ interface PalAccountModalProps {
 }
 
 export const PalAccountModal: React.FC<PalAccountModalProps> = ({ isOpen, onClose }) => {
+  const [availablePals, setAvailablePals] = useState<Pal[]>(SAMPLE_PALS);
   const [selectedPalId, setSelectedPalId] = useState<string>('pal-1');
   const [isOnDuty, setIsOnDuty] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'reviews' | 'assignments'>('overview');
 
+  useEffect(() => {
+    if (isOpen) {
+      loadPals();
+    }
+  }, [isOpen]);
+
+  const loadPals = async () => {
+    try {
+      const allPals = await fetchAllPals();
+      if (allPals && allPals.length > 0) {
+        setAvailablePals(allPals);
+      }
+
+      // Check if current user is logged in
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const matching = allPals.find(p => p.auth_user_id === user.id || p.email?.toLowerCase() === user.email?.toLowerCase());
+        if (matching) {
+          setSelectedPalId(matching.id);
+          return;
+        }
+      }
+
+      if (allPals.length > 0 && !selectedPalId) {
+        setSelectedPalId(allPals[0].id);
+      }
+    } catch (e) {
+      console.warn('PalAccountModal load error:', e);
+    }
+  };
+
   if (!isOpen) return null;
 
-  const currentPal = SAMPLE_PALS.find(p => p.id === selectedPalId) || SAMPLE_PALS[0];
+  const currentPal = availablePals.find(p => p.id === selectedPalId) || availablePals[0] || SAMPLE_PALS[0];
 
   // Mock feedback specific to this Pal
   const palFeedbacks = [
@@ -108,9 +142,9 @@ export const PalAccountModal: React.FC<PalAccountModalProps> = ({ isOpen, onClos
               onChange={(e) => setSelectedPalId(e.target.value)}
               className="bg-transparent text-xs font-bold text-white focus:outline-none"
             >
-              {SAMPLE_PALS.map(pal => (
+              {availablePals.map(pal => (
                 <option key={pal.id} value={pal.id} className="bg-[#1F3449] text-white">
-                  Account: {pal.name}
+                  {pal.auth_user_id ? `Active Pal: ${pal.name}` : `Account: ${pal.name}`}
                 </option>
               ))}
             </select>
