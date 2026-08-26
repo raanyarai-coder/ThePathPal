@@ -217,7 +217,7 @@ export const BecomePalModal: React.FC<BecomePalModalProps> = ({
             </div>
 
             <p className="text-xs text-gray-600 max-w-md mx-auto">
-              Your application has been stored in <code>pal_applications</code>. Once a hospital administrator approves your profile, you will receive an invitation link to complete your Supabase Auth registration.
+              Your application has been stored in <code>pal_applications</code>. Once an administrator approves your profile, you will receive an invitation link to complete your Supabase Auth registration.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
@@ -235,7 +235,7 @@ export const BecomePalModal: React.FC<BecomePalModalProps> = ({
                 }}
                 className="w-full sm:w-auto bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white text-xs font-bold px-6 py-3 rounded-xl transition-all shadow-md inline-block text-center"
               >
-                Go to Hospital Admin Approvals Tab →
+                Go to Admin Approvals Tab →
               </a>
             </div>
           </div>

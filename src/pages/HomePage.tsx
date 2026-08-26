@@ -41,7 +41,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             Tailored Experiences for Every Role
           </h2>
           <p className="text-sm text-gray-600">
-            Patients, Companion Pals, and Hospital Administrators have custom portals designed specifically for their needs.
+            Patients, Companion Pals, and Administrators have custom portals designed specifically for their needs.
           </p>
         </div>
 
@@ -123,17 +123,17 @@ export const HomePage: React.FC<HomePageProps> = ({
             </button>
           </div>
 
-          {/* Hospital Partner Card */}
+          {/* Admin Card */}
           <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-lg flex flex-col justify-between space-y-6 hover:border-[#1F3449] transition-all group">
             <div className="space-y-4">
               <div className="w-14 h-14 rounded-2xl bg-[#1F3449]/10 border border-[#1F3449]/30 text-[#1F3449] flex items-center justify-center group-hover:scale-110 transition-transform">
                 <Building2 className="w-7 h-7" />
               </div>
               <div className="space-y-1">
-                <span className="text-xs font-black uppercase text-[#1F3449] tracking-widest">FOR HOSPITAL ADMIN & CARE CO-ORDINATORS</span>
-                <h3 className="text-2xl font-black text-[#1F3449]">Hospital Admin Portal</h3>
+                <span className="text-xs font-black uppercase text-[#1F3449] tracking-widest">FOR ADMIN & CARE CO-ORDINATORS</span>
+                <h3 className="text-2xl font-black text-[#1F3449]">Admin Portal</h3>
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  Oversee real-time patient companion dispatch, reduce appointment no-shows, monitor HCAHPS scores, and download CHNA Schedule H community benefit reports.
+                  Oversee real-time patient companion dispatch, review Pal onboarding applications, monitor HCAHPS scores, and download CHNA Schedule H community benefit reports.
                 </p>
               </div>
               <ul className="space-y-2 text-xs text-gray-700 pt-2">
@@ -143,7 +143,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-[#48A6A5] shrink-0" />
-                  <span>No-Show Reduction & Wait Time Metrics</span>
+                  <span>Pal Applicant Verification & Approval Pipeline</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-[#48A6A5] shrink-0" />
@@ -156,7 +156,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               onClick={() => onNavigatePage('hospital')}
               className="w-full bg-[#1F3449] hover:bg-[#1F3449]/90 text-white font-black text-xs uppercase py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md"
             >
-              <span>Enter Hospital Hub</span>
+              <span>Enter Admin Hub</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

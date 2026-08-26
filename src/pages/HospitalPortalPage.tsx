@@ -17,14 +17,40 @@ import {
   Copy,
   Mail,
   Lock,
+  LogOut,
+  Key,
+  ShieldAlert,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Sparkles,
+  RefreshCw,
+  User,
 } from 'lucide-react';
 import { SAMPLE_HOSPITALS, INITIAL_REQUESTS, SAMPLE_PALS } from '../data/mockData';
 import { PalRequest, PalApplication, Pal } from '../types';
-import { fetchPalApplications, approvePalApplication, fetchAllPals } from '../lib/supabase';
+import {
+  fetchPalApplications,
+  approvePalApplication,
+  fetchAllPals,
+  getStoredAdminSession,
+  loginAdmin,
+  signOutAdmin,
+  AdminUser,
+} from '../lib/supabase';
 
 export const HospitalPortalPage: React.FC = () => {
+  // Admin Authentication State
+  const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
+  const [loginEmail, setLoginEmail] = useState('admin@metrohealth.org');
+  const [loginPassword, setLoginPassword] = useState('admin2026');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  // Portal State (Only populated after Admin authentication)
   const [activeTab, setActiveTab] = useState<'dispatch' | 'applications' | 'pals'>('dispatch');
-  const [requests, setRequests] = useState<PalRequest[]>(INITIAL_REQUESTS);
+  const [requests, setRequests] = useState<PalRequest[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -34,12 +60,29 @@ export const HospitalPortalPage: React.FC = () => {
   const [copiedAppId, setCopiedAppId] = useState<string | null>(null);
 
   // Pals list state
-  const [palsList, setPalsList] = useState<Pal[]>(SAMPLE_PALS);
+  const [palsList, setPalsList] = useState<Pal[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
+  // Check stored session on mount
   useEffect(() => {
-    loadApplications();
-    loadPals();
+    const session = getStoredAdminSession();
+    if (session) {
+      setAdminUser(session);
+      loadAdminData();
+    }
   }, []);
+
+  const loadAdminData = async () => {
+    setIsLoadingData(true);
+    try {
+      setRequests(INITIAL_REQUESTS);
+      await Promise.all([loadApplications(), loadPals()]);
+    } catch (e) {
+      console.error('Error loading admin portal data:', e);
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
 
   const loadApplications = async () => {
     const apps = await fetchPalApplications();
@@ -51,14 +94,59 @@ export const HospitalPortalPage: React.FC = () => {
       const pals = await fetchAllPals();
       if (pals && pals.length > 0) {
         setPalsList(pals);
+      } else {
+        setPalsList(SAMPLE_PALS);
       }
     } catch {
       setPalsList(SAMPLE_PALS);
     }
   };
 
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoggingIn(true);
+    setLoginError(null);
+
+    const res = await loginAdmin(loginEmail, loginPassword);
+    setIsLoggingIn(false);
+
+    if (res.error) {
+      setLoginError(res.error.message);
+      return;
+    }
+
+    if (res.data?.adminUser) {
+      setAdminUser(res.data.adminUser);
+      loadAdminData();
+    }
+  };
+
+  const handleQuickDemoLogin = async () => {
+    setLoginEmail('admin@metrohealth.org');
+    setLoginPassword('admin2026');
+    setIsLoggingIn(true);
+    setLoginError(null);
+
+    const res = await loginAdmin('admin@metrohealth.org', 'admin2026');
+    setIsLoggingIn(false);
+
+    if (res.data?.adminUser) {
+      setAdminUser(res.data.adminUser);
+      loadAdminData();
+    }
+  };
+
+  const handleAdminSignOut = async () => {
+    await signOutAdmin();
+    setAdminUser(null);
+    // Securely clear sensitive patient and pal data from memory
+    setRequests([]);
+    setApplications([]);
+    setPalsList([]);
+  };
+
   const handleApprove = async (appId: string) => {
-    const res = await approvePalApplication(appId, 'Approved by Chief Medical Officer / Care Coordinator');
+    const res = await approvePalApplication(appId, 'Approved by Administrator / Care Coordinator');
     if (res.data) {
       setApprovedLinks((prev) => ({
         ...prev,
@@ -87,27 +175,171 @@ export const HospitalPortalPage: React.FC = () => {
     return true;
   });
 
+  /* =========================================================================
+   * VIEW 1: LOCKED ADMIN LOGIN GATEWAY (NO PAL/PATIENT DATA VISIBLE)
+   * ========================================================================= */
+  if (!adminUser) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-8 animate-fade-in text-[#1F3449]">
+        
+        {/* Security Access Control Header Banner */}
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#1F3449]/10 text-[#1F3449] text-xs font-black uppercase tracking-wider border border-[#1F3449]/20">
+            <Lock className="w-3.5 h-3.5 text-[#E85D75]" />
+            <span>SECURE ACCESS CONTROL • HIPAA RESTRICTED</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black text-[#1F3449] tracking-tight">
+            Admin Portal Login
+          </h1>
+          <p className="text-sm text-gray-600 max-w-xl mx-auto leading-relaxed">
+            Access to Patient companion dispatches, medical logistics, Pal applications, and database credentials is strictly restricted to authorized Administrators.
+          </p>
+        </div>
+
+        {/* Login Card */}
+        <div className="bg-white p-6 sm:p-10 rounded-3xl border-2 border-gray-200 shadow-2xl space-y-6 max-w-lg mx-auto">
+          
+          <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
+            <div className="w-12 h-12 rounded-2xl bg-[#1F3449] text-white flex items-center justify-center shadow-md">
+              <ShieldCheck className="w-6 h-6 text-[#48A6A5]" />
+            </div>
+            <div>
+              <span className="text-[10px] font-black uppercase text-[#48A6A5] tracking-widest block">
+                ADMINISTRATIVE VERIFICATION
+              </span>
+              <h2 className="text-lg font-black text-[#1F3449]">Admin Credentials</h2>
+            </div>
+          </div>
+
+          {loginError && (
+            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+              <div className="space-y-0.5">
+                <span className="font-bold">Authentication Failed</span>
+                <p>{loginError}</p>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleAdminLogin} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-[#1F3449] mb-1.5 flex items-center justify-between">
+                <span>Administrator Email</span>
+                <span className="text-[10px] text-gray-500 font-normal">e.g. admin@metrohealth.org</span>
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
+                <input
+                  type="email"
+                  required
+                  placeholder="admin@pathpal.health"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  className="w-full text-xs pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 text-[#1F3449] font-medium"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[#1F3449] mb-1.5 flex items-center justify-between">
+                <span>Password</span>
+                <span className="text-[10px] text-gray-500 font-normal">Min 4 characters</span>
+              </label>
+              <div className="relative">
+                <Key className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  placeholder="••••••••"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full text-xs pl-10 pr-10 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 text-[#1F3449] font-medium"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-3 text-gray-400 hover:text-gray-600 focus:outline-none"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoggingIn}
+              className="w-full text-xs uppercase font-black tracking-wider text-white bg-[#1F3449] hover:bg-[#1F3449]/90 py-3.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {isLoggingIn ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Verifying Admin Authorization...</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>Sign In as Admin</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Quick Demo Fill Button */}
+          <div className="pt-2 border-t border-gray-100 space-y-2">
+            <button
+              type="button"
+              onClick={handleQuickDemoLogin}
+              className="w-full text-xs font-bold text-[#48A6A5] hover:text-[#48A6A5]/80 bg-[#48A6A5]/10 hover:bg-[#48A6A5]/20 py-2.5 rounded-xl transition-all border border-[#48A6A5]/30 flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>One-Click Quick Admin Demo Sign In</span>
+            </button>
+          </div>
+
+          {/* HIPAA & Security Compliance Notice */}
+          <div className="bg-amber-50/70 p-3.5 rounded-2xl border border-amber-200/80 flex items-start gap-2.5 text-[11px] text-amber-900 leading-relaxed">
+            <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+            <span>
+              <strong>HIPAA Security Notice:</strong> All patient appointment schedules, companion contact coordinates, and applicant records are encrypted and protected under 45 CFR § 164.312.
+            </span>
+          </div>
+
+        </div>
+
+      </div>
+    );
+  }
+
+  /* =========================================================================
+   * VIEW 2: AUTHENTICATED ADMIN DASHBOARD (PAL & PATIENT DATA ACCESSIBLE)
+   * ========================================================================= */
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 animate-fade-in text-[#1F3449]">
-      {/* Hospital Portal Header Banner */}
+      
+      {/* Admin Portal Header Banner */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border-2 border-[#48A6A5]/40 shadow-xl flex flex-col lg:flex-row items-center justify-between gap-6 overflow-hidden relative">
         <div className="space-y-3 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-black uppercase tracking-widest text-white bg-[#48A6A5] px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md">
-              <Building2 className="w-3.5 h-3.5" />
-              HOSPITAL ADMIN HUB
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-black uppercase tracking-widest text-white bg-[#1F3449] px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md">
+              <Building2 className="w-3.5 h-3.5 text-[#48A6A5]" />
+              ADMIN HUB
             </span>
             <span className="text-xs font-bold text-[#48A6A5] bg-[#48A6A5]/10 px-3 py-1 rounded-full border border-[#48A6A5]/30 font-mono">
               Site License #HOSP-9901 Active
             </span>
+            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-300 flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Admin Session: {adminUser.name}
+            </span>
           </div>
+
           <h1 className="text-3xl sm:text-4xl font-black text-[#1F3449]">Metro Health Medical Center</h1>
           <p className="text-xs sm:text-sm text-gray-600 max-w-xl">
             Real-time companion dispatch oversight, campus wait-time optimization, Pal applicant onboarding & approval gate, and credentialing.
           </p>
 
-          {/* Navigation Sub-Tabs */}
-          <div className="flex flex-wrap gap-2 pt-2">
+          {/* Navigation Sub-Tabs & Actions */}
+          <div className="flex flex-wrap items-center gap-2 pt-2">
             <button
               onClick={() => setActiveTab('dispatch')}
               className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
@@ -154,24 +386,34 @@ export const HospitalPortalPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Generated Hospital Command Center Preview Photo */}
-        <div className="w-full lg:w-80 h-48 rounded-2xl overflow-hidden border-2 border-[#48A6A5]/40 shadow-xl relative group shrink-0">
-          <img
-            src={new URL('../assets/images/hospital_coordination_center_1785710719570.jpg', import.meta.url).href}
-            alt="PathPal Hospital Command Center"
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
-          <div className="absolute bottom-2 left-3 right-3 text-xs flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase text-[#48A6A5] bg-black/60 px-2 py-0.5 rounded border border-[#48A6A5]/40">
-              LIVE DISPATCH CENTER
-            </span>
-            <span className="text-[10px] font-mono text-emerald-400">24 Active Stations</span>
+        {/* Admin User Profile & Sign Out Control */}
+        <div className="flex flex-col items-end gap-3 shrink-0">
+          <div className="w-full lg:w-72 bg-gray-50 border border-gray-200 rounded-2xl p-3.5 space-y-2 shadow-sm">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-500 font-bold uppercase text-[10px]">Logged In Admin:</span>
+              <span className="font-bold text-[#1F3449]">{adminUser.name}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-500 font-bold uppercase text-[10px]">Admin Email:</span>
+              <span className="font-mono text-gray-700 text-[11px] truncate max-w-[140px]">{adminUser.email}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-500 font-bold uppercase text-[10px]">Badge ID:</span>
+              <span className="font-mono font-bold text-[#48A6A5]">{adminUser.badgeNumber || 'ADM-9901'}</span>
+            </div>
+            
+            <button
+              onClick={handleAdminSignOut}
+              className="w-full mt-2 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 py-2 rounded-xl transition-all border border-rose-200 flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out / Lock Admin Portal</span>
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Hospital Impact Metrics */}
+      {/* Admin Impact Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-1">
           <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Active Today</span>
@@ -362,11 +604,11 @@ export const HospitalPortalPage: React.FC = () => {
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => handleCopyLink(app.id, signupLink)}
-                                className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-[10px] font-bold border border-gray-300 flex items-center gap-1"
+                                className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-[10px] font-bold border border-gray-300 flex items-center gap-1 cursor-pointer"
                               >
                                 {copiedAppId === app.id ? (
                                   <>
-                                    <Check className="w-3 h-3 text-emerald-600" />
+                                   <Check className="w-3 h-3 text-emerald-600" />
                                     <span className="text-emerald-700 font-bold">Copied!</span>
                                   </>
                                 ) : (
@@ -476,4 +718,3 @@ export const HospitalPortalPage: React.FC = () => {
     </div>
   );
 };
-

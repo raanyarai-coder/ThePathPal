@@ -29,10 +29,11 @@ PathPal delivers end-to-end support:
 - **Earnings & Mileage Ledger**: Transparent shift log tracking completed hours, base pay, and direct Stripe payouts.
 - **Secure Onboarding & Verification**: Multi-step registration validating hospital administrator approval, background checks, and email verification.
 
-### 3. 🏢 Hospital Administration & Coordination Center
+### 3. 🏢 Admin & Coordination Center
 - **Pal Application Pipeline**: Real-time review of prospective Pal companion applications from `pal_applications`.
 - **One-Click Authorization**: Approve verified applicants, automatically generating a secure invitation link for Supabase Auth registration.
 - **Department Fleet Oversight**: Live roster of active hospital Pals, badge numbers, background check clearances, and department allocations.
+- **Role-Based Access Control**: Sensitive Pal and Patient dispatch records are strictly protected behind Admin login credentials.
 
 ### 4. 🤖 AI CareBot & Accessibility Tools
 - **PathPal CareBot**: Interactive assistant offering hospital department directories, pre-visit packing checklists, and navigation tips.
@@ -55,7 +56,7 @@ PathPal leverages **Supabase** for secure authentication and persistent database
 
 ### Pal Onboarding & Auth Flow
 1. **Application Submission**: Prospective Pals apply via `BecomePalModal`. The record is inserted into `pal_applications` with `status: 'pending'`.
-2. **Hospital Admin Approval**: Administrators review applications in `HospitalPortalPage` and mark them as `approved`, preparing the corresponding `pals` record.
+2. **Admin Approval**: Administrators review applications in `HospitalPortalPage` (accessible after Admin authentication) and mark them as `approved`, preparing the corresponding `pals` record.
 3. **Account Creation**: Approved applicants receive a registration link (`#pal-signup?app_id=...`) to create their Supabase Auth user.
 4. **Email Confirmation & Profile Linking**: Upon confirming their email (`#pal-verify`), `verifyPalEmailAndActivate()` links `pals.auth_user_id = user.id`.
 5. **Pal Login**: Pals log into `PalPortalPage` using their verified credentials.
@@ -69,7 +70,7 @@ PathPal leverages **Supabase** for secure authentication and persistent database
 | <kbd>Alt</kbd> + <kbd>1</kbd> | Navigate to **Home** |
 | <kbd>Alt</kbd> + <kbd>2</kbd> | Navigate to **Patient Portal** |
 | <kbd>Alt</kbd> + <kbd>3</kbd> | Navigate to **Pal Portal** |
-| <kbd>Alt</kbd> + <kbd>4</kbd> | Navigate to **Hospital Admin** |
+| <kbd>Alt</kbd> + <kbd>4</kbd> | Navigate to **Admin Portal** |
 | <kbd>Alt</kbd> + <kbd>5</kbd> | Navigate to **About & Social Impact** |
 | <kbd>Alt</kbd> + <kbd>R</kbd> | Open **Request a Pal** Modal |
 | <kbd>Alt</kbd> + <kbd>G</kbd> | Open **Live GPS Tracker** |

@@ -79,7 +79,7 @@ export const EcosystemPortals: React.FC = () => {
             Three experiences. One service ecosystem.
           </h2>
           <p className="text-base text-pathpal-navy/70">
-            Try out the live interactive prototype for Patients, Companions (Pals), and Hospital Administrators.
+            Try out the live interactive prototype for Patients, Companions (Pals), and Administrators.
           </p>
         </div>
 
@@ -146,7 +146,7 @@ export const EcosystemPortals: React.FC = () => {
                 <div className={`p-2 rounded-xl ${activePortal === 'hospital' ? 'bg-white/20' : 'bg-pathpal-navy/10 text-pathpal-navy'}`}>
                   <Building2 className="w-5 h-5" />
                 </div>
-                <span className="text-lg font-black tracking-wide">HOSPITAL PORTAL</span>
+                <span className="text-lg font-black tracking-wide">ADMIN PORTAL</span>
               </div>
               <p className={`text-xs ${activePortal === 'hospital' ? 'text-white/90' : 'text-pathpal-navy/70'}`}>
                 Approve • Oversee • Assign • Monitor wait times • Analyze CHNA
@@ -514,14 +514,14 @@ export const EcosystemPortals: React.FC = () => {
             </div>
           )}
 
-          {/* ================= HOSPITAL ADMIN PORTAL DEMO ================= */}
+          {/* ================= ADMIN PORTAL DEMO ================= */}
           {activePortal === 'hospital' && (
             <div className="space-y-8 animate-fade-in">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-gray-200">
                 <div>
                   <div className="inline-flex items-center gap-2 text-xs font-bold text-pathpal-navy uppercase tracking-wider">
                     <Building2 className="w-4 h-4" />
-                    <span>HOSPITAL OVERSIGHT & ANALYTICS PORTAL</span>
+                    <span>ADMIN OVERSIGHT & ANALYTICS PORTAL</span>
                   </div>
                   <h3 className="text-2xl font-black text-pathpal-navy">Metro Health Medical Center</h3>
                 </div>

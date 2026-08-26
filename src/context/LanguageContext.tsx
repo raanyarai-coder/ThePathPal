@@ -24,7 +24,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     navHome: 'Home',
     navPatient: 'Patient Portal',
     navPal: 'Pal Portal',
-    navHospital: 'Hospital Admin',
+    navHospital: 'Admin',
     navAbout: 'About & Impact',
     btnRequestPal: 'Request Companion Pal',
     btnBecomePal: 'Become a Pal',
@@ -43,13 +43,13 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
 
     // Portals Selector
     portalTitle: 'Tailored Experiences for Every Role',
-    portalSubtitle: 'Dedicated interfaces tailored specifically for patients, companion pals, and hospital care teams.',
+    portalSubtitle: 'Dedicated interfaces tailored specifically for patients, companion pals, and care coordination teams.',
     patientPortalTitle: 'Patient & Family Portal',
     patientPortalDesc: 'Request a companion, track live GPS location, and manage your encrypted HIPAA medical summary.',
     palPortalTitle: 'Companion Pal Portal',
     palPortalDesc: 'Accept nearby Pal assignments, track CHW stipends ($22-$28/hr), and view patient assistance needs.',
-    hospitalPortalTitle: 'Hospital Admin Portal',
-    hospitalPortalDesc: 'Monitor real-time patient companion dispatches, reduce appointment no-shows, and boost HCAHPS scores.',
+    hospitalPortalTitle: 'Admin Portal',
+    hospitalPortalDesc: 'Monitor real-time patient companion dispatches, review Pal onboarding applications, and oversee credential verification.',
 
     // Patient Portal
     welcomePatient: 'Welcome, Maria Santos',
@@ -98,7 +98,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     navHome: 'Inicio',
     navPatient: 'Portal del Paciente',
     navPal: 'Portal del Acompañante (Pal)',
-    navHospital: 'Admin Hospitalario',
+    navHospital: 'Admin',
     navAbout: 'Nosotros e Impacto',
     btnRequestPal: 'Solicitar Acompañante',
     btnBecomePal: 'Ser Acompañante',
@@ -117,13 +117,13 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
 
     // Portals Selector
     portalTitle: 'Experiencias Personalizadas para Cada Rol',
-    portalSubtitle: 'Interfaces dedicadas diseñadas específicamente para pacientes, acompañantes y personal hospitalario.',
+    portalSubtitle: 'Interfaces dedicadas diseñadas específicamente para pacientes, acompañantes y personal administrativo.',
     patientPortalTitle: 'Portal de Pacientes y Familias',
     patientPortalDesc: 'Solicite un acompañante, siga la ubicación GPS en vivo y gestione su historial médico cifrado HIPAA.',
     palPortalTitle: 'Portal del Acompañante Pal',
     palPortalDesc: 'Acepte solicitudes de escolta cercanas, consulte estipendios ($22-$28/h) y vea las necesidades de apoyo del paciente.',
-    hospitalPortalTitle: 'Portal de Administración Hospitalaria',
-    hospitalPortalDesc: 'Supervise los despachos de acompañantes en tiempo real, reduzca ausencias y mejore calificaciones HCAHPS.',
+    hospitalPortalTitle: 'Portal de Administración',
+    hospitalPortalDesc: 'Supervise los despachos de acompañantes en tiempo real, revise solicitudes de Pal y gestione credenciales.',
 
     // Patient Portal
     welcomePatient: 'Bienvenido/a, Maria Santos',
@@ -172,7 +172,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     navHome: 'होम',
     navPatient: 'मरीज़ पोर्टल',
     navPal: 'पाल (साथी) पोर्टल',
-    navHospital: 'अस्पताल एडमिन',
+    navHospital: 'एडमिन',
     navAbout: 'हमारे बारे में और प्रभाव',
     btnRequestPal: 'अस्पताल साथी का अनुरोध करें',
     btnBecomePal: 'साथी (पाल) बनें',
@@ -191,13 +191,13 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
 
     // Portals Selector
     portalTitle: 'हर भूमिका के लिए अनुकूलित अनुभव',
-    portalSubtitle: 'मरीज़ों, साथी पाल्स और अस्पताल देखभाल टीमों के लिए विशेष रूप से डिज़ाइन किए गए इंटरफ़ेस।',
+    portalSubtitle: 'मरीज़ों, साथी पाल्स और एडमिन देखभाल टीमों के लिए विशेष रूप से डिज़ाइन किए गए इंटरफ़ेस।',
     patientPortalTitle: 'मरीज़ और परिवार पोर्टल',
     patientPortalDesc: 'एक साथी का अनुरोध करें, लाइव GPS स्थान ट्रैक करें, और अपना एन्क्रिप्टेड HIPAA मेडिकल सारांश प्रबंधित करें।',
     palPortalTitle: 'साथी पाल पोर्टल',
     palPortalDesc: 'आस-पास के पाल असाइनमेंट स्वीकार करें, वजीफा ($22-$28/घंटा) ट्रैक करें, और मरीज़ सहायता ज़रूरतें देखें।',
-    hospitalPortalTitle: 'अस्पताल एडमिन पोर्टल',
-    hospitalPortalDesc: 'रीयल-टाइम मरीज़ साथी प्रेषण की निगरानी करें, अपॉइंटमेंट चूक को कम करें, और HCAHPS स्कोर बढ़ाएं।',
+    hospitalPortalTitle: 'एडमिन पोर्टल',
+    hospitalPortalDesc: 'रीयल-टाइम मरीज़ साथी प्रेषण की निगरानी करें, पाल आवेदन समीक्षा करें और क्रेडेंशियल सत्यापित करें।',
 
     // Patient Portal
     welcomePatient: 'स्वागत है, मारिया सैंटोस',

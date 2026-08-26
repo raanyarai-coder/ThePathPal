@@ -19,7 +19,7 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
         { keys: ["Alt", "1"], label: "Go to Home Page" },
         { keys: ["Alt", "2"], label: "Go to Patient & Family Portal" },
         { keys: ["Alt", "3"], label: "Go to Companion Pal Portal" },
-        { keys: ["Alt", "4"], label: "Go to Hospital Admin Portal" },
+        { keys: ["Alt", "4"], label: "Go to Admin Portal" },
         { keys: ["Alt", "5"], label: "Go to About Us & Mission" },
       ]
     },

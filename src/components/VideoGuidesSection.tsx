@@ -84,7 +84,7 @@ export const VideoGuidesSection: React.FC<VideoGuidesSectionProps> = ({ onReques
             See PathPal <span className="text-[#48A6A5]">In Action</span>
           </h2>
           <p className="text-gray-300 text-base sm:text-lg">
-            Watch our visual walkthrough videos tailored for patients, companion pals, and hospital administrators.
+            Watch our visual walkthrough videos tailored for patients, companion pals, and care administrators.
           </p>
         </div>
 
