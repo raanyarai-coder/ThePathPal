@@ -7,6 +7,8 @@ import { PatientPortalPage } from './pages/PatientPortalPage';
 import { PalPortalPage } from './pages/PalPortalPage';
 import { HospitalPortalPage } from './pages/HospitalPortalPage';
 import { AboutAndImpactPage } from './pages/AboutAndImpactPage';
+import { PalSignupPage } from './pages/PalSignupPage';
+import { PalVerifyPage } from './pages/PalVerifyPage';
 import { Footer } from './components/Footer';
 
 import { RequestPalModal } from './components/RequestPalModal';
@@ -23,7 +25,7 @@ import { OfflineStatusBanner } from './components/OfflineStatusBanner';
 import { CareBotChat } from './components/CareBotChat';
 import { SupabaseAuthModal } from './components/SupabaseAuthModal';
 
-type PageType = 'home' | 'patient' | 'pal' | 'hospital' | 'about';
+type PageType = 'home' | 'patient' | 'pal' | 'hospital' | 'about' | 'pal-signup' | 'pal-verify';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('home');
@@ -48,9 +50,10 @@ export default function App() {
   // Sync Hash on mount and change
   useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '') as PageType;
-      if (['home', 'patient', 'pal', 'hospital', 'about'].includes(hash)) {
-        setCurrentPage(hash);
+      const rawHash = window.location.hash.replace('#', '');
+      const hashPage = rawHash.split('?')[0] as PageType;
+      if (['home', 'patient', 'pal', 'hospital', 'about', 'pal-signup', 'pal-verify'].includes(hashPage)) {
+        setCurrentPage(hashPage);
       }
     };
 
@@ -182,6 +185,20 @@ export default function App() {
                 onRequestPal={() => setRequestModalOpen(true)}
                 onBecomePal={() => setBecomePalModalOpen(true)}
                 onOpenPayment={() => setPaymentModalOpen(true)}
+              />
+            )}
+
+            {currentPage === 'pal-signup' && (
+              <PalSignupPage
+                onNavigateToVerify={() => navigateToPage('pal-verify')}
+                onNavigateToLogin={() => navigateToPage('pal')}
+              />
+            )}
+
+            {currentPage === 'pal-verify' && (
+              <PalVerifyPage
+                onNavigateToLogin={() => navigateToPage('pal')}
+                onNavigateToPortal={() => navigateToPage('pal')}
               />
             )}
           </main>
