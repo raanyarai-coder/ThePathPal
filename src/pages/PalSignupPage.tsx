@@ -167,7 +167,7 @@ export const PalSignupPage: React.FC<PalSignupPageProps> = ({
               <div className="flex items-center justify-between">
                 <span className="font-bold text-emerald-900 flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  Approved Application Found: <strong>{application.full_name}</strong>
+                  Approved Application Found: <strong>{application.name || application.full_name}</strong>
                 </span>
                 <span className="bg-emerald-600 text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">
                   Status: {application.status}

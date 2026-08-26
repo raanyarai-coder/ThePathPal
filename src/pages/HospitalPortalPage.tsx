@@ -326,7 +326,7 @@ export const HospitalPortalPage: React.FC = () => {
                     <tr key={app.id} className="hover:bg-gray-50 transition-colors">
                       <td className="p-3 font-mono font-bold text-[#48A6A5]">{app.id}</td>
                       <td className="p-3">
-                        <div className="font-bold text-[#1F3449]">{app.full_name}</div>
+                        <div className="font-bold text-[#1F3449]">{app.name || app.full_name}</div>
                         <div className="text-[10px] text-gray-500 line-clamp-1">{app.bio}</div>
                       </td>
                       <td className="p-3">
@@ -431,7 +431,7 @@ export const HospitalPortalPage: React.FC = () => {
                     </td>
                     <td className="p-3">
                       <div className="font-bold text-[#1F3449]">{pal.name}</div>
-                      <div className="text-[10px] text-gray-500 font-mono">{pal.email || 'No email attached'}</div>
+                      <div className="text-[10px] text-gray-500 font-mono">{pal.phone ? `Phone: ${pal.phone}` : (pal.email || 'No contact attached')}</div>
                     </td>
                     <td className="p-3 font-mono text-[11px] text-gray-600">
                       {pal.auth_user_id ? (
@@ -464,7 +464,7 @@ export const HospitalPortalPage: React.FC = () => {
                         {pal.account_status || 'active'}
                       </span>
                     </td>
-                    <td className="p-3 text-gray-600">{pal.hospitalAffiliations.join(', ')}</td>
+                    <td className="p-3 text-gray-600">{(pal.hospitalAffiliations || ['Metro Health Medical Center']).join(', ')}</td>
                   </tr>
                 ))}
               </tbody>

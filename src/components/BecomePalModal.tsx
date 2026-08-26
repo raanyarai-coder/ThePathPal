@@ -202,7 +202,7 @@ export const BecomePalModal: React.FC<BecomePalModalProps> = ({
               </div>
               <div className="flex justify-between items-center text-xs">
                 <span className="text-gray-500 font-bold uppercase">Applicant Name:</span>
-                <span className="font-bold text-[#1F3449]">{submittedApp.full_name}</span>
+                <span className="font-bold text-[#1F3449]">{submittedApp.name || submittedApp.full_name}</span>
               </div>
               <div className="flex justify-between items-center text-xs">
                 <span className="text-gray-500 font-bold uppercase">Registered Email:</span>

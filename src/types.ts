@@ -1,35 +1,41 @@
 export interface Pal {
-  id: string;
+  id: number | string;
   auth_user_id?: string;
   name: string;
-  email?: string;
   phone?: string;
-  avatar: string;
-  rating: number;
-  completedVisits: number;
-  languages: string[];
-  specialties: string[];
-  bio: string;
-  isVerified: boolean;
-  account_status?: 'pending_approval' | 'approved_pending_verification' | 'active' | 'suspended';
-  email_verified?: boolean;
-  hospitalAffiliations: string[];
-  badgeNumber: string;
+  bio?: string;
+  availability?: string;
+  background_check_status?: string;
+  rating?: number;
+  hourly_rate_cents?: number;
+  stripe_account_id?: string;
   created_at?: string;
+  // UI helper / display properties
+  email?: string;
+  avatar?: string;
+  completedVisits?: number;
+  languages?: string[];
+  specialties?: string[];
+  isVerified?: boolean;
+  account_status?: 'pending_approval' | 'approved_pending_verification' | 'active' | 'suspended' | string;
+  email_verified?: boolean;
+  hospitalAffiliations?: string[];
+  badgeNumber?: string;
   updated_at?: string;
 }
 
 export interface PalApplication {
   id: string;
-  full_name: string;
+  name: string;
+  full_name?: string;
   email: string;
   phone: string;
   languages: string;
+  status: 'pending' | 'approved' | 'rejected' | string;
+  created_at: string;
   specialties?: string;
   bio?: string;
-  status: 'pending' | 'approved' | 'rejected';
   admin_notes?: string;
-  created_at: string;
   approved_at?: string;
   signup_completed_at?: string;
 }

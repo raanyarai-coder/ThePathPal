@@ -24,7 +24,7 @@ import {
   ArrowRight,
   ShieldAlert,
 } from 'lucide-react';
-import { supabase, loginPal, fetchPalByAuthUserId } from '../lib/supabase';
+import { supabase, loginPal, fetchPalByAuthUserId, formatPalFromDb } from '../lib/supabase';
 import { SAMPLE_PALS, INITIAL_REQUESTS } from '../data/mockData';
 import { Pal, PalRequest } from '../types';
 import { MedicalSummaryWidget } from '../components/MedicalSummaryWidget';
@@ -117,7 +117,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
     setActivationError(null);
 
     try {
-      // Query `pals` table where auth_user_id = user.id
+      // 1. Query `pals` table where auth_user_id = user.id (Source of truth)
       const { data: palDb, error: palDbError } = await supabase
         .from('pals')
         .select('*')
@@ -125,7 +125,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
         .maybeSingle();
 
       if (palDbError) {
-        console.error('Supabase query pals error:', {
+        console.error('Supabase query pals by auth_user_id error:', {
           message: palDbError.message,
           details: palDbError.details,
           code: palDbError.code,
@@ -133,131 +133,75 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
       }
 
       if (palDb) {
-        const formattedPal: Pal = {
-          id: palDb.id,
-          auth_user_id: palDb.auth_user_id,
-          name: palDb.name || user.user_metadata?.full_name || 'Verified Pal',
-          email: palDb.email || user.email,
-          phone: palDb.phone || user.user_metadata?.phone || '',
-          avatar:
-            palDb.avatar ||
-            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
-          rating: palDb.rating ?? 5.0,
-          completedVisits: palDb.completed_visits ?? palDb.completedVisits ?? 0,
-          languages: Array.isArray(palDb.languages)
-            ? palDb.languages
-            : typeof palDb.languages === 'string'
-            ? palDb.languages.split(',').map((s: string) => s.trim())
-            : ['English'],
-          specialties: Array.isArray(palDb.specialties)
-            ? palDb.specialties
-            : typeof palDb.specialties === 'string'
-            ? palDb.specialties.split(',').map((s: string) => s.trim())
-            : ['Hospital Escort', 'Companion Care'],
-          bio: palDb.bio || 'Certified PathPal Companion Pal.',
-          isVerified: palDb.is_verified ?? true,
-          account_status: palDb.account_status || 'active',
-          email_verified: palDb.email_verified ?? true,
-          hospitalAffiliations: Array.isArray(palDb.hospital_affiliations)
-            ? palDb.hospital_affiliations
-            : ['Metro Health Medical Center'],
-          badgeNumber: palDb.badge_number || palDb.badgeNumber || `PAL-${user.id.slice(0, 4).toUpperCase()}`,
-          created_at: palDb.created_at,
-          updated_at: palDb.updated_at,
-        };
-
-        setPalInfo(formattedPal);
+        const formatted = formatPalFromDb(palDb);
+        setPalInfo(formatted);
         setActivationError(null);
         return;
       }
 
-      // If not yet linked by auth_user_id in Supabase, check if a row exists by email
-      const userEmail = (user.email || '').trim().toLowerCase();
-      if (userEmail) {
-        const { data: palByEmail, error: emailErr } = await supabase
-          .from('pals')
+      // 2. If not yet linked by auth_user_id, link via approved application if email is confirmed
+      if (user.email_confirmed_at && user.email) {
+        const { data: application, error: appErr } = await supabase
+          .from('pal_applications')
           .select('*')
-          .eq('email', userEmail)
+          .eq('email', user.email)
+          .eq('status', 'approved')
           .maybeSingle();
 
-        if (!emailErr && palByEmail) {
-          // Link auth_user_id to the record
-          await supabase
-            .from('pals')
-            .update({
-              auth_user_id: user.id,
-              email_verified: true,
-              account_status: 'active',
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', palByEmail.id);
-
-          const linkedPal: Pal = {
-            id: palByEmail.id,
-            auth_user_id: user.id,
-            name: palByEmail.name || user.user_metadata?.full_name || 'Verified Pal',
-            email: palByEmail.email || user.email,
-            phone: palByEmail.phone || '',
-            avatar:
-              palByEmail.avatar ||
-              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
-            rating: palByEmail.rating ?? 5.0,
-            completedVisits: palByEmail.completed_visits ?? 0,
-            languages: Array.isArray(palByEmail.languages) ? palByEmail.languages : ['English'],
-            specialties: Array.isArray(palByEmail.specialties) ? palByEmail.specialties : ['Hospital Escort'],
-            bio: palByEmail.bio || '',
-            isVerified: true,
-            account_status: 'active',
-            email_verified: true,
-            hospitalAffiliations: Array.isArray(palByEmail.hospital_affiliations)
-              ? palByEmail.hospital_affiliations
-              : ['Metro Health Medical Center'],
-            badgeNumber: palByEmail.badge_number || `PAL-${user.id.slice(0, 4).toUpperCase()}`,
-          };
-
-          setPalInfo(linkedPal);
-          setActivationError(null);
-          return;
+        if (appErr) {
+          console.error('Error finding approved application:', appErr);
         }
-      }
 
-      // Check fallback persistent store
-      try {
-        const stored = localStorage.getItem('pathpal_pals_records');
-        if (stored) {
-          const list: Pal[] = JSON.parse(stored);
-          const matched = list.find(
-            (p) =>
-              p.auth_user_id === user.id ||
-              (p.email && p.email.toLowerCase() === userEmail)
-          );
+        const appName = application?.name || user.user_metadata?.full_name;
+        const appPhone = application?.phone || user.user_metadata?.phone;
 
-          if (matched) {
-            const activatedMatched: Pal = {
-              ...matched,
-              auth_user_id: user.id,
-              account_status: 'active',
-              email_verified: true,
-              isVerified: true,
-            };
-            setPalInfo(activatedMatched);
-            setActivationError(null);
-            return;
+        if (appName && appPhone) {
+          const { data: existingPal, error: lookupErr } = await supabase
+            .from('pals')
+            .select('*')
+            .eq('name', appName)
+            .eq('phone', appPhone)
+            .maybeSingle();
+
+          if (lookupErr) {
+            console.error('Error looking up pal by name and phone:', lookupErr);
+          }
+
+          if (existingPal) {
+            const { data: linkedPal, error: linkErr } = await supabase
+              .from('pals')
+              .update({ auth_user_id: user.id })
+              .eq('id', existingPal.id)
+              .select()
+              .single();
+
+            if (linkErr) {
+              console.error('Error linking auth_user_id to existing pal:', linkErr);
+            } else if (linkedPal) {
+              const formatted = formatPalFromDb(linkedPal);
+              setPalInfo(formatted);
+              setActivationError(null);
+              return;
+            }
           }
         }
-      } catch (storeErr) {
-        console.error('Error reading local pals store:', storeErr);
       }
 
-      // If no matching Pal profile exists for this authenticated user:
+      // If no matching Pal profile exists in pals table for this authenticated user:
+      console.warn('Pal profile not found for authenticated user:', {
+        authUserId: user.id,
+        userEmail: user.email,
+        emailConfirmedAt: user.email_confirmed_at,
+      });
+
       setPalInfo(null);
       setActivationError(
-        'Your Pal profile has not been activated yet. Please contact the administrator.'
+        'Your Pal profile has not been created yet. Please contact the administrator.'
       );
     } catch (err: any) {
       console.error('Exception fetching pal record:', err);
       setActivationError(
-        'Your Pal profile has not been activated yet. Please contact the administrator.'
+        'Your Pal profile has not been created yet. Please contact the administrator.'
       );
     }
   };
@@ -544,10 +488,10 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
                 Account Status: Activation Pending
               </span>
               <h1 className="text-2xl font-black text-[#1F3449]">
-                Pal Profile Not Activated
+                Pal Profile Not Found
               </h1>
               <p className="text-sm font-semibold text-amber-900 mt-2">
-                Your Pal profile has not been activated yet. Please contact the administrator.
+                Your Pal profile has not been created yet. Please contact the administrator.
               </p>
             </div>
           </div>
