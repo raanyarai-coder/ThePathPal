@@ -93,7 +93,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
               <div className="space-y-1">
                 <span className="text-xs font-black uppercase text-[#48A6A5] tracking-widest">FOR COMPANION PALS & CHWs</span>
-                <h3 className="text-2xl font-black text-[#1F3449]">Pal Companion Portal</h3>
+                <h3 className="text-2xl font-black text-[#1F3449]">Pal Portal</h3>
                 <p className="text-xs text-gray-600 leading-relaxed">
                   Accept nearby Pal requests, navigate hospital campuses with turn-by-turn indoor radar, track earnings ($22-$28/hr), and access patient mobility requirements safely.
                 </p>

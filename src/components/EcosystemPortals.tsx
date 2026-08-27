@@ -211,7 +211,7 @@ export const EcosystemPortals: React.FC = () => {
                           <input
                             type="text"
                             required
-                            placeholder="e.g., Maria Santos"
+                            placeholder="e.g., Eleanor Vance"
                             value={patientName}
                             onChange={(e) => setPatientName(e.target.value)}
                             className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none"

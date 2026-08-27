@@ -279,7 +279,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-xs font-black uppercase tracking-widest text-white bg-[#48A6A5] px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md">
                 <UserCheck className="w-3.5 h-3.5" />
-                PAL COMPANION PORTAL
+                PAL PORTAL
               </span>
               <span className="text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
                 Authentication Required
@@ -576,7 +576,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
           <div className="flex items-center gap-2">
             <span className="text-xs font-black uppercase tracking-widest text-white bg-[#48A6A5] px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md">
               <UserCheck className="w-3.5 h-3.5" />
-              PAL COMPANION PORTAL
+              PAL PORTAL
             </span>
             <span className="text-xs font-bold text-[#48A6A5] bg-[#48A6A5]/10 px-3 py-1 rounded-full border border-[#48A6A5]/30 font-mono">
               Badge #{activePal.badgeNumber || 'PAL-ACTIVE'}

@@ -4,10 +4,10 @@ import { Heart, MapPin, ShieldAlert, ArrowUp } from 'lucide-react';
 interface FooterProps {
   onRequestPal: () => void;
   onBecomePal: () => void;
-  onHospitalPartner: () => void;
+  onHospitalPartner?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onRequestPal, onBecomePal, onHospitalPartner }) => {
+export const Footer: React.FC<FooterProps> = ({ onRequestPal, onBecomePal }) => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -78,12 +78,6 @@ export const Footer: React.FC<FooterProps> = ({ onRequestPal, onBecomePal, onHos
                 className="w-full text-xs font-bold text-white bg-[#48A6A5] hover:bg-[#48A6A5]/90 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md"
               >
                 Apply to Become a Pal
-              </button>
-              <button
-                onClick={onHospitalPartner}
-                className="w-full text-xs font-bold text-[#1F3449] bg-[#FCE9EC] hover:bg-[#FCE9EC]/80 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm border border-[#E85D75]/20"
-              >
-                Hospital Partnership Inquiry
               </button>
             </div>
           </div>

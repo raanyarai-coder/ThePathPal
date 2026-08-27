@@ -45,8 +45,8 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
   }, []);
   
   // Patient Form State
-  const [patientName, setPatientName] = useState('Maria Santos');
-  const [patientPhone, setPatientPhone] = useState('(555) 019-2834');
+  const [patientName, setPatientName] = useState('');
+  const [patientPhone, setPatientPhone] = useState('');
   const [selectedHospitalId, setSelectedHospitalId] = useState(SAMPLE_HOSPITALS[0].id);
   const [appointmentDate, setAppointmentDate] = useState('2026-08-05');
   const [appointmentTime, setAppointmentTime] = useState('10:00 AM');
@@ -103,12 +103,9 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
               <Heart className="w-3.5 h-3.5 fill-white" />
               PATIENT & FAMILY PORTAL
             </span>
-            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-              Subsidized Vouchers Available
-            </span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-[#1F3449]">
-            Welcome, {authUser ? (patientName || authUser.email) : 'Maria Santos'}
+            {authUser ? `Welcome, ${patientName || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Patient'}` : 'Welcome to Patient & Family Portal'}
           </h1>
           <p className="text-xs sm:text-sm text-gray-600 max-w-xl">
             Book compassionate companion escorts for hospital appointments, track your assigned Pal live on campus, and view your care benefits.
@@ -193,6 +190,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                 <input
                   type="text"
                   required
+                  placeholder="e.g. John Doe"
                   value={patientName}
                   onChange={(e) => setPatientName(e.target.value)}
                   className="w-full text-xs p-3 rounded-xl bg-white border border-gray-300 text-[#1F3449] focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
@@ -203,6 +201,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                 <input
                   type="tel"
                   required
+                  placeholder="e.g. (555) 000-0000"
                   value={patientPhone}
                   onChange={(e) => setPatientPhone(e.target.value)}
                   className="w-full text-xs p-3 rounded-xl bg-white border border-gray-300 text-[#1F3449] focus:ring-2 focus:ring-[#E85D75] focus:outline-none"

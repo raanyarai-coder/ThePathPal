@@ -288,7 +288,7 @@ export const SupabaseAuthModal: React.FC<SupabaseAuthModalProps> = ({
                       <input
                         type="text"
                         required
-                        placeholder="e.g. Maria Santos"
+                        placeholder="e.g. Eleanor Vance"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         className="w-full text-xs pl-9 pr-3 py-2.5 rounded-xl bg-gray-50 border border-gray-300 focus:border-[#48A6A5] focus:outline-none"

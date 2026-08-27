@@ -52,7 +52,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     hospitalPortalDesc: 'Monitor real-time patient companion dispatches, review Pal onboarding applications, and oversee credential verification.',
 
     // Patient Portal
-    welcomePatient: 'Welcome, Maria Santos',
+    welcomePatient: 'Welcome to Patient Portal',
     voucherSubsidized: '100% Subsidized / $0 Cost',
     bookEscortTitle: 'Schedule a Hospital Companion Pal',
     patientName: 'Patient Full Name',
@@ -126,7 +126,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     hospitalPortalDesc: 'Supervise los despachos de acompañantes en tiempo real, revise solicitudes de Pal y gestione credenciales.',
 
     // Patient Portal
-    welcomePatient: 'Bienvenido/a, Maria Santos',
+    welcomePatient: 'Bienvenido/a al Portal del Paciente',
     voucherSubsidized: 'Subvencionado 100% ($0 Costo)',
     bookEscortTitle: 'Programar un Acompañante Hospitalario Pal',
     patientName: 'Nombre Completo del Paciente',
@@ -200,7 +200,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     hospitalPortalDesc: 'रीयल-टाइम मरीज़ साथी प्रेषण की निगरानी करें, पाल आवेदन समीक्षा करें और क्रेडेंशियल सत्यापित करें।',
 
     // Patient Portal
-    welcomePatient: 'स्वागत है, मारिया सैंटोस',
+    welcomePatient: 'मरीज़ पोर्टल में आपका स्वागत है',
     voucherSubsidized: '100% सब्सिडी प्राप्त / $0 लागत',
     bookEscortTitle: 'अस्पताल साथी पाल शेड्यूल करें',
     patientName: 'मरीज़ का पूरा नाम',
