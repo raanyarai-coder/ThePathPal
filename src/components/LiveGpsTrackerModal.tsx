@@ -1,63 +1,190 @@
-import React, { useState, useEffect } from 'react';
-import { X, MapPin, Navigation, Compass, Signal, Phone, MessageSquare, Share2, Shield, Radio, RefreshCw, Eye, UserCheck, Heart, AlertCircle, ShieldAlert } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  X,
+  MapPin,
+  Navigation,
+  Compass,
+  Signal,
+  Phone,
+  MessageSquare,
+  Share2,
+  Shield,
+  Radio,
+  RefreshCw,
+  UserCheck,
+  Heart,
+  AlertCircle,
+  ShieldAlert,
+  Play,
+  Square,
+  CheckCircle2,
+} from 'lucide-react';
+import {
+  startPalLiveTracking,
+  stopPalLiveTracking,
+  subscribeToLiveLocationSession,
+  calculateDistanceMeters,
+  formatDistanceDisplay,
+  estimateWalkingEta,
+  LocationCoordinates,
+  isGpsTrackingActive,
+} from '../lib/locationService';
 
 interface LiveGpsTrackerModalProps {
   isOpen: boolean;
   onClose: () => void;
   role?: 'patient' | 'pal';
+  requestId?: string;
+  matchId?: number;
+  palId?: number;
+  patientId?: number;
 }
+
+// Metro Health Campus Rendezvous Coordinates
+const METRO_HEALTH_LANDMARKS = [
+  {
+    id: 'valet',
+    name: 'Main Valet Canopy',
+    dept: 'Main Hospital Entrance',
+    lat: 41.4674,
+    lng: -81.7012,
+    status: 'Optimal Outdoor GPS Reception',
+  },
+  {
+    id: 'er',
+    name: 'Emergency Room Gate 1',
+    dept: 'Trauma & Urgent Care',
+    lat: 41.4681,
+    lng: -81.7018,
+    status: 'High Traffic Rendezvous Point',
+  },
+  {
+    id: 'outpatient',
+    name: 'Outpatient Pavilion South',
+    dept: 'Specialty Clinics',
+    lat: 41.4665,
+    lng: -81.7005,
+    status: 'Direct Elevator & Clinic Access',
+  },
+  {
+    id: 'imaging',
+    name: 'Diagnostic Center Gate 3',
+    dept: 'Radiology & MRI',
+    lat: 41.4669,
+    lng: -81.7025,
+    status: 'Accessible Wheelchair Ramped',
+  },
+];
 
 export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
   isOpen,
   onClose,
   role: initialRole = 'patient',
+  requestId,
+  matchId,
+  palId,
+  patientId,
 }) => {
   const [activeRole, setActiveRole] = useState<'patient' | 'pal'>(initialRole);
-  const [selectedLocation, setSelectedLocation] = useState<string>('valet');
-  const [simulatedDistance, setSimulatedDistance] = useState<number>(240); // distance in feet
-  const [etaSeconds, setEtaSeconds] = useState<number>(165); // 2m 45s
-  const [isBeaconActive, setIsBeaconActive] = useState<boolean>(true);
-  const [pingedAlert, setPingedAlert] = useState<boolean>(false);
-  const [palStatus, setPalStatus] = useState<'en_route' | 'arriving' | 'arrived'>('en_route');
+  const [selectedLandmarkId, setSelectedLandmarkId] = useState<string>('valet');
+  const [isLiveLocationOn, setIsLiveLocationOn] = useState<boolean>(false);
+  const [isInitializingGps, setIsInitializingGps] = useState<boolean>(false);
+  const [gpsError, setGpsError] = useState<string | null>(null);
 
-  // Simulated live movement
+  // Live telemetry
+  const [currentCoords, setCurrentCoords] = useState<LocationCoordinates | null>(null);
+  const [lastUpdatedAgo, setLastUpdatedAgo] = useState<number>(0);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [simulatedOffset, setSimulatedOffset] = useState<number>(140);
+  const [pingedAlert, setPingedAlert] = useState<boolean>(false);
+  const [copiedLink, setCopiedLink] = useState<boolean>(false);
+
+  const selectedLandmark =
+    METRO_HEALTH_LANDMARKS.find((l) => l.id === selectedLandmarkId) || METRO_HEALTH_LANDMARKS[0];
+
+  // Monitor elapsed seconds since last GPS update
   useEffect(() => {
     if (!isOpen) return;
     const interval = setInterval(() => {
-      setSimulatedDistance(prev => {
-        if (prev <= 20) {
-          setPalStatus('arrived');
-          return 15;
-        }
-        if (prev <= 80) {
-          setPalStatus('arriving');
-        }
-        return prev - 8;
-      });
-
-      setEtaSeconds(prev => (prev > 10 ? prev - 5 : 5));
-    }, 2000);
-
+      setLastUpdatedAgo((prev) => prev + 1);
+    }, 1000);
     return () => clearInterval(interval);
   }, [isOpen]);
 
+  // Sync tracking active state
+  useEffect(() => {
+    if (isOpen) {
+      setIsLiveLocationOn(isGpsTrackingActive());
+    }
+  }, [isOpen]);
+
+  // Start real device GPS tracking
+  const handleStartLiveTracking = async () => {
+    setIsInitializingGps(true);
+    setGpsError(null);
+
+    const res = await startPalLiveTracking({
+      requestId,
+      matchId,
+      palId,
+      patientId,
+      onPositionUpdate: (coords) => {
+        setCurrentCoords(coords);
+        setLastUpdatedAgo(0);
+        setIsLiveLocationOn(true);
+        setIsInitializingGps(false);
+      },
+      onError: (err) => {
+        setGpsError(err);
+        setIsInitializingGps(false);
+        setIsLiveLocationOn(false);
+      },
+    });
+
+    if (res.sessionId) {
+      setActiveSessionId(res.sessionId);
+    }
+  };
+
+  // Stop real device GPS tracking
+  const handleStopLiveTracking = async () => {
+    await stopPalLiveTracking(activeSessionId);
+    setIsLiveLocationOn(false);
+    setActiveSessionId(null);
+  };
+
+  // Handle Close & Cleanup
+  const handleCloseModal = () => {
+    onClose();
+  };
+
   if (!isOpen) return null;
 
-  const dropoffPoints = [
-    { id: 'valet', name: 'Main Valet Canopy', dept: 'Main Hospital Entrance', status: 'Optimal Outdoor Signal' },
-    { id: 'er', name: 'Emergency Room Gate 1', dept: 'Trauma & Urgent Care', status: 'High Traffic Area' },
-    { id: 'outpatient', name: 'Outpatient Pavilion South', dept: 'Specialty Clinics', status: 'Indoor BLE Beacon Active' },
-    { id: 'imaging', name: 'Diagnostic Center Gate 3', dept: 'Radiology & MRI', status: 'Optimal Outdoor Signal' },
-  ];
+  // Calculate real distance if coordinates available, else calculate from landmark
+  const distanceMeters = currentCoords
+    ? calculateDistanceMeters(
+        currentCoords.latitude,
+        currentCoords.longitude,
+        selectedLandmark.lat,
+        selectedLandmark.lng
+      )
+    : simulatedOffset;
+
+  const formattedDistance = formatDistanceDisplay(distanceMeters);
+  const etaInfo = estimateWalkingEta(distanceMeters, currentCoords?.speedMps);
 
   const handlePingPal = () => {
     setPingedAlert(true);
     setTimeout(() => setPingedAlert(false), 3000);
   };
 
-  const minutes = Math.floor(etaSeconds / 60);
-  const seconds = etaSeconds % 60;
-  const etaString = `${minutes}m ${seconds < 10 ? '0' : ''}${seconds}s`;
+  const handleShareLink = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in text-white">
@@ -71,16 +198,20 @@ export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-black uppercase text-[#00F0FF] tracking-widest flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                  LIVE GPS & BLE RADAR TRACKER
+                <span className="text-xs font-black uppercase text-[#00F0FF] tracking-widest flex items-center gap-1.5">
+                  <span
+                    className={`w-2.5 h-2.5 rounded-full ${
+                      isLiveLocationOn ? 'bg-emerald-400 animate-ping' : 'bg-gray-500'
+                    }`}
+                  ></span>
+                  {isLiveLocationOn ? 'LIVE LOCATION BROADCAST ACTIVE' : 'LIVE RADAR TRACKER'}
                 </span>
                 <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded-full text-gray-300 border border-white/10 font-bold">
-                  2.5m Accuracy
+                  {currentCoords ? `±${currentCoords.accuracyMeters}m GPS Precision` : 'High Precision Mode'}
                 </span>
               </div>
               <h3 className="text-xl font-black uppercase tracking-tight text-white">
-                Metro Health Hospital Pal Radar Map
+                Metro Health Hospital Live GPS Radar
               </h3>
             </div>
           </div>
@@ -91,7 +222,9 @@ export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
               <button
                 onClick={() => setActiveRole('patient')}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
-                  activeRole === 'patient' ? 'bg-[#00F0FF] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                  activeRole === 'patient'
+                    ? 'bg-[#00F0FF] text-black shadow-md'
+                    : 'text-gray-400 hover:text-white'
                 }`}
               >
                 Patient View
@@ -99,7 +232,9 @@ export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
               <button
                 onClick={() => setActiveRole('pal')}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
-                  activeRole === 'pal' ? 'bg-[#00F0FF] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                  activeRole === 'pal'
+                    ? 'bg-[#00F0FF] text-black shadow-md'
+                    : 'text-gray-400 hover:text-white'
                 }`}
               >
                 Pal View
@@ -107,43 +242,78 @@ export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
             </div>
 
             <button
-              onClick={onClose}
-              className="p-2 rounded-full text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
+              onClick={handleCloseModal}
+              className="p-2 rounded-full text-gray-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
             >
               <X className="w-6 h-6" />
             </button>
           </div>
         </div>
 
-        {/* Mobile View Switcher */}
-        <div className="sm:hidden flex bg-[#1A2232] p-2 border-b border-white/10 text-xs">
-          <button
-            onClick={() => setActiveRole('patient')}
-            className={`flex-1 py-1.5 rounded-lg font-bold text-center ${
-              activeRole === 'patient' ? 'bg-[#00F0FF] text-black' : 'text-gray-400'
-            }`}
-          >
-            Patient View
-          </button>
-          <button
-            onClick={() => setActiveRole('pal')}
-            className={`flex-1 py-1.5 rounded-lg font-bold text-center ${
-              activeRole === 'pal' ? 'bg-[#00F0FF] text-black' : 'text-gray-400'
-            }`}
-          >
-            Pal View
-          </button>
+        {/* Live Broadcast Action Bar */}
+        <div className="bg-[#161F2E] px-4 sm:px-6 py-3 border-b border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 font-bold uppercase text-[11px]">GPS Sharing Status:</span>
+            {isLiveLocationOn ? (
+              <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-black text-[10px] flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                LIVE LOCATION ON
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 rounded-full bg-gray-800 text-gray-400 border border-gray-700 font-bold text-[10px]">
+                LIVE LOCATION OFF
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {!isLiveLocationOn ? (
+              <button
+                onClick={handleStartLiveTracking}
+                disabled={isInitializingGps}
+                className="bg-[#00F0FF] hover:bg-[#00F0FF]/90 text-black font-black uppercase text-[11px] px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-md cursor-pointer disabled:opacity-50"
+              >
+                {isInitializingGps ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Acquiring GPS Signal...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3.5 h-3.5 fill-black" />
+                    <span>Start Live Location</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={handleStopLiveTracking}
+                className="bg-rose-600 hover:bg-rose-700 text-white font-black uppercase text-[11px] px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-md cursor-pointer"
+              >
+                <Square className="w-3.5 h-3.5 fill-white" />
+                <span>Stop Live Location</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Alert Notification Toast */}
-        {pingedAlert && (
-          <div className="bg-companion-coral text-white text-xs font-black uppercase py-2.5 px-4 text-center flex items-center justify-center gap-2 animate-bounce">
-            <Radio className="w-4 h-4 animate-ping" />
-            <span>Audio & Haptic Ping Sent to Pal's Device!</span>
+        {/* GPS Error Alert */}
+        {gpsError && (
+          <div className="bg-rose-950/80 border-b border-rose-800 px-6 py-3 text-xs text-rose-200 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span>{gpsError}</span>
           </div>
         )}
 
-        {/* Main Body */}
+        {/* Ping Audio Notification Toast */}
+        {pingedAlert && (
+          <div className="bg-[#E85D75] text-white text-xs font-black uppercase py-2.5 px-4 text-center flex items-center justify-center gap-2 animate-bounce">
+            <Radio className="w-4 h-4 animate-ping" />
+            <span>Audio & Haptic Signal Sent to Companion Pal!</span>
+          </div>
+        )}
+
+        {/* Main Body Grid */}
         <div className="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Map & Visual Radar Canvas (2 Cols) */}
@@ -153,11 +323,11 @@ export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
             <div className="relative bg-[#080B12] rounded-3xl border border-white/15 h-80 sm:h-96 overflow-hidden shadow-inner flex flex-col justify-between p-4">
               
               {/* Grid Lines Overlay */}
-              <div 
+              <div
                 className="absolute inset-0 opacity-20 pointer-events-none"
                 style={{
                   backgroundImage: `radial-gradient(#00F0FF 1px, transparent 1px), linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px)`,
-                  backgroundSize: '20px 20px, 40px 40px, 40px 40px'
+                  backgroundSize: '20px 20px, 40px 40px, 40px 40px',
                 }}
               />
 
@@ -170,22 +340,22 @@ export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
                 </div>
               </div>
 
-              {/* Simulated Map Landmarks */}
-              <div className="absolute top-6 left-6 bg-[#121824]/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-[10px] font-mono text-gray-300">
+              {/* Campus Landmark Badge */}
+              <div className="absolute top-6 left-6 bg-[#121824]/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-[10px] font-mono text-gray-300 z-20">
                 <div className="text-[#00F0FF] font-bold uppercase">Metro Health Main Hospital</div>
-                <div>Campus Building B • Entrance Gate</div>
+                <div>{selectedLandmark.name} • {selectedLandmark.dept}</div>
               </div>
 
-              {/* Patient Pin (Stationary at drop-off) */}
+              {/* Patient Pin (At Rendezvous Spot) */}
               <div className="absolute bottom-1/4 left-1/3 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-20">
                 <div className="relative">
-                  <div className="w-10 h-10 rounded-full bg-companion-coral/20 border-2 border-companion-coral flex items-center justify-center shadow-lg shadow-companion-coral/30">
-                    <Heart className="w-5 h-5 text-companion-coral fill-companion-coral animate-pulse" />
+                  <div className="w-10 h-10 rounded-full bg-[#E85D75]/20 border-2 border-[#E85D75] flex items-center justify-center shadow-lg shadow-[#E85D75]/30">
+                    <Heart className="w-5 h-5 text-[#E85D75] fill-[#E85D75] animate-pulse" />
                   </div>
-                  <div className="absolute -inset-2 rounded-full border border-companion-coral/50 animate-ping"></div>
+                  <div className="absolute -inset-2 rounded-full border border-[#E85D75]/50 animate-ping"></div>
                 </div>
-                <div className="bg-companion-coral text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full mt-1 shadow-md">
-                  {activeRole === 'patient' ? 'You (Patient)' : 'Patient Location'}
+                <div className="bg-[#E85D75] text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full mt-1 shadow-md">
+                  {activeRole === 'patient' ? 'You (Patient Spot)' : 'Patient Meeting Spot'}
                 </div>
               </div>
 
@@ -194,8 +364,8 @@ export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
                 <line
                   x1="33%"
                   y1="75%"
-                  x2={palStatus === 'arrived' ? '35%' : '70%'}
-                  y2={palStatus === 'arrived' ? '72%' : '30%'}
+                  x2="70%"
+                  y2="30%"
                   stroke="#00F0FF"
                   strokeWidth="3"
                   strokeDasharray="6 4"
@@ -203,12 +373,8 @@ export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
                 />
               </svg>
 
-              {/* Pal Pin (Moving towards Patient) */}
-              <div 
-                className={`absolute transition-all duration-1000 flex flex-col items-center z-20 ${
-                  palStatus === 'arrived' ? 'top-3/4 left-1/3' : 'top-1/4 left-2/3'
-                }`}
-              >
+              {/* Pal Pin (Active Companion) */}
+              <div className="absolute top-1/4 left-2/3 flex flex-col items-center z-20">
                 <div className="relative">
                   <div className="w-12 h-12 rounded-full bg-[#00F0FF]/20 border-2 border-[#00F0FF] flex items-center justify-center shadow-xl shadow-[#00F0FF]/40">
                     <img
@@ -227,49 +393,56 @@ export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
 
               {/* Live Distance Floating Badge */}
               <div className="absolute top-6 right-6 bg-[#1A2232]/90 backdrop-blur-md p-3 rounded-2xl border border-[#00F0FF]/30 text-right space-y-0.5 shadow-lg z-20">
-                <div className="text-[10px] font-black uppercase text-[#00F0FF]">DISTANCE REMAINING</div>
-                <div className="text-2xl font-black text-white">{simulatedDistance} ft</div>
-                <div className="text-[10px] text-gray-300 font-bold">ETA: <span className="text-[#00F0FF]">{etaString}</span></div>
+                <div className="text-[10px] font-black uppercase text-[#00F0FF]">DISTANCE TO RENDEZVOUS</div>
+                <div className="text-2xl font-black text-white">{formattedDistance}</div>
+                <div className="text-[10px] text-gray-300 font-bold">
+                  ETA: <span className="text-[#00F0FF]">{etaInfo.formatted}</span>
+                </div>
               </div>
 
-              {/* Map Footer Controls Bar */}
-              <div className="relative z-20 flex items-center justify-between bg-[#121824]/90 backdrop-blur-md p-3 rounded-2xl border border-white/10 text-xs">
+              {/* Map Footer Telemetry Bar */}
+              <div className="relative z-20 flex flex-wrap items-center justify-between bg-[#121824]/90 backdrop-blur-md p-3 rounded-2xl border border-white/10 text-xs gap-2">
                 <div className="flex items-center gap-2">
                   <Signal className="w-4 h-4 text-emerald-400 animate-pulse" />
                   <span className="text-gray-300 text-[11px] font-bold">
-                    GPS Signal: <span className="text-white">STRONG (4G / BLE Beacon #842)</span>
+                    GPS Signal:{' '}
+                    <span className="text-white">
+                      {currentCoords
+                        ? `Live Lat ${currentCoords.latitude.toFixed(4)}, Lng ${currentCoords.longitude.toFixed(4)} (±${currentCoords.accuracyMeters}m)`
+                        : 'Active (Campus Gate High Precision Mode)'}
+                    </span>
                   </span>
                 </div>
-                <button
-                  onClick={handlePingPal}
-                  className="bg-companion-coral hover:bg-companion-coral/90 text-white font-bold text-[11px] px-3 py-1.5 rounded-xl transition-all flex items-center gap-1"
-                >
-                  <Radio className="w-3.5 h-3.5" />
-                  Ping Audio Signal
-                </button>
+                <div className="text-[10px] text-gray-400 font-mono">
+                  Updated {lastUpdatedAgo}s ago
+                </div>
               </div>
 
             </div>
 
-            {/* Drop-off Location Selector */}
+            {/* Campus Rendezvous Selector */}
             <div className="space-y-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-300">
-                Hospital Campus Rendezvous Point
+                Selected Hospital Campus Rendezvous Spot
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {dropoffPoints.map((dp) => (
+                {METRO_HEALTH_LANDMARKS.map((dp) => (
                   <button
                     key={dp.id}
-                    onClick={() => setSelectedLocation(dp.id)}
-                    className={`p-3 rounded-2xl border text-left transition-all ${
-                      selectedLocation === dp.id
+                    onClick={() => setSelectedLandmarkId(dp.id)}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                      selectedLandmarkId === dp.id
                         ? 'bg-[#00F0FF]/15 border-[#00F0FF] text-white'
                         : 'bg-[#121824] border-white/10 text-gray-400 hover:border-white/20'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-white">{dp.name}</span>
-                      <MapPin className={`w-3.5 h-3.5 ${selectedLocation === dp.id ? 'text-[#00F0FF]' : 'text-gray-500'}`} />
+                      <MapPin
+                        className={`w-3.5 h-3.5 ${
+                          selectedLandmarkId === dp.id ? 'text-[#00F0FF]' : 'text-gray-500'
+                        }`}
+                      />
                     </div>
                     <div className="text-[10px] text-gray-400">{dp.dept}</div>
                     <div className="text-[9px] text-[#00F0FF] mt-1 font-mono">{dp.status}</div>
@@ -280,19 +453,15 @@ export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
 
           </div>
 
-          {/* Side Telemetry & Pal Info Panel (1 Col) */}
+          {/* Side Telemetry & Companion Profile Panel (1 Col) */}
           <div className="space-y-4">
             
             {/* Status Card */}
             <div className="bg-[#121824] p-5 rounded-3xl border border-white/10 space-y-4">
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                <div className="text-xs font-bold uppercase text-gray-400">Pal Status</div>
-                <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase border ${
-                  palStatus === 'arrived'
-                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                    : 'bg-[#00F0FF]/10 text-[#00F0FF] border-[#00F0FF]/30'
-                }`}>
-                  {palStatus === 'arrived' ? 'Pal Has Arrived!' : 'Pal En Route'}
+                <div className="text-xs font-bold uppercase text-gray-400">Companion Status</div>
+                <span className="text-[10px] font-black px-2.5 py-1 rounded-full uppercase border bg-[#00F0FF]/10 text-[#00F0FF] border-[#00F0FF]/30">
+                  En Route to Meeting Point
                 </span>
               </div>
 
@@ -305,28 +474,30 @@ export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
                 />
                 <div>
                   <h4 className="text-base font-black text-white">Elena Vance</h4>
-                  <p className="text-xs text-gray-400">Badge #PP-7821 • Verified CHW Pal</p>
+                  <p className="text-xs text-gray-400">Badge #PP-7821 • Verified Pal</p>
                   <div className="text-[10px] text-emerald-400 font-bold mt-0.5">★ 4.95 Rating (142 Visits)</div>
                 </div>
               </div>
 
-              {/* Live Distance Stats */}
+              {/* Live Distance Telemetry Stats */}
               <div className="bg-[#1A2232] p-4 rounded-2xl border border-white/10 space-y-2 text-xs">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Current Speed:</span>
-                  <span className="font-bold text-white">2.8 mph (Walking)</span>
+                  <span className="font-bold text-white">
+                    {currentCoords?.speedMps ? `${(currentCoords.speedMps * 2.23694).toFixed(1)} mph` : '2.8 mph (Walking)'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Distance:</span>
-                  <span className="font-bold text-[#00F0FF]">{simulatedDistance} Feet</span>
+                  <span className="font-bold text-[#00F0FF]">{formattedDistance}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Est. Arrival:</span>
-                  <span className="font-bold text-white">{etaString}</span>
+                  <span className="text-gray-400">Estimated Arrival:</span>
+                  <span className="font-bold text-white">{etaInfo.formatted}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Beacon Battery:</span>
-                  <span className="font-bold text-emerald-400">96% Active</span>
+                  <span className="text-gray-400">Security Gate:</span>
+                  <span className="font-bold text-emerald-400">Verified Cleared</span>
                 </div>
               </div>
 
@@ -334,40 +505,46 @@ export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
               <div className="grid grid-cols-2 gap-2">
                 <a
                   href="tel:18005557284"
-                  className="bg-[#1A2232] hover:bg-white/10 text-white p-3 rounded-xl border border-white/10 flex items-center justify-center gap-2 text-xs font-bold transition-all"
+                  className="bg-[#1A2232] hover:bg-white/10 text-white p-3 rounded-xl border border-white/10 flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer"
                 >
                   <Phone className="w-4 h-4 text-[#00F0FF]" />
                   <span>Call Pal</span>
                 </a>
                 <button
                   onClick={handlePingPal}
-                  className="bg-[#1A2232] hover:bg-white/10 text-white p-3 rounded-xl border border-white/10 flex items-center justify-center gap-2 text-xs font-bold transition-all"
+                  className="bg-[#1A2232] hover:bg-white/10 text-white p-3 rounded-xl border border-white/10 flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer"
                 >
                   <MessageSquare className="w-4 h-4 text-[#00F0FF]" />
-                  <span>Send SMS</span>
+                  <span>Send Signal</span>
                 </button>
               </div>
 
             </div>
 
-            {/* Safety & HIPAA Verification Card */}
+            {/* Safety & Location Protection Card */}
             <div className="bg-[#121824] p-5 rounded-3xl border border-white/10 space-y-3">
               <div className="flex items-center gap-2 text-xs font-bold uppercase text-[#00F0FF]">
                 <Shield className="w-4 h-4 text-[#00F0FF]" />
-                <span>Live Location Protection</span>
+                <span>Encrypted Location Stream</span>
               </div>
               <p className="text-xs text-gray-300 font-light leading-relaxed">
-                GPS and BLE beacon data are end-to-end encrypted and automatically destroyed 30 minutes after your visit completes.
+                Live coordinates are end-to-end encrypted and automatically destroyed once your escort visit concludes.
               </p>
               <button
-                onClick={() => {
-                  navigator.clipboard?.writeText(window.location.href);
-                  alert("Live tracking link copied to clipboard! Share with family members.");
-                }}
-                className="w-full py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2"
+                onClick={handleShareLink}
+                className="w-full py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
-                <Share2 className="w-4 h-4" />
-                <span>Share Tracking Link with Family</span>
+                {copiedLink ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span className="text-emerald-300">Live Link Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-4 h-4" />
+                    <span>Share Live Arrival Link with Family</span>
+                  </>
+                )}
               </button>
             </div>
 

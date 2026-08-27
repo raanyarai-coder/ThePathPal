@@ -178,7 +178,7 @@ export const BecomePalModal: React.FC<BecomePalModalProps> = ({
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Submitting to pal_applications...</span>
+                    <span>Submitting Application...</span>
                   </>
                 ) : (
                   <>
@@ -197,10 +197,6 @@ export const BecomePalModal: React.FC<BecomePalModalProps> = ({
             <h3 className="text-2xl font-black text-[#1F3449]">Application Submitted!</h3>
             <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 text-left space-y-2 max-w-md mx-auto">
               <div className="flex justify-between items-center text-xs">
-                <span className="text-gray-500 font-bold uppercase">Application Reference:</span>
-                <span className="font-mono font-bold text-[#48A6A5]">{submittedApp.id}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
                 <span className="text-gray-500 font-bold uppercase">Applicant Name:</span>
                 <span className="font-bold text-[#1F3449]">{submittedApp.name || submittedApp.full_name}</span>
               </div>
@@ -217,7 +213,7 @@ export const BecomePalModal: React.FC<BecomePalModalProps> = ({
             </div>
 
             <p className="text-xs text-gray-600 max-w-md mx-auto">
-              Your application has been stored in <code>pal_applications</code>. Once an administrator approves your profile, you will receive an invitation link to complete your Supabase Auth registration.
+              Your application has been received. Once an administrator approves your profile, you will receive an invitation link to complete your account setup and activation.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">

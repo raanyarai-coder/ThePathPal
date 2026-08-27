@@ -19,7 +19,7 @@ PathPal delivers end-to-end support:
 
 ### 1. 🧑‍🦯 Patient Portal
 - **Companion Booking & Matching**: On-demand and scheduled Pal requests with tailored mobility needs (wheelchair assistance, visual guidance, memory support, multi-language preferences).
-- **Live GPS & ETA Tracking**: Curbside meeting coordination with live map views and real-time companion ETA calculations.
+- **Live GPS & ETA Tracking**: Curbside meeting coordination with real-time device geolocation, precision radar, and walking ETA estimations.
 - **Care Summaries & Appointment Notes**: Centralized discharge notes, clinical follow-up reminders, and calendar exports.
 - **Transparent Charges**: Upfront pricing breakdowns ($26/hr base rate, hospital coordination credits, insurance reimbursement guides).
 
@@ -27,13 +27,14 @@ PathPal delivers end-to-end support:
 - **Companion Dashboard**: Active shift schedules, incoming hospital escort requests, and patient mobility briefs.
 - **Verified Digital Badge**: Official credential display with photo identification, background-check status, and hospital affiliations.
 - **Earnings & Mileage Ledger**: Transparent shift log tracking completed hours, base pay, and direct Stripe payouts.
-- **Secure Onboarding & Verification**: Multi-step registration validating hospital administrator approval, background checks, and email verification.
+- **Secure Onboarding & Verification**: Multi-step registration validating administrator approval, background checks, and email verification.
 
 ### 3. 🏢 Admin & Coordination Center
-- **Pal Application Pipeline**: Real-time review of prospective Pal companion applications from `pal_applications`.
-- **One-Click Authorization**: Approve verified applicants, automatically generating a secure invitation link for Supabase Auth registration.
+- **Pal Application Pipeline**: Real-time review of prospective Pal companion applications.
+- **One-Click Authorization**: Approve verified applicants, automatically generating a secure invitation link for account activation.
 - **Department Fleet Oversight**: Live roster of active hospital Pals, badge numbers, background check clearances, and department allocations.
-- **Role-Based Access Control**: Sensitive Pal and Patient dispatch records are strictly protected behind Admin login credentials.
+- **Live Campus Radar**: Real-time geolocation tracking sessions displaying campus rendezvous coordinates and active escort telemetry.
+- **Role-Based Access Control**: Sensitive Pal, Patient, and Dispatch records are strictly protected behind secure Admin login credentials.
 
 ### 4. 🤖 AI CareBot & Accessibility Tools
 - **PathPal CareBot**: Interactive assistant offering hospital department directories, pre-visit packing checklists, and navigation tips.
@@ -43,9 +44,9 @@ PathPal delivers end-to-end support:
 
 ---
 
-## 🗄️ Database & Supabase Architecture
+## 🗄️ Database & Services Architecture
 
-PathPal leverages **Supabase** for secure authentication and persistent database storage:
+PathPal leverages **Supabase** for secure authentication, persistent database storage, and real-time streaming:
 
 ### Database Tables
 
@@ -53,13 +54,17 @@ PathPal leverages **Supabase** for secure authentication and persistent database
 | :--- | :--- | :--- |
 | `pal_applications` | Stores applicant submissions and admin review state | `id` (UUID), `name`, `email`, `phone`, `languages`, `status` (`pending`, `approved`, `rejected`), `created_at` |
 | `pals` | Stores certified companion records | `id` (int4), `auth_user_id` (UUID), `name`, `phone`, `bio`, `availability`, `background_check_status`, `rating`, `hourly_rate_cents`, `stripe_account_id` |
+| `patients` | Stores registered patient profile data | `id` (int4), `auth_user_id` (UUID), `name`, `phone`, `created_at` |
+| `location_sessions` | Active GPS tracking sessions | `id` (UUID), `request_id`, `match_id`, `pal_id`, `patient_id`, `status` (`active`, `ended`), `started_at` |
+| `location_points` | High-frequency telemetry stream | `id` (int8), `session_id` (UUID), `latitude`, `longitude`, `accuracy_meters`, `speed_mps`, `recorded_at` |
+| `notifications` | User alert and notification feed | `id` (int8), `user_id` (UUID), `type`, `title`, `message`, `is_read`, `created_at` |
 
 ### Pal Onboarding & Auth Flow
-1. **Application Submission**: Prospective Pals apply via `BecomePalModal`. The record is inserted into `pal_applications` with `status: 'pending'`.
-2. **Admin Approval**: Administrators review applications in `HospitalPortalPage` (accessible after Admin authentication) and mark them as `approved`, preparing the corresponding `pals` record.
-3. **Account Creation**: Approved applicants receive a registration link (`#pal-signup?app_id=...`) to create their Supabase Auth user.
-4. **Email Confirmation & Profile Linking**: Upon confirming their email (`#pal-verify`), `verifyPalEmailAndActivate()` links `pals.auth_user_id = user.id`.
-5. **Pal Login**: Pals log into `PalPortalPage` using their verified credentials.
+1. **Application Submission**: Prospective Pals apply via `BecomePalModal`.
+2. **Admin Approval**: Administrators review applications in the Admin portal (`HospitalPortalPage`) and authorize verified applicants.
+3. **Account Creation**: Approved applicants receive a registration link (`#pal-signup?app_id=...`) to create their secure login credentials.
+4. **Email Confirmation & Profile Linking**: Upon confirming their email (`#pal-verify`), profile records are linked automatically.
+5. **Pal Login**: Pals log into the companion portal using their verified credentials.
 
 ---
 
@@ -103,24 +108,18 @@ PathPal leverages **Supabase** for secure authentication and persistent database
    npm install
    ```
 
-2. Configure environment variables in `.env` (optional for custom Supabase instance):
-   ```env
-   VITE_SUPABASE_URL=https://your-project.supabase.co
-   VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
-   ```
-
-3. Start development server:
+2. Start development server:
    ```bash
    npm run dev
    ```
    The application will be accessible at `http://localhost:3000`.
 
-4. Build for production:
+3. Build for production:
    ```bash
    npm run build
    ```
 
-5. Typecheck & Lint:
+4. Typecheck & Lint:
    ```bash
    npm run lint
    ```

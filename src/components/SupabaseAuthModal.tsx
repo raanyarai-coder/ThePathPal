@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Lock, Mail, Phone, LogIn, UserPlus, LogOut, CheckCircle2, ShieldCheck, Database, AlertCircle } from 'lucide-react';
+import { X, User, Lock, Mail, Phone, LogIn, UserPlus, LogOut, CheckCircle2, ShieldCheck, AlertCircle } from 'lucide-react';
 import { signUpPatient, loginPatient, signOutPatient } from '../lib/supabase';
 import { supabase } from '../lib/supabaseClient';
 import { User as SupabaseUser } from '@supabase/supabase-js';
@@ -28,13 +28,8 @@ export const SupabaseAuthModal: React.FC<SupabaseAuthModalProps> = ({
   const [currentUser, setCurrentUser] = useState<SupabaseUser | null>(null);
   const [patientRecord, setPatientRecord] = useState<any>(null);
 
-  // Sync Supabase Auth Session
+  // Sync Auth Session
   useEffect(() => {
-    try {
-      localStorage.removeItem('pathpal_fallback_user');
-      localStorage.removeItem('pathpal_fallback_patient');
-    } catch {}
-
     supabase.auth.getUser().then(({ data: { user } }) => {
       setCurrentUser(user);
       if (user) fetchPatientRecord(user.id);
@@ -62,25 +57,12 @@ export const SupabaseAuthModal: React.FC<SupabaseAuthModalProps> = ({
         .eq('auth_user_id', userId)
         .maybeSingle();
 
-      if (error) {
-        console.error('Failed to fetch patient record:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-        });
-        setPatientRecord(null);
-        return;
-      }
-
-      if (data) {
+      if (!error && data) {
         setPatientRecord(data);
       } else {
-        console.warn('No patient record found for auth user:', userId);
         setPatientRecord(null);
       }
-    } catch (err) {
-      console.error('Unexpected error fetching patient record:', err);
+    } catch {
       setPatientRecord(null);
     }
   };
@@ -103,17 +85,15 @@ export const SupabaseAuthModal: React.FC<SupabaseAuthModalProps> = ({
       const res = await signUpPatient(email, password, name, phone);
 
       if (res.error) {
-        setErrorMessage(res.error.message || 'Failed to sign up patient.');
+        setErrorMessage(res.error.message || 'Failed to register account.');
       } else if (res.data?.user && res.data?.session) {
-        // Immediate session active (email confirmation disabled or auto-confirmed)
-        setSuccessMessage('Patient account registered and signed in successfully with Supabase!');
+        setSuccessMessage('Account registered and signed in successfully!');
         setCurrentUser(res.data.user);
         fetchPatientRecord(res.data.user.id);
         onAuthSuccess?.(res.data.user, { name, phone });
       } else if (res.data?.user && !res.data?.session) {
-        // Email confirmation required by Supabase project settings
         setSuccessMessage(
-          'Account created successfully. Please check your email and click the confirmation link before logging in.'
+          'Account created successfully. Please check your email to confirm your account before logging in.'
         );
         setCurrentUser(null);
         setPatientRecord(null);
@@ -130,18 +110,18 @@ export const SupabaseAuthModal: React.FC<SupabaseAuthModalProps> = ({
       const res = await loginPatient(email, password);
 
       if (res.error) {
-        setErrorMessage(res.error.message || 'Failed to log in.');
+        setErrorMessage(res.error.message || 'Failed to sign in.');
       } else if (res.data?.user && res.data?.session) {
-        setSuccessMessage('Logged in successfully via Supabase!');
+        setSuccessMessage('Signed in successfully!');
         setCurrentUser(res.data.user);
         fetchPatientRecord(res.data.user.id);
         onAuthSuccess?.(res.data.user);
       } else if (res.data?.user && !res.data?.session) {
-        setErrorMessage('Login pending email confirmation. Please check your email to confirm your account first.');
+        setErrorMessage('Sign in pending email confirmation. Please check your inbox.');
         setCurrentUser(null);
         setPatientRecord(null);
       } else {
-        setErrorMessage('Invalid login credentials or session could not be established.');
+        setErrorMessage('Invalid credentials. Please check your email and password.');
       }
     }
 
@@ -164,22 +144,22 @@ export const SupabaseAuthModal: React.FC<SupabaseAuthModalProps> = ({
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-full text-gray-400 hover:bg-gray-100 transition-colors"
+          className="absolute top-5 right-5 p-2 rounded-full text-gray-400 hover:bg-gray-100 transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
 
-        {/* Supabase Header Badge */}
+        {/* Header Badge */}
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 flex items-center justify-center">
-            <Database className="w-4 h-4" />
+          <div className="w-8 h-8 rounded-xl bg-[#48A6A5]/15 border border-[#48A6A5]/30 text-[#48A6A5] flex items-center justify-center">
+            <ShieldCheck className="w-4 h-4" />
           </div>
           <div>
-            <div className="text-[10px] font-black uppercase tracking-widest text-emerald-600">
-              SUPABASE AUTHENTICATION
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#48A6A5]">
+              PATIENT ACCESS PORTAL
             </div>
             <div className="text-xs text-gray-500 font-semibold">
-              Project: <code className="text-[#1F3449] font-mono">pzzrgstawlqxanfdjnbq</code>
+              Secure Companion Coordination
             </div>
           </div>
         </div>
@@ -191,13 +171,13 @@ export const SupabaseAuthModal: React.FC<SupabaseAuthModalProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Active Patient Session</span>
                 <span className="bg-emerald-100 text-emerald-700 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" /> Authenticated
+                  <CheckCircle2 className="w-3 h-3" /> Signed In
                 </span>
               </div>
 
               <div className="space-y-1">
                 <div className="text-base font-black text-[#1F3449]">
-                  {patientRecord?.name || currentUser.user_metadata?.full_name || 'Authenticated Patient'}
+                  {patientRecord?.name || currentUser.user_metadata?.full_name || 'Patient'}
                 </div>
                 <div className="text-xs text-gray-600 flex items-center gap-1.5">
                   <Mail className="w-3.5 h-3.5 text-gray-400" />
@@ -209,10 +189,6 @@ export const SupabaseAuthModal: React.FC<SupabaseAuthModalProps> = ({
                     {patientRecord.phone}
                   </div>
                 )}
-              </div>
-
-              <div className="text-[10px] font-mono text-gray-400 pt-2 border-t border-gray-200 break-all">
-                Auth User ID: {currentUser.id}
               </div>
             </div>
 
@@ -227,14 +203,14 @@ export const SupabaseAuthModal: React.FC<SupabaseAuthModalProps> = ({
               <button
                 onClick={handleSignOut}
                 disabled={loading}
-                className="flex-1 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
+                className="flex-1 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Sign Out</span>
               </button>
               <button
                 onClick={onClose}
-                className="flex-1 py-3 rounded-xl bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all"
+                className="flex-1 py-3 rounded-xl bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
               >
                 <span>Continue</span>
               </button>
@@ -251,14 +227,14 @@ export const SupabaseAuthModal: React.FC<SupabaseAuthModalProps> = ({
                   setMode('signup');
                   setErrorMessage(null);
                 }}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   mode === 'signup'
                     ? 'bg-white text-[#1F3449] shadow-sm'
                     : 'text-gray-500 hover:text-[#1F3449]'
                 }`}
               >
                 <UserPlus className="w-3.5 h-3.5" />
-                <span>4.1 Patient Sign Up</span>
+                <span>Create Account</span>
               </button>
               <button
                 type="button"
@@ -266,14 +242,14 @@ export const SupabaseAuthModal: React.FC<SupabaseAuthModalProps> = ({
                   setMode('login');
                   setErrorMessage(null);
                 }}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   mode === 'login'
                     ? 'bg-white text-[#1F3449] shadow-sm'
                     : 'text-gray-500 hover:text-[#1F3449]'
                 }`}
               >
                 <LogIn className="w-3.5 h-3.5" />
-                <span>4.2 Log In</span>
+                <span>Sign In</span>
               </button>
             </div>
 
@@ -283,8 +259,8 @@ export const SupabaseAuthModal: React.FC<SupabaseAuthModalProps> = ({
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">
                 {mode === 'signup'
-                  ? 'Sign up with Supabase Auth to save patient appointments & preferences.'
-                  : 'Log in with your email & password managed securely by Supabase.'}
+                  ? 'Sign up to manage appointment companion escorts & campus navigation.'
+                  : 'Sign in to access your active companion requests.'}
               </p>
             </div>
 
@@ -369,19 +345,19 @@ export const SupabaseAuthModal: React.FC<SupabaseAuthModalProps> = ({
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 rounded-xl bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-black uppercase tracking-wider text-xs transition-all shadow-md flex items-center justify-center gap-2 mt-2 disabled:opacity-50"
+                className="w-full py-3.5 rounded-xl bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-black uppercase tracking-wider text-xs transition-all shadow-md flex items-center justify-center gap-2 mt-2 disabled:opacity-50 cursor-pointer"
               >
                 {loading ? (
                   <span>Processing...</span>
                 ) : mode === 'signup' ? (
                   <>
                     <UserPlus className="w-4 h-4" />
-                    <span>Sign Up Patient with Supabase</span>
+                    <span>Create Patient Account</span>
                   </>
                 ) : (
                   <>
                     <LogIn className="w-4 h-4" />
-                    <span>Log In via Supabase</span>
+                    <span>Sign In</span>
                   </>
                 )}
               </button>
@@ -389,12 +365,12 @@ export const SupabaseAuthModal: React.FC<SupabaseAuthModalProps> = ({
           </div>
         )}
 
-        {/* Security / HIPAA Footer */}
+        {/* Security / Compliance Footer */}
         <div className="pt-3 border-t border-gray-200 flex items-center justify-between text-[10px] text-gray-500">
           <span className="flex items-center gap-1 font-semibold text-emerald-700">
-            <ShieldCheck className="w-3.5 h-3.5" /> Supabase Session Cookie Managed
+            <ShieldCheck className="w-3.5 h-3.5" /> HIPAA Security Compliant
           </span>
-          <span className="font-mono">patients table synced</span>
+          <span>Encrypted Patient Data</span>
         </div>
       </div>
     </div>

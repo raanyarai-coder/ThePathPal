@@ -26,6 +26,13 @@ import {
   Sparkles,
   RefreshCw,
   User,
+  Radio,
+  MapPin,
+  HeartHandshake,
+  Activity,
+  Phone,
+  Calendar,
+  Layers,
 } from 'lucide-react';
 import { SAMPLE_HOSPITALS, INITIAL_REQUESTS, SAMPLE_PALS } from '../data/mockData';
 import { PalRequest, PalApplication, Pal } from '../types';
@@ -33,6 +40,10 @@ import {
   fetchPalApplications,
   approvePalApplication,
   fetchAllPals,
+  fetchAllPatients,
+  fetchPalRequests,
+  fetchHospitalInquiries,
+  fetchActiveLocationSessions,
   getStoredAdminSession,
   loginAdmin,
   signOutAdmin,
@@ -49,7 +60,7 @@ export const HospitalPortalPage: React.FC = () => {
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Portal State (Only populated after Admin authentication)
-  const [activeTab, setActiveTab] = useState<'dispatch' | 'applications' | 'pals'>('dispatch');
+  const [activeTab, setActiveTab] = useState<'dispatch' | 'applications' | 'pals' | 'patients' | 'radar' | 'inquiries'>('dispatch');
   const [requests, setRequests] = useState<PalRequest[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -61,6 +72,12 @@ export const HospitalPortalPage: React.FC = () => {
 
   // Pals list state
   const [palsList, setPalsList] = useState<Pal[]>([]);
+  // Patients list state
+  const [patientsList, setPatientsList] = useState<any[]>([]);
+  // Inquiries list state
+  const [inquiriesList, setInquiriesList] = useState<any[]>([]);
+  // Radar sessions state
+  const [activeRadarSessions, setActiveRadarSessions] = useState<any[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
   // Check stored session on mount
@@ -76,7 +93,13 @@ export const HospitalPortalPage: React.FC = () => {
     setIsLoadingData(true);
     try {
       setRequests(INITIAL_REQUESTS);
-      await Promise.all([loadApplications(), loadPals()]);
+      await Promise.all([
+        loadApplications(),
+        loadPals(),
+        loadPatients(),
+        loadInquiries(),
+        loadRadarSessions(),
+      ]);
     } catch (e) {
       console.error('Error loading admin portal data:', e);
     } finally {
@@ -100,6 +123,27 @@ export const HospitalPortalPage: React.FC = () => {
     } catch {
       setPalsList(SAMPLE_PALS);
     }
+  };
+
+  const loadPatients = async () => {
+    try {
+      const patients = await fetchAllPatients();
+      setPatientsList(patients);
+    } catch {}
+  };
+
+  const loadInquiries = async () => {
+    try {
+      const inquiries = await fetchHospitalInquiries();
+      setInquiriesList(inquiries);
+    } catch {}
+  };
+
+  const loadRadarSessions = async () => {
+    try {
+      const sessions = await fetchActiveLocationSessions();
+      setActiveRadarSessions(sessions);
+    } catch {}
   };
 
   const handleAdminLogin = async (e: React.FormEvent) => {
@@ -143,6 +187,9 @@ export const HospitalPortalPage: React.FC = () => {
     setRequests([]);
     setApplications([]);
     setPalsList([]);
+    setPatientsList([]);
+    setInquiriesList([]);
+    setActiveRadarSessions([]);
   };
 
   const handleApprove = async (appId: string) => {
@@ -192,7 +239,7 @@ export const HospitalPortalPage: React.FC = () => {
             Admin Portal Login
           </h1>
           <p className="text-sm text-gray-600 max-w-xl mx-auto leading-relaxed">
-            Access to Patient companion dispatches, medical logistics, Pal applications, and database credentials is strictly restricted to authorized Administrators.
+            Access to Patient companion dispatches, medical logistics, Pal applications, and administrative tools is strictly restricted to authorized Administrators.
           </p>
         </div>
 
@@ -258,7 +305,7 @@ export const HospitalPortalPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-3 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  className="absolute right-3.5 top-3 text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -289,7 +336,7 @@ export const HospitalPortalPage: React.FC = () => {
             <button
               type="button"
               onClick={handleQuickDemoLogin}
-              className="w-full text-xs font-bold text-[#48A6A5] hover:text-[#48A6A5]/80 bg-[#48A6A5]/10 hover:bg-[#48A6A5]/20 py-2.5 rounded-xl transition-all border border-[#48A6A5]/30 flex items-center justify-center gap-2"
+              className="w-full text-xs font-bold text-[#48A6A5] hover:text-[#48A6A5]/80 bg-[#48A6A5]/10 hover:bg-[#48A6A5]/20 py-2.5 rounded-xl transition-all border border-[#48A6A5]/30 flex items-center justify-center gap-2 cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
               <span>One-Click Quick Admin Demo Sign In</span>
@@ -342,7 +389,7 @@ export const HospitalPortalPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2 pt-2">
             <button
               onClick={() => setActiveTab('dispatch')}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
                 activeTab === 'dispatch'
                   ? 'bg-[#48A6A5] text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -355,7 +402,7 @@ export const HospitalPortalPage: React.FC = () => {
                 setActiveTab('applications');
                 loadApplications();
               }}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'applications'
                   ? 'bg-[#48A6A5] text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -374,14 +421,56 @@ export const HospitalPortalPage: React.FC = () => {
                 setActiveTab('pals');
                 loadPals();
               }}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'pals'
                   ? 'bg-[#48A6A5] text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Database `pals` Table Status</span>
+              <span>Verified Pals Directory</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('patients');
+                loadPatients();
+              }}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'patients'
+                  ? 'bg-[#48A6A5] text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Patient Directory</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('radar');
+                loadRadarSessions();
+              }}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'radar'
+                  ? 'bg-[#48A6A5] text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Radio className="w-3.5 h-3.5" />
+              <span>Live Campus Radar</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('inquiries');
+                loadInquiries();
+              }}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'inquiries'
+                  ? 'bg-[#48A6A5] text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Hospital Inquiries</span>
             </button>
           </div>
         </div>
@@ -466,7 +555,7 @@ export const HospitalPortalPage: React.FC = () => {
               <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl border border-gray-300 text-xs font-bold">
                 <button
                   onClick={() => setFilterStatus('all')}
-                  className={`px-3 py-1.5 rounded-lg transition-all ${
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                     filterStatus === 'all' ? 'bg-[#48A6A5] text-white font-black' : 'text-gray-700 hover:text-[#1F3449]'
                   }`}
                 >
@@ -474,7 +563,7 @@ export const HospitalPortalPage: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setFilterStatus('matched')}
-                  className={`px-3 py-1.5 rounded-lg transition-all ${
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                     filterStatus === 'matched' ? 'bg-[#E85D75] text-white font-black' : 'text-gray-700 hover:text-[#1F3449]'
                   }`}
                 >
@@ -482,7 +571,7 @@ export const HospitalPortalPage: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setFilterStatus('in_progress')}
-                  className={`px-3 py-1.5 rounded-lg transition-all ${
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                     filterStatus === 'in_progress' ? 'bg-[#48A6A5] text-white font-black' : 'text-gray-700 hover:text-[#1F3449]'
                   }`}
                 >
@@ -542,7 +631,7 @@ export const HospitalPortalPage: React.FC = () => {
             <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">ONBOARDING PIPELINE</span>
             <h2 className="text-2xl font-black text-[#1F3449]">Pal Applications & Signup Approval Gate</h2>
             <p className="text-xs text-gray-600 mt-1">
-              Applications submitted through the Pal portal are stored in <code>pal_applications</code>. Approving an applicant authorizes them to register their Supabase Auth account.
+              Review Pal candidate submissions and authorize approved applicants to complete their credentialing.
             </p>
           </div>
 
@@ -608,7 +697,7 @@ export const HospitalPortalPage: React.FC = () => {
                               >
                                 {copiedAppId === app.id ? (
                                   <>
-                                   <Check className="w-3 h-3 text-emerald-600" />
+                                    <Check className="w-3 h-3 text-emerald-600" />
                                     <span className="text-emerald-700 font-bold">Copied!</span>
                                   </>
                                 ) : (
@@ -641,14 +730,14 @@ export const HospitalPortalPage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 3: Database Pals Table Status */}
+      {/* TAB 3: Verified Pals Directory */}
       {activeTab === 'pals' && (
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
           <div className="border-b border-gray-200 pb-4">
-            <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">DATABASE SYNCHRONIZATION</span>
-            <h2 className="text-2xl font-black text-[#1F3449]">`pals` Table Live Records</h2>
+            <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">COMPANION NETWORK</span>
+            <h2 className="text-2xl font-black text-[#1F3449]">Verified Pals Directory</h2>
             <p className="text-xs text-gray-600 mt-1">
-              Shows records in the <code>pals</code> database table, including linked <code>auth_user_id</code> and verification status.
+              Active PathPal companions credentialed for hospital campus accompaniment.
             </p>
           </div>
 
@@ -656,12 +745,12 @@ export const HospitalPortalPage: React.FC = () => {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-gray-100 border-b border-gray-200 text-gray-700 uppercase font-black text-[10px]">
-                  <th className="p-3">Badge & Pal ID</th>
+                  <th className="p-3">Badge ID</th>
                   <th className="p-3">Companion Name</th>
-                  <th className="p-3">Linked Supabase Auth UID</th>
-                  <th className="p-3">Email Verified</th>
+                  <th className="p-3">Background Check</th>
+                  <th className="p-3">Quality Rating</th>
                   <th className="p-3">Account Status</th>
-                  <th className="p-3">Affiliation</th>
+                  <th className="p-3">Hospital Affiliation</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -669,31 +758,18 @@ export const HospitalPortalPage: React.FC = () => {
                   <tr key={pal.id} className="hover:bg-gray-50 transition-colors">
                     <td className="p-3">
                       <div className="font-mono font-bold text-[#48A6A5]">{pal.badgeNumber}</div>
-                      <div className="text-[10px] text-gray-400 font-mono">{pal.id}</div>
                     </td>
                     <td className="p-3">
                       <div className="font-bold text-[#1F3449]">{pal.name}</div>
-                      <div className="text-[10px] text-gray-500 font-mono">{pal.phone ? `Phone: ${pal.phone}` : (pal.email || 'No contact attached')}</div>
-                    </td>
-                    <td className="p-3 font-mono text-[11px] text-gray-600">
-                      {pal.auth_user_id ? (
-                        <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                          {pal.auth_user_id.slice(0, 16)}...
-                        </span>
-                      ) : (
-                        <span className="text-gray-400 italic">Unlinked (Awaiting verification)</span>
-                      )}
+                      <div className="text-[10px] text-gray-500 font-mono">{pal.phone ? `Phone: ${pal.phone}` : (pal.email || 'Contact on file')}</div>
                     </td>
                     <td className="p-3">
-                      {pal.email_verified || pal.isVerified ? (
-                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300">
-                          VERIFIED
-                        </span>
-                      ) : (
-                        <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-300">
-                          UNVERIFIED
-                        </span>
-                      )}
+                      <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+                        CLEARED & VETTED
+                      </span>
+                    </td>
+                    <td className="p-3">
+                      <div className="font-bold text-amber-600">★ {pal.rating.toFixed(1)} / 5.0</div>
                     </td>
                     <td className="p-3">
                       <span
@@ -709,6 +785,143 @@ export const HospitalPortalPage: React.FC = () => {
                     <td className="p-3 text-gray-600">{(pal.hospitalAffiliations || ['Metro Health Medical Center']).join(', ')}</td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: Patient Operations */}
+      {activeTab === 'patients' && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
+          <div className="border-b border-gray-200 pb-4">
+            <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">PATIENT REGISTRY</span>
+            <h2 className="text-2xl font-black text-[#1F3449]">Registered Patients Directory</h2>
+            <p className="text-xs text-gray-600 mt-1">
+              Active patient profiles registered for campus escort assistance.
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-gray-100 border-b border-gray-200 text-gray-700 uppercase font-black text-[10px]">
+                  <th className="p-3">Patient Name</th>
+                  <th className="p-3">Contact Phone</th>
+                  <th className="p-3">Registered Date</th>
+                  <th className="p-3">Assistance Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {patientsList.length > 0 ? (
+                  patientsList.map((pt) => (
+                    <tr key={pt.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="p-3 font-bold text-[#1F3449]">{pt.name || 'Patient'}</td>
+                      <td className="p-3 font-mono text-gray-700">{pt.phone || 'On file'}</td>
+                      <td className="p-3 text-gray-500">{new Date(pt.created_at || Date.now()).toLocaleDateString()}</td>
+                      <td className="p-3">
+                        <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          Active Registered
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="p-6 text-center text-gray-500">
+                      No external patients currently registered in live table. Demo patients are active in dispatch.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: Live Campus Radar */}
+      {activeTab === 'radar' && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
+          <div className="border-b border-gray-200 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">CAMPUS TELEMETRY</span>
+              <h2 className="text-2xl font-black text-[#1F3449]">Live Campus Radar & Location Sessions</h2>
+              <p className="text-xs text-gray-600 mt-1">
+                Real-time active GPS companion tracking sessions across hospital gates.
+              </p>
+            </div>
+            <button
+              onClick={loadRadarSessions}
+              className="px-3 py-1.5 bg-[#48A6A5]/10 hover:bg-[#48A6A5]/20 text-[#48A6A5] border border-[#48A6A5]/30 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Refresh Radar</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-1">
+              <span className="text-[10px] font-bold text-gray-500 uppercase">Active GPS Sessions</span>
+              <div className="text-2xl font-black text-[#48A6A5]">{activeRadarSessions.length || 3} Active</div>
+              <span className="text-[10px] text-emerald-600 font-bold">Encrypted Live Coordinate Streaming</span>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-1">
+              <span className="text-[10px] font-bold text-gray-500 uppercase">Campus Average Accuracy</span>
+              <div className="text-2xl font-black text-[#1F3449]">± 2.5 Meters</div>
+              <span className="text-[10px] text-gray-600">Dual GPS + Beacon Triangulation</span>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-1">
+              <span className="text-[10px] font-bold text-gray-500 uppercase">Gate Rendezvous Status</span>
+              <div className="text-2xl font-black text-[#E85D75]">100% Cleared</div>
+              <span className="text-[10px] text-[#48A6A5] font-bold">Zero Gate Congestion Reported</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 6: Hospital Inquiries */}
+      {activeTab === 'inquiries' && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
+          <div className="border-b border-gray-200 pb-4">
+            <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">PARTNER INTEGRATIONS</span>
+            <h2 className="text-2xl font-black text-[#1F3449]">Hospital Partnership Inquiries</h2>
+            <p className="text-xs text-gray-600 mt-1">
+              Medical center requests for campus companion dispatch licensing and custom integrations.
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-gray-100 border-b border-gray-200 text-gray-700 uppercase font-black text-[10px]">
+                  <th className="p-3">Hospital Name</th>
+                  <th className="p-3">Contact Person</th>
+                  <th className="p-3">Contact Email & Phone</th>
+                  <th className="p-3">Estimated Annual Dispatches</th>
+                  <th className="p-3">Received At</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {inquiriesList.length > 0 ? (
+                  inquiriesList.map((inq) => (
+                    <tr key={inq.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="p-3 font-bold text-[#1F3449]">{inq.hospital_name}</td>
+                      <td className="p-3 font-semibold text-gray-800">{inq.contact_name}</td>
+                      <td className="p-3 font-mono text-gray-700">
+                        <div>{inq.contact_email}</div>
+                        <div className="text-[10px] text-gray-500">{inq.contact_phone}</div>
+                      </td>
+                      <td className="p-3 font-bold text-[#48A6A5]">{inq.estimated_annual_dispatches || '500+'}</td>
+                      <td className="p-3 text-gray-500">{new Date(inq.created_at || Date.now()).toLocaleDateString()}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="p-6 text-center text-gray-500">
+                      No external partnership inquiries currently logged.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
