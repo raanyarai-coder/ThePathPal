@@ -2,9 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Heart, ShieldCheck, MapPin, Clock, Calendar, Phone, CheckCircle2, AlertCircle, Calculator, Navigation, ShieldAlert, FileText, ChevronRight, UserCheck, Lock, Globe, Activity, Video, Database, UserPlus } from 'lucide-react';
 import { SAMPLE_HOSPITALS, SAMPLE_PALS, INITIAL_REQUESTS } from '../data/mockData';
 import { PalRequest } from '../types';
-import { MedicalSummaryWidget } from '../components/MedicalSummaryWidget';
-import { EtaCalculatorWidget } from '../components/EtaCalculatorWidget';
-import { RecoveryTrendsWidget } from '../components/RecoveryTrendsWidget';
 import { PatientVideoBroadcastModal } from '../components/PatientVideoBroadcastModal';
 import { useLanguage } from '../context/LanguageContext';
 import { createGoogleCalendarUrl, downloadIcsFile } from '../utils/calendarUtils';
@@ -23,7 +20,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
   onOpenSupabaseAuth,
 }) => {
   const { t, language, setLanguage } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'request' | 'my_escorts' | 'eta_calculator' | 'recovery_trends' | 'medical_summary' | 'financials'>('request');
+  const [activeTab, setActiveTab] = useState<'request' | 'my_escorts' | 'financials'>('request');
   const [requests, setRequests] = useState<PalRequest[]>(INITIAL_REQUESTS);
   const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
   const [activeBroadcastReq, setActiveBroadcastReq] = useState<PalRequest | null>(null);
@@ -117,7 +114,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
             Welcome, {authUser ? (patientName || authUser.email) : 'Maria Santos'}
           </h1>
           <p className="text-xs sm:text-sm text-gray-600 max-w-xl">
-            Book compassionate companion escorts for hospital appointments, track your assigned Pal live on campus, and view your encrypted HIPAA medical summary.
+            Book compassionate companion escorts for hospital appointments, track your assigned Pal live on campus, and view your care benefits.
           </p>
         </div>
 
@@ -166,42 +163,6 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
         >
           <Calendar className="w-4 h-4 text-[#48A6A5]" />
           <span>My Scheduled Visits ({requests.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('eta_calculator')}
-          className={`px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${
-            activeTab === 'eta_calculator'
-              ? 'bg-[#48A6A5] text-white font-black shadow-md'
-              : 'text-gray-700 hover:text-[#1F3449] hover:bg-gray-100'
-          }`}
-        >
-          <Calculator className="w-4 h-4 text-[#48A6A5]" />
-          <span>AI Hospital ETA Predictor</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('recovery_trends')}
-          className={`px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${
-            activeTab === 'recovery_trends'
-              ? 'bg-[#48A6A5] text-white font-black shadow-md'
-              : 'text-gray-700 hover:text-[#1F3449] hover:bg-gray-100'
-          }`}
-        >
-          <Activity className="w-4 h-4 text-[#48A6A5]" />
-          <span>30-Day Recovery Trends</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('medical_summary')}
-          className={`px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${
-            activeTab === 'medical_summary'
-              ? 'bg-[#1F3449] text-white shadow-md'
-              : 'text-gray-700 hover:text-[#1F3449] hover:bg-gray-100'
-          }`}
-        >
-          <ShieldCheck className="w-4 h-4 text-[#48A6A5]" />
-          <span>Secure Medical Summary</span>
         </button>
 
         <button
@@ -458,40 +419,6 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* TAB 2.5: AI HOSPITAL ETA PREDICTOR */}
-      {activeTab === 'eta_calculator' && (
-        <div className="space-y-4">
-          <EtaCalculatorWidget
-            defaultHospitalId={selectedHospital.id}
-            defaultMobility={selectedMobility}
-            onApplyEta={(mins, arrivalAdvice) => {
-              setActiveTab('request');
-            }}
-          />
-        </div>
-      )}
-
-      {/* TAB 2.8: RECOVERY TRENDS & RECHARTS ANALYTICS */}
-      {activeTab === 'recovery_trends' && (
-        <div className="space-y-4">
-          <RecoveryTrendsWidget />
-        </div>
-      )}
-
-      {/* TAB 3: SECURE MEDICAL SUMMARY */}
-      {activeTab === 'medical_summary' && (
-        <div className="space-y-4">
-          <div className="bg-white p-4 rounded-2xl border border-[#48A6A5]/40 text-xs text-gray-700 flex items-center gap-3 shadow-sm">
-            <Lock className="w-5 h-5 text-[#48A6A5] shrink-0" />
-            <span>
-              <strong className="text-[#1F3449]">HIPAA Privacy Control:</strong> Your health summary is stored encrypted on your device. You choose when to grant read-only access to your assigned Pal during active companion escorts.
-            </span>
-          </div>
-
-          <MedicalSummaryWidget />
         </div>
       )}
 
