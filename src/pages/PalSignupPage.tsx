@@ -45,10 +45,6 @@ export const PalSignupPage: React.FC<PalSignupPageProps> = ({
     if (id) {
       setAppIdInput(id);
       loadApplication(id);
-    } else {
-      // Default to Marcus Vance demo application if no ID provided in URL
-      setAppIdInput('app-9101');
-      loadApplication('app-9101');
     }
   }, [propAppId]);
 

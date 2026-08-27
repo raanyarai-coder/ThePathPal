@@ -40,8 +40,8 @@ interface LiveGpsTrackerModalProps {
   patientId?: number;
 }
 
-// Metro Health Campus Rendezvous Coordinates
-const METRO_HEALTH_LANDMARKS = [
+// Campus Rendezvous Coordinates
+const CAMPUS_LANDMARKS = [
   {
     id: 'valet',
     name: 'Main Valet Canopy',
@@ -100,7 +100,7 @@ export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
 
   const selectedLandmark =
-    METRO_HEALTH_LANDMARKS.find((l) => l.id === selectedLandmarkId) || METRO_HEALTH_LANDMARKS[0];
+    CAMPUS_LANDMARKS.find((l) => l.id === selectedLandmarkId) || CAMPUS_LANDMARKS[0];
 
   // Monitor elapsed seconds since last GPS update
   useEffect(() => {
@@ -211,7 +211,7 @@ export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
                 </span>
               </div>
               <h3 className="text-xl font-black uppercase tracking-tight text-white">
-                Metro Health Hospital Live GPS Radar
+                Path Pal Hospital Live GPS Radar
               </h3>
             </div>
           </div>
@@ -342,7 +342,7 @@ export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
 
               {/* Campus Landmark Badge */}
               <div className="absolute top-6 left-6 bg-[#121824]/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-[10px] font-mono text-gray-300 z-20">
-                <div className="text-[#00F0FF] font-bold uppercase">Metro Health Main Hospital</div>
+                <div className="text-[#00F0FF] font-bold uppercase">Path Pal Hospital Campus</div>
                 <div>{selectedLandmark.name} • {selectedLandmark.dept}</div>
               </div>
 
@@ -376,18 +376,14 @@ export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
               {/* Pal Pin (Active Companion) */}
               <div className="absolute top-1/4 left-2/3 flex flex-col items-center z-20">
                 <div className="relative">
-                  <div className="w-12 h-12 rounded-full bg-[#00F0FF]/20 border-2 border-[#00F0FF] flex items-center justify-center shadow-xl shadow-[#00F0FF]/40">
-                    <img
-                      src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80"
-                      alt="Pal Elena"
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
+                  <div className="w-12 h-12 rounded-full bg-[#00F0FF]/20 border-2 border-[#00F0FF] flex items-center justify-center shadow-xl shadow-[#00F0FF]/40 text-[#00F0FF]">
+                    <UserCheck className="w-6 h-6" />
                   </div>
                   <div className="absolute -inset-1.5 rounded-full border border-[#00F0FF] animate-ping"></div>
                 </div>
                 <div className="bg-[#00F0FF] text-black text-[10px] font-black uppercase px-2 py-0.5 rounded-full mt-1 shadow-md flex items-center gap-1">
                   <UserCheck className="w-3 h-3" />
-                  <span>Elena V. (Pal)</span>
+                  <span>Assigned Pal</span>
                 </div>
               </div>
 
@@ -426,7 +422,7 @@ export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
                 Selected Hospital Campus Rendezvous Spot
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {METRO_HEALTH_LANDMARKS.map((dp) => (
+                {CAMPUS_LANDMARKS.map((dp) => (
                   <button
                     key={dp.id}
                     onClick={() => setSelectedLandmarkId(dp.id)}
@@ -467,15 +463,13 @@ export const LiveGpsTrackerModal: React.FC<LiveGpsTrackerModalProps> = ({
 
               {/* Pal Profile Card */}
               <div className="flex items-center gap-3">
-                <img
-                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80"
-                  alt="Elena Vance"
-                  className="w-14 h-14 rounded-2xl object-cover border-2 border-[#00F0FF]"
-                />
+                <div className="w-14 h-14 rounded-2xl bg-[#00F0FF]/20 border-2 border-[#00F0FF] flex items-center justify-center text-[#00F0FF] font-black text-xl">
+                  <UserCheck className="w-7 h-7" />
+                </div>
                 <div>
-                  <h4 className="text-base font-black text-white">Elena Vance</h4>
-                  <p className="text-xs text-gray-400">Badge #PP-7821 • Verified Pal</p>
-                  <div className="text-[10px] text-emerald-400 font-bold mt-0.5">★ 4.95 Rating (142 Visits)</div>
+                  <h4 className="text-base font-black text-white">Assigned Escort Pal</h4>
+                  <p className="text-xs text-gray-400">Verified Healthcare Companion</p>
+                  <div className="text-[10px] text-emerald-400 font-bold mt-0.5">★ 5.0 Verified Companion Rating</div>
                 </div>
               </div>
 

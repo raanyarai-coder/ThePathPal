@@ -28,32 +28,7 @@ const DEFAULT_SETTINGS: PushNotificationSettings = {
   soundEnabled: true,
 };
 
-const INITIAL_NOTIFICATIONS: PushNotificationItem[] = [
-  {
-    id: '1',
-    title: 'Companion Pal Matched!',
-    body: 'Elena Rostova (Badge #4829) is assigned for your St. Jude appointment at 10:30 AM.',
-    timestamp: '2 mins ago',
-    type: 'escort',
-    read: false,
-  },
-  {
-    id: '2',
-    title: 'Live GPS Radar Active',
-    body: 'Elena is 0.4 miles away (ETA 4 minutes). Approach Main Entrance Gate 2.',
-    timestamp: '5 mins ago',
-    type: 'gps',
-    read: false,
-  },
-  {
-    id: '3',
-    title: 'Medical Record Audited',
-    body: 'Your encrypted medical summary was verified read-only by Pal Elena Rostova.',
-    timestamp: '12 mins ago',
-    type: 'medical',
-    read: true,
-  },
-];
+const INITIAL_NOTIFICATIONS: PushNotificationItem[] = [];
 
 interface PushNotificationManagerProps {
   isOpen: boolean;
@@ -271,7 +246,7 @@ export const PushNotificationManager: React.FC<PushNotificationManagerProps> = (
               </span>
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={() => triggerPushNotification('Pal Arrived at Gate 2!', 'Elena Rostova is standing at Main Entrance with wheelchair.', 'escort')}
+                  onClick={() => triggerPushNotification('Pal Arrived at Gate 2!', 'Your assigned companion Pal is standing at Main Entrance with wheelchair assistance.', 'escort')}
                   className="p-2 rounded-xl bg-[#080B12] hover:bg-white/10 text-gray-200 border border-white/10 text-[11px] font-bold text-left flex items-center gap-1.5"
                 >
                   <Navigation className="w-3.5 h-3.5 text-[#00F0FF]" />

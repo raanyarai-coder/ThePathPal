@@ -381,8 +381,8 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                         {req.assignedPal?.name.charAt(0) || 'P'}
                       </div>
                       <div>
-                        <div className="text-xs font-bold text-[#1F3449]">Assigned Pal: {req.assignedPal?.name || 'Elena Rostova'}</div>
-                        <div className="text-[11px] text-gray-500">Badge #{req.assignedPal?.badgeNumber || 'PAL-8802'} • CPR & CHW Certified</div>
+                        <div className="text-xs font-bold text-[#1F3449]">Assigned Pal: {req.assignedPal?.name || 'Verified Companion Pal'}</div>
+                        <div className="text-[11px] text-gray-500">Badge #{req.assignedPal?.badgeNumber || 'PAL-ACTIVE'} • CPR & CHW Certified</div>
                       </div>
                     </div>
                   </div>
@@ -392,7 +392,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                       onClick={() => {
                         const gCalUrl = createGoogleCalendarUrl({
                           title: `PathPal Companion Visit: ${req.hospitalName}`,
-                          description: `Scheduled PathPal companion visit at ${req.hospitalName} (${req.department}). Assigned Pal: ${req.assignedPal?.name || 'Elena Rostova'}. Meeting Point: ${req.meetingPoint}.`,
+                          description: `Scheduled PathPal companion visit at ${req.hospitalName} (${req.department}). Assigned Pal: ${req.assignedPal?.name || 'Verified Companion Pal'}. Meeting Point: ${req.meetingPoint}.`,
                           location: `${req.hospitalName}, ${req.meetingPoint}`,
                           startTime: new Date(`${req.appointmentDate}T10:00:00`),
                           endTime: new Date(`${req.appointmentDate}T12:00:00`),

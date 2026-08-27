@@ -70,7 +70,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     scheduledEscortsTitle: 'Your Upcoming Companion Visits',
 
     // Pal Portal
-    welcomePal: 'Welcome, Elena Rostova',
+    welcomePal: 'Welcome, Pal Companion',
     dutyStatus: 'Duty Status:',
     onDuty: 'ON-DUTY (RECEIVING ASSIGNMENTS)',
     offDuty: 'OFF-DUTY',
@@ -79,7 +79,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     stipendRate: 'Hourly Stipend Rate',
 
     // Hospital Portal
-    hospitalTitle: 'Metro Health Medical Center',
+    hospitalTitle: 'Path Pal Admin',
     noShowReduction: 'No-Show Reduction',
     hcahpsBoost: 'HCAHPS Rating Boost',
     liveDispatchTable: 'Live Campus Companion Dispatch Table',
@@ -144,7 +144,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     scheduledEscortsTitle: 'Sus Próximas Visitas Programadas',
 
     // Pal Portal
-    welcomePal: 'Bienvenida, Elena Rostova',
+    welcomePal: 'Bienvenido/a, Acompañante Pal',
     dutyStatus: 'Estado de Servicio:',
     onDuty: 'EN SERVICIO (RECIBIENDO ASIGNACIONES)',
     offDuty: 'FUERA DE SERVICIO',
@@ -153,7 +153,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     stipendRate: 'Tasa de Estipendio por Hora',
 
     // Hospital Portal
-    hospitalTitle: 'Centro Médico Metro Health',
+    hospitalTitle: 'Path Pal Admin',
     noShowReduction: 'Reducción de Inasistencias',
     hcahpsBoost: 'Aumento en Calificación HCAHPS',
     liveDispatchTable: 'Tabla de Despacho de Acompañantes en Vivo',
@@ -227,7 +227,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     stipendRate: 'प्रति घंटा वजीफा दर',
 
     // Hospital Portal
-    hospitalTitle: 'मेट्रो हेल्थ मेडिकल सेंटर',
+    hospitalTitle: 'Path Pal Admin',
     noShowReduction: 'अनुपस्थिति में कमी',
     hcahpsBoost: 'HCAHPS रेटिंग में बढ़ोतरी',
     liveDispatchTable: 'लाइव कैंपस साथी प्रेषण तालिका',

@@ -85,7 +85,7 @@ export function formatPalFromDb(row: any): Pal {
     completedVisits: 0,
     languages: ['English', 'Spanish'],
     specialties: ['Hospital Escort', 'Patient Mobility Guidance'],
-    hospitalAffiliations: ['Metro Health Medical Center'],
+    hospitalAffiliations: ['Path Pal Partner Hospital'],
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
   };
 }
@@ -877,7 +877,7 @@ export async function loginAdmin(
       email: user.email || cleanEmail,
       name: formattedName,
       role: 'admin',
-      hospital: user.user_metadata?.hospital || 'Metro Health Medical Center',
+      hospital: user.user_metadata?.hospital || 'Path Pal Admin',
       badgeNumber: user.user_metadata?.badge_number || `ADM-${user.id.slice(0, 4).toUpperCase()}`,
       token: user.id,
       lastLogin: new Date().toISOString(),
@@ -923,7 +923,7 @@ export async function getCurrentAdminUser(): Promise<AdminUser | null> {
         email: user.email || 'admin@pathpal.health',
         name: user.user_metadata?.full_name || 'Administrator',
         role: 'admin',
-        hospital: 'Metro Health Medical Center',
+        hospital: 'Path Pal Admin',
         badgeNumber: 'ADM-9901',
         token: user.id,
         lastLogin: new Date().toISOString(),

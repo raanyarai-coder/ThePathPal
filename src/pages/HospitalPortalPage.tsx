@@ -59,7 +59,7 @@ export const HospitalPortalPage: React.FC = () => {
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Portal State (Only populated after Admin authentication)
-  const [activeTab, setActiveTab] = useState<'dispatch' | 'applications' | 'pals' | 'patients' | 'radar' | 'inquiries'>('dispatch');
+  const [activeTab, setActiveTab] = useState<'dispatch' | 'applications' | 'pals' | 'patients'>('dispatch');
   const [requests, setRequests] = useState<PalRequest[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,10 +73,6 @@ export const HospitalPortalPage: React.FC = () => {
   const [palsList, setPalsList] = useState<Pal[]>([]);
   // Patients list state
   const [patientsList, setPatientsList] = useState<any[]>([]);
-  // Inquiries list state
-  const [inquiriesList, setInquiriesList] = useState<any[]>([]);
-  // Radar sessions state
-  const [activeRadarSessions, setActiveRadarSessions] = useState<any[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
   // Check stored session on mount
@@ -97,8 +93,6 @@ export const HospitalPortalPage: React.FC = () => {
         loadApplications(),
         loadPals(),
         loadPatients(),
-        loadInquiries(),
-        loadRadarSessions(),
       ]);
     } catch (e) {
       console.error('Error loading admin portal data:', e);
@@ -115,13 +109,9 @@ export const HospitalPortalPage: React.FC = () => {
   const loadPals = async () => {
     try {
       const pals = await fetchAllPals();
-      if (pals && pals.length > 0) {
-        setPalsList(pals);
-      } else {
-        setPalsList(SAMPLE_PALS);
-      }
+      setPalsList(pals || []);
     } catch {
-      setPalsList(SAMPLE_PALS);
+      setPalsList([]);
     }
   };
 
@@ -129,20 +119,6 @@ export const HospitalPortalPage: React.FC = () => {
     try {
       const patients = await fetchAllPatients();
       setPatientsList(patients);
-    } catch {}
-  };
-
-  const loadInquiries = async () => {
-    try {
-      const inquiries = await fetchHospitalInquiries();
-      setInquiriesList(inquiries);
-    } catch {}
-  };
-
-  const loadRadarSessions = async () => {
-    try {
-      const sessions = await fetchActiveLocationSessions();
-      setActiveRadarSessions(sessions);
     } catch {}
   };
 
@@ -173,8 +149,6 @@ export const HospitalPortalPage: React.FC = () => {
     setApplications([]);
     setPalsList([]);
     setPatientsList([]);
-    setInquiriesList([]);
-    setActiveRadarSessions([]);
   };
 
   const handleApprove = async (appId: string) => {
@@ -353,7 +327,7 @@ export const HospitalPortalPage: React.FC = () => {
             </span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl font-black text-[#1F3449]">Metro Health Medical Center</h1>
+          <h1 className="text-3xl sm:text-4xl font-black text-[#1F3449]">Path Pal Admin</h1>
           <p className="text-xs sm:text-sm text-gray-600 max-w-xl">
             Real-time companion dispatch oversight, campus wait-time optimization, Pal applicant onboarding & approval gate, and credentialing.
           </p>
@@ -417,34 +391,6 @@ export const HospitalPortalPage: React.FC = () => {
               <Users className="w-3.5 h-3.5" />
               <span>Patient Directory</span>
             </button>
-            <button
-              onClick={() => {
-                setActiveTab('radar');
-                loadRadarSessions();
-              }}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeTab === 'radar'
-                  ? 'bg-[#48A6A5] text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <Radio className="w-3.5 h-3.5" />
-              <span>Live Campus Radar</span>
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('inquiries');
-                loadInquiries();
-              }}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeTab === 'inquiries'
-                  ? 'bg-[#48A6A5] text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>Hospital Inquiries</span>
-            </button>
           </div>
         </div>
 
@@ -478,9 +424,9 @@ export const HospitalPortalPage: React.FC = () => {
       {/* Admin Impact Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-1">
-          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Active Today</span>
-          <div className="text-3xl font-black text-[#E85D75]">24 Pals Active</div>
-          <span className="text-[10px] font-bold text-emerald-600">100% Pal Covered</span>
+          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Active Verified Pals</span>
+          <div className="text-3xl font-black text-[#E85D75]">{palsList.filter((p) => p.isVerified).length} Active</div>
+          <span className="text-[10px] font-bold text-emerald-600">Credentialed Directory</span>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-1">
@@ -567,30 +513,42 @@ export const HospitalPortalPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredRequests.map((req) => (
-                  <tr key={req.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-3 font-mono font-bold text-[#48A6A5]">{req.id}</td>
-                    <td className="p-3 font-bold text-[#1F3449]">{req.patientName}</td>
-                    <td className="p-3 text-gray-600">{req.department}</td>
-                    <td className="p-3 text-gray-500">{req.meetingPoint}</td>
-                    <td className="p-3 font-bold text-[#E85D75]">
-                      {req.assignedPal ? `${req.assignedPal.name} (#${req.assignedPal.badgeNumber})` : 'Unassigned'}
-                    </td>
-                    <td className="p-3">
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
-                          req.status === 'matched'
-                            ? 'bg-[#E85D75]/15 text-[#E85D75] border border-[#E85D75]/30'
-                            : req.status === 'in_progress'
-                            ? 'bg-[#48A6A5]/15 text-[#48A6A5] border border-[#48A6A5]/30'
-                            : 'bg-gray-200 text-gray-600'
-                        }`}
-                      >
-                        {req.status.replace('_', ' ')}
-                      </span>
+                {filteredRequests.length > 0 ? (
+                  filteredRequests.map((req) => (
+                    <tr key={req.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="p-3 font-mono font-bold text-[#48A6A5]">{req.id}</td>
+                      <td className="p-3 font-bold text-[#1F3449]">{req.patientName}</td>
+                      <td className="p-3 text-gray-600">{req.department}</td>
+                      <td className="p-3 text-gray-500">{req.meetingPoint}</td>
+                      <td className="p-3 font-bold text-[#E85D75]">
+                        {req.assignedPal ? `${req.assignedPal.name} (#${req.assignedPal.badgeNumber})` : 'Unassigned'}
+                      </td>
+                      <td className="p-3">
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                            req.status === 'matched'
+                              ? 'bg-[#E85D75]/15 text-[#E85D75] border border-[#E85D75]/30'
+                              : req.status === 'in_progress'
+                              ? 'bg-[#48A6A5]/15 text-[#48A6A5] border border-[#48A6A5]/30'
+                              : 'bg-gray-200 text-gray-600'
+                          }`}
+                        >
+                          {req.status.replace('_', ' ')}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-gray-500">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Clock className="w-8 h-8 text-gray-300" />
+                        <span className="font-bold text-gray-700">No Active Companion Dispatches</span>
+                        <span className="text-xs text-gray-500">Live patient accompaniment requests will appear here in real time.</span>
+                      </div>
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -727,37 +685,49 @@ export const HospitalPortalPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {palsList.map((pal) => (
-                  <tr key={pal.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-3">
-                      <div className="font-mono font-bold text-[#48A6A5]">{pal.badgeNumber}</div>
+                {palsList.length > 0 ? (
+                  palsList.map((pal) => (
+                    <tr key={pal.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="p-3">
+                        <div className="font-mono font-bold text-[#48A6A5]">{pal.badgeNumber}</div>
+                      </td>
+                      <td className="p-3">
+                        <div className="font-bold text-[#1F3449]">{pal.name}</div>
+                        <div className="text-[10px] text-gray-500 font-mono">{pal.phone ? `Phone: ${pal.phone}` : (pal.email || 'Contact on file')}</div>
+                      </td>
+                      <td className="p-3">
+                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+                          CLEARED & VETTED
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <div className="font-bold text-amber-600">★ {pal.rating.toFixed(1)} / 5.0</div>
+                      </td>
+                      <td className="p-3">
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                            pal.account_status === 'active' || pal.isVerified
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {pal.account_status || 'active'}
+                        </span>
+                      </td>
+                      <td className="p-3 text-gray-600">{(pal.hospitalAffiliations || ['Path Pal Partner Hospital']).join(', ')}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-gray-500">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <ShieldCheck className="w-8 h-8 text-gray-300" />
+                        <span className="font-bold text-gray-700">No Verified Pals in Directory</span>
+                        <span className="text-xs text-gray-500">Approved companion applications will appear here automatically once credentialed.</span>
+                      </div>
                     </td>
-                    <td className="p-3">
-                      <div className="font-bold text-[#1F3449]">{pal.name}</div>
-                      <div className="text-[10px] text-gray-500 font-mono">{pal.phone ? `Phone: ${pal.phone}` : (pal.email || 'Contact on file')}</div>
-                    </td>
-                    <td className="p-3">
-                      <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300">
-                        CLEARED & VETTED
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <div className="font-bold text-amber-600">★ {pal.rating.toFixed(1)} / 5.0</div>
-                    </td>
-                    <td className="p-3">
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                          pal.account_status === 'active' || pal.isVerified
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-amber-100 text-amber-800'
-                        }`}
-                      >
-                        {pal.account_status || 'active'}
-                      </span>
-                    </td>
-                    <td className="p-3 text-gray-600">{(pal.hospitalAffiliations || ['Metro Health Medical Center']).join(', ')}</td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -801,97 +771,12 @@ export const HospitalPortalPage: React.FC = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="p-6 text-center text-gray-500">
-                      No external patients currently registered in live table. Demo patients are active in dispatch.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 5: Live Campus Radar */}
-      {activeTab === 'radar' && (
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
-          <div className="border-b border-gray-200 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">CAMPUS TELEMETRY</span>
-              <h2 className="text-2xl font-black text-[#1F3449]">Live Campus Radar & Location Sessions</h2>
-              <p className="text-xs text-gray-600 mt-1">
-                Real-time active GPS companion tracking sessions across hospital gates.
-              </p>
-            </div>
-            <button
-              onClick={loadRadarSessions}
-              className="px-3 py-1.5 bg-[#48A6A5]/10 hover:bg-[#48A6A5]/20 text-[#48A6A5] border border-[#48A6A5]/30 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Refresh Radar</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-1">
-              <span className="text-[10px] font-bold text-gray-500 uppercase">Active GPS Sessions</span>
-              <div className="text-2xl font-black text-[#48A6A5]">{activeRadarSessions.length || 3} Active</div>
-              <span className="text-[10px] text-emerald-600 font-bold">Encrypted Live Coordinate Streaming</span>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-1">
-              <span className="text-[10px] font-bold text-gray-500 uppercase">Campus Average Accuracy</span>
-              <div className="text-2xl font-black text-[#1F3449]">± 2.5 Meters</div>
-              <span className="text-[10px] text-gray-600">Dual GPS + Beacon Triangulation</span>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-1">
-              <span className="text-[10px] font-bold text-gray-500 uppercase">Gate Rendezvous Status</span>
-              <div className="text-2xl font-black text-[#E85D75]">100% Cleared</div>
-              <span className="text-[10px] text-[#48A6A5] font-bold">Zero Gate Congestion Reported</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 6: Hospital Inquiries */}
-      {activeTab === 'inquiries' && (
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
-          <div className="border-b border-gray-200 pb-4">
-            <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">PARTNER INTEGRATIONS</span>
-            <h2 className="text-2xl font-black text-[#1F3449]">Hospital Partnership Inquiries</h2>
-            <p className="text-xs text-gray-600 mt-1">
-              Medical center requests for campus companion dispatch licensing and custom integrations.
-            </p>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-gray-100 border-b border-gray-200 text-gray-700 uppercase font-black text-[10px]">
-                  <th className="p-3">Hospital Name</th>
-                  <th className="p-3">Contact Person</th>
-                  <th className="p-3">Contact Email & Phone</th>
-                  <th className="p-3">Estimated Annual Dispatches</th>
-                  <th className="p-3">Received At</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {inquiriesList.length > 0 ? (
-                  inquiriesList.map((inq) => (
-                    <tr key={inq.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="p-3 font-bold text-[#1F3449]">{inq.hospital_name}</td>
-                      <td className="p-3 font-semibold text-gray-800">{inq.contact_name}</td>
-                      <td className="p-3 font-mono text-gray-700">
-                        <div>{inq.contact_email}</div>
-                        <div className="text-[10px] text-gray-500">{inq.contact_phone}</div>
-                      </td>
-                      <td className="p-3 font-bold text-[#48A6A5]">{inq.estimated_annual_dispatches || '500+'}</td>
-                      <td className="p-3 text-gray-500">{new Date(inq.created_at || Date.now()).toLocaleDateString()}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="p-6 text-center text-gray-500">
-                      No external partnership inquiries currently logged.
+                    <td colSpan={4} className="p-8 text-center text-gray-500">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Users className="w-8 h-8 text-gray-300" />
+                        <span className="font-bold text-gray-700">No Registered Patients Found</span>
+                        <span className="text-xs text-gray-500">Registered patient profiles will appear here.</span>
+                      </div>
                     </td>
                   </tr>
                 )}

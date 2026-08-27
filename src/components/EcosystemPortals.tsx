@@ -422,11 +422,11 @@ export const EcosystemPortals: React.FC = () => {
                     <UserCheck className="w-4 h-4" />
                     <span>PAL COMPANION DASHBOARD</span>
                   </div>
-                  <h3 className="text-2xl font-black text-pathpal-navy">Welcome Back, Elena Rostova</h3>
+                  <h3 className="text-2xl font-black text-pathpal-navy">Welcome to Pal Portal</h3>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold bg-navigation-teal text-white px-3 py-1.5 rounded-full">
-                    Badge #PAL-8802 • Active
+                    Active Healthcare Companion
                   </span>
                 </div>
               </div>
@@ -435,18 +435,18 @@ export const EcosystemPortals: React.FC = () => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white p-4 rounded-2xl border border-gray-200">
                   <div className="text-[10px] font-bold text-gray-500 uppercase">Completed Visits</div>
-                  <div className="text-2xl font-black text-pathpal-navy">84</div>
+                  <div className="text-2xl font-black text-pathpal-navy">{requests.filter(r => r.status === 'completed').length}</div>
                 </div>
                 <div className="bg-white p-4 rounded-2xl border border-gray-200">
                   <div className="text-[10px] font-bold text-gray-500 uppercase">Patient Rating</div>
                   <div className="text-2xl font-black text-warm-gold flex items-center gap-1">
-                    <span>4.95</span>
+                    <span>5.0</span>
                     <Star className="w-4 h-4 fill-warm-gold" />
                   </div>
                 </div>
                 <div className="bg-white p-4 rounded-2xl border border-gray-200">
-                  <div className="text-[10px] font-bold text-gray-500 uppercase">Impact Credits</div>
-                  <div className="text-2xl font-black text-navigation-teal">168 Hrs</div>
+                  <div className="text-[10px] font-bold text-gray-500 uppercase">Status</div>
+                  <div className="text-2xl font-black text-navigation-teal">On Duty</div>
                 </div>
                 <div className="bg-white p-4 rounded-2xl border border-gray-200">
                   <div className="text-[10px] font-bold text-gray-500 uppercase">Certifications</div>
@@ -464,50 +464,58 @@ export const EcosystemPortals: React.FC = () => {
                 </h4>
 
                 <div className="space-y-3">
-                  {requests.map((req) => (
-                    <div key={req.id} className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-pathpal-navy">{req.patientName}</span>
-                          <span className="text-[10px] font-bold bg-companion-coral/10 text-companion-coral px-2 py-0.5 rounded-md">
-                            {req.department}
-                          </span>
-                        </div>
-                        <div className="text-xs text-gray-600 flex flex-wrap items-center gap-3">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 text-navigation-teal" /> {req.appointmentDate} at {req.appointmentTime}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5 text-companion-coral" /> {req.meetingPoint}
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-1 pt-1">
-                          {req.mobilityNeeds.map((m) => (
-                            <span key={m} className="text-[10px] font-semibold bg-white text-pathpal-navy px-2 py-0.5 rounded border border-gray-200">
-                              ♿ {m}
+                  {requests.length > 0 ? (
+                    requests.map((req) => (
+                      <div key={req.id} className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-pathpal-navy">{req.patientName}</span>
+                            <span className="text-[10px] font-bold bg-companion-coral/10 text-companion-coral px-2 py-0.5 rounded-md">
+                              {req.department}
                             </span>
-                          ))}
-                          <span className="text-[10px] font-semibold bg-white text-navigation-teal px-2 py-0.5 rounded border border-navigation-teal/30">
-                            🗣️ {req.languagePreference}
-                          </span>
+                          </div>
+                          <div className="text-xs text-gray-600 flex flex-wrap items-center gap-3">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-navigation-teal" /> {req.appointmentDate} at {req.appointmentTime}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3.5 h-3.5 text-companion-coral" /> {req.meetingPoint}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-1 pt-1">
+                            {req.mobilityNeeds.map((m) => (
+                              <span key={m} className="text-[10px] font-semibold bg-white text-pathpal-navy px-2 py-0.5 rounded border border-gray-200">
+                                ♿ {m}
+                              </span>
+                            ))}
+                            <span className="text-[10px] font-semibold bg-white text-navigation-teal px-2 py-0.5 rounded border border-navigation-teal/30">
+                              🗣️ {req.languagePreference}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 self-end md:self-center">
+                          <button
+                            onClick={() => setSelectedPalPatientSummary(req)}
+                            className="text-xs font-bold text-white bg-[#48A6A5]/20 hover:bg-[#48A6A5]/30 border border-[#48A6A5]/50 px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5"
+                          >
+                            <ShieldCheck className="w-3.5 h-3.5 text-[#48A6A5]" />
+                            <span>View Read-Only Medical Summary</span>
+                          </button>
+
+                          <button className="text-xs font-bold text-white bg-[#48A6A5] hover:bg-[#48A6A5]/90 px-4 py-2 rounded-xl transition-all">
+                            Check-In at Entrance
+                          </button>
                         </div>
                       </div>
-
-                      <div className="flex flex-wrap items-center gap-2 self-end md:self-center">
-                        <button
-                          onClick={() => setSelectedPalPatientSummary(req)}
-                          className="text-xs font-bold text-white bg-[#48A6A5]/20 hover:bg-[#48A6A5]/30 border border-[#48A6A5]/50 px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5"
-                        >
-                          <ShieldCheck className="w-3.5 h-3.5 text-[#48A6A5]" />
-                          <span>View Read-Only Medical Summary</span>
-                        </button>
-
-                        <button className="text-xs font-bold text-white bg-[#48A6A5] hover:bg-[#48A6A5]/90 px-4 py-2 rounded-xl transition-all">
-                          Check-In at Entrance
-                        </button>
-                      </div>
+                    ))
+                  ) : (
+                    <div className="p-8 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200 space-y-2">
+                      <Clock className="w-8 h-8 text-gray-400 mx-auto" />
+                      <p className="text-sm font-bold text-pathpal-navy">No Assigned Visits Right Now</p>
+                      <p className="text-xs text-gray-500">When new patient requests are confirmed, they will appear in your dispatch list.</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
 
@@ -523,7 +531,7 @@ export const EcosystemPortals: React.FC = () => {
                     <Building2 className="w-4 h-4" />
                     <span>ADMIN OVERSIGHT & ANALYTICS PORTAL</span>
                   </div>
-                  <h3 className="text-2xl font-black text-pathpal-navy">Metro Health Medical Center</h3>
+                  <h3 className="text-2xl font-black text-pathpal-navy">Path Pal Admin</h3>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold bg-pathpal-navy text-white px-3 py-1.5 rounded-full">

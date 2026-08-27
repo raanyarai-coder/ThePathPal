@@ -13,8 +13,6 @@ export const Hero: React.FC<HeroProps> = ({ onRequestPal, onExploreDemo, onBecom
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'patient' | 'pal' | 'hospital'>('patient');
 
-  const samplePal = SAMPLE_PALS[0];
-
   return (
     <section className="relative pt-8 pb-16 lg:pt-14 lg:pb-24 overflow-hidden bg-[#FCE9EC] text-[#1F3449] border-b border-[#E85D75]/20">
       {/* Brand Slide Decorative Circles */}
@@ -172,31 +170,26 @@ export const Hero: React.FC<HeroProps> = ({ onRequestPal, onExploreDemo, onBecom
 
                       <div className="flex items-start gap-4 p-4 rounded-2xl bg-[#2B425B] border border-white/10">
                         <div className="relative">
-                          <img
-                            src={samplePal.avatar}
-                            alt={samplePal.name}
-                            className="w-14 h-14 rounded-2xl object-cover border-2 border-[#48A6A5]"
-                            referrerPolicy="no-referrer"
-                          />
+                          <div className="w-14 h-14 rounded-2xl bg-[#48A6A5] text-white font-black text-xl flex items-center justify-center border-2 border-[#48A6A5] shadow-md">
+                            <UserCheck className="w-7 h-7" />
+                          </div>
                           <div className="absolute -bottom-1 -right-1 bg-[#48A6A5] text-white p-1 rounded-full text-[10px]">
                             <CheckCircle2 className="w-3.5 h-3.5" />
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
-                            <h3 className="text-base font-bold text-white">{samplePal.name}</h3>
+                            <h3 className="text-base font-bold text-white">Verified Companion Pal</h3>
                             <div className="flex items-center gap-1 text-xs font-bold text-white bg-black/40 px-2 py-0.5 rounded-lg border border-white/10">
                               <Star className="w-3 h-3 text-[#F1B84C] fill-[#F1B84C]" />
-                              <span>{samplePal.rating}</span>
+                              <span>5.0</span>
                             </div>
                           </div>
-                          <p className="text-xs text-gray-300 font-medium">Verified Companion Pal • Badge #{samplePal.badgeNumber}</p>
+                          <p className="text-xs text-gray-300 font-medium">Accredited Health Escort • PathPal Network</p>
                           <div className="flex flex-wrap gap-1 mt-2">
-                            {samplePal.languages.map((lang) => (
-                              <span key={lang} className="text-[10px] font-bold bg-[#152535] text-[#48A6A5] px-2 py-0.5 rounded-md border border-[#48A6A5]/30">
-                                🗣️ {lang}
-                              </span>
-                            ))}
+                            <span className="text-[10px] font-bold bg-[#152535] text-[#48A6A5] px-2 py-0.5 rounded-md border border-[#48A6A5]/30">
+                              🗣️ Multi-Lingual Support
+                            </span>
                             <span className="text-[10px] font-bold bg-[#152535] text-[#E85D75] px-2 py-0.5 rounded-md border border-[#E85D75]/30">
                               ♿ Wheelchair Certified
                             </span>
@@ -210,14 +203,14 @@ export const Hero: React.FC<HeroProps> = ({ onRequestPal, onExploreDemo, onBecom
                       <div className="flex items-center justify-between text-xs text-gray-300 font-semibold">
                         <span>DISPATCH LOCATION</span>
                         <span className="text-[#48A6A5] font-bold flex items-center gap-1">
-                          <Clock className="w-3 h-3" /> Ready in 15 Mins
+                          <Clock className="w-3 h-3" /> Ready on Schedule
                         </span>
                       </div>
                       <div className="flex items-start gap-2.5">
                         <MapPin className="w-5 h-5 text-[#E85D75] shrink-0 mt-0.5" />
                         <div>
-                          <div className="text-xs font-bold text-white">Metro Health - Main Entrance Valet Desk</div>
-                          <div className="text-[11px] text-gray-300">Elena will meet you outside the glass doors with a PathPal badge & lanyard.</div>
+                          <div className="text-xs font-bold text-white">Hospital Main Entrance • Valet & Curbside</div>
+                          <div className="text-[11px] text-gray-300">Your assigned Pal will meet you at the entrance with an official PathPal badge.</div>
                         </div>
                       </div>
                     </div>

@@ -69,7 +69,7 @@ export const AndroidAppSection: React.FC<AndroidAppSectionProps> = ({ onRequestP
                       <span className="bg-[#00F0FF]/20 text-[#00F0FF] px-2 py-0.5 rounded text-[10px]">v2.4.0 APK</span>
                     </div>
                     <p className="text-[11px] text-gray-300">
-                      Companion Elena R. is 120ft away at Main Valet Desk.
+                      Your assigned Pal is arriving at Main Valet Desk.
                     </p>
                   </div>
                 </div>

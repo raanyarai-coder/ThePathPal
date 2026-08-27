@@ -43,7 +43,7 @@ const FAQ_ITEMS: FAQItem[] = [
     id: 'faq-6',
     category: 'pairing',
     question: 'Can family members request a Pal for a loved one from a distance?',
-    answer: 'Yes! Family members living in another city or state can book a Pal for their parent or family member. The family member receives live SMS/push status notifications (e.g., "Pal Elena met Eleanor at Main Entrance", "Elevator transition to Cardiology", "Appointment completed safely").'
+    answer: 'Yes! Family members living in another city or state can book a Pal for their parent or family member. The family member receives live SMS/push status notifications (e.g., "Assigned Pal met patient at Main Entrance", "Elevator transition to Cardiology", "Appointment completed safely").'
   },
   {
     id: 'faq-7',

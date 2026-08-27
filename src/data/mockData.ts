@@ -4,7 +4,7 @@ import raanyaAvatar from '../assets/images/raanya_pal_avatar_1785711035373.jpg';
 export const SAMPLE_HOSPITALS: Hospital[] = [
   {
     id: 'hosp-1',
-    name: 'Metro Health Medical Center',
+    name: 'Path Pal Partner Hospital - Downtown',
     city: 'New York',
     state: 'NY',
     meetingPoints: ['Main Entrance Valet Desk', 'Parking Garage A Elevator Lobby', 'Outpatient Pavilion Desk', 'East Wing Drop-Off Zone'],
@@ -31,60 +31,7 @@ export const SAMPLE_HOSPITALS: Hospital[] = [
   },
 ];
 
-export const SAMPLE_PALS: Pal[] = [
-  {
-    id: 'pal-founder',
-    name: 'Aria Sharma',
-    avatar: raanyaAvatar,
-    rating: 5.0,
-    completedVisits: 142,
-    languages: ['English', 'Hindi', 'Spanish'],
-    specialties: ['Senior Lead Pal', 'Wheelchair Assistance', 'Anxiety Relief', 'Elderly Care'],
-    bio: 'Lead Companion Pal at PathPal. Passionate about empowering patients and families with compassionate human companions during hospital visits.',
-    isVerified: true,
-    hospitalAffiliations: ['Metro Health Medical Center', 'St. Jude Regional Health Center', 'Valley Care Community Hospital'],
-    badgeNumber: 'PAL-0001',
-  },
-  {
-    id: 'pal-1',
-    name: 'Elena Rostova',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=250',
-    rating: 4.95,
-    completedVisits: 84,
-    languages: ['English', 'Spanish'],
-    specialties: ['Wheelchair Pal', 'Elderly Care Support', 'Anxiety Relief'],
-    bio: 'Former healthcare coordinator with 5+ years of volunteer patient support. Fluent in Spanish & English.',
-    isVerified: true,
-    hospitalAffiliations: ['Metro Health Medical Center', 'Valley Care Community Hospital'],
-    badgeNumber: 'PAL-8802',
-  },
-  {
-    id: 'pal-2',
-    name: 'Marcus Chen',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
-    rating: 4.98,
-    completedVisits: 112,
-    languages: ['English', 'Spanish'],
-    specialties: ['Visual Impairment Pal', 'Large Campus Navigation', 'First-Time Patients'],
-    bio: 'Dedicated community health worker passionate about accessible healthcare and elder guidance.',
-    isVerified: true,
-    hospitalAffiliations: ['Metro Health Medical Center'],
-    badgeNumber: 'PAL-9014',
-  },
-  {
-    id: 'pal-3',
-    name: 'Amara Okafor',
-    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=250',
-    rating: 4.92,
-    completedVisits: 67,
-    languages: ['English', 'Igbo', 'French'],
-    specialties: ['Pediatric Family Support', 'Pharmacy & Lab Pal', 'Hearing Support'],
-    bio: 'Warm and compassionate companion focused on easing hospital visit anxiety for patients and families.',
-    isVerified: true,
-    hospitalAffiliations: ['St. Jude Regional Health Center'],
-    badgeNumber: 'PAL-7130',
-  },
-];
+export const SAMPLE_PALS: Pal[] = [];
 
 export const INITIAL_REQUESTS: PalRequest[] = [];
 

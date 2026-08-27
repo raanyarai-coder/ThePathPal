@@ -451,23 +451,6 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
                 <span>Open Pal Application Form</span>
               </button>
             </div>
-
-            <div className="bg-gray-50 p-6 rounded-3xl border border-gray-200 space-y-3">
-              <div className="flex items-center gap-2 text-gray-700 font-bold text-xs uppercase">
-                <Sparkles className="w-4 h-4 text-amber-500" />
-                <span>Guest Demo Preview</span>
-              </div>
-              <p className="text-xs text-gray-600 leading-relaxed">
-                Explore the Pal companion portal interface in Demo mode using simulated dispatch
-                requests and navigation tools.
-              </p>
-              <button
-                onClick={() => setIsDemoMode(true)}
-                className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-gray-100 text-[#1F3449] font-black text-xs uppercase tracking-wider border border-gray-300 shadow-sm transition-all"
-              >
-                Preview Portal in Demo Guest Mode
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -546,29 +529,24 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
     );
   }
 
-  // 4. Authenticated Pal Profile OR Demo Mode Profile
+  // 4. Authenticated Pal Profile
   const activePal: Pal =
-    palInfo || (isDemoMode ? SAMPLE_PALS[0] : SAMPLE_PALS[0]);
+    palInfo || {
+      id: authUser?.id || 'unlinked',
+      name: authUser?.user_metadata?.full_name || authUser?.email?.split('@')[0] || 'Pal Companion',
+      avatar: undefined,
+      rating: 5.0,
+      completedVisits: 0,
+      languages: ['English'],
+      specialties: ['Campus Companion Escort', 'Hospital Wayfinding Support'],
+      bio: 'Accredited PathPal Companion Health Worker.',
+      isVerified: true,
+      hospitalAffiliations: ['Path Pal Admin Network'],
+      badgeNumber: 'PAL-ACTIVE',
+    };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 animate-fade-in text-[#1F3449]">
-      {/* Demo Mode Banner (If in demo guest mode) */}
-      {isDemoMode && (
-        <div className="bg-amber-50 p-3 px-5 rounded-2xl border border-amber-300 flex items-center justify-between text-xs text-amber-900 font-medium">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-600" />
-            <span>
-              <strong>Demo Preview Mode:</strong> Showing simulated Pal companion data.
-            </span>
-          </div>
-          <button
-            onClick={() => setIsDemoMode(false)}
-            className="text-xs font-bold text-amber-800 underline hover:text-amber-950"
-          >
-            Switch to Supabase Login
-          </button>
-        </div>
-      )}
 
       {/* Pal Portal Header Banner */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border-2 border-[#48A6A5]/40 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -755,73 +733,81 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
           </div>
 
           <div className="space-y-4">
-            {requests.map((req) => (
-              <div
-                key={req.id}
-                className="bg-gray-50 p-6 rounded-2xl border border-gray-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hover:border-[#48A6A5] transition-all shadow-sm"
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-[#1F3449] font-mono bg-white px-2.5 py-0.5 rounded border border-gray-300">
-                      {req.id}
-                    </span>
-                    <span className="text-xs font-bold text-[#E85D75] bg-[#E85D75]/10 px-2 py-0.5 rounded">
-                      {req.department}
-                    </span>
-                    <span className="text-xs font-bold text-[#48A6A5] bg-[#48A6A5]/10 px-2 py-0.5 rounded">
-                      🗣️ {req.languagePreference}
-                    </span>
-                  </div>
-
-                  <h3 className="text-xl font-black text-[#1F3449]">{req.patientName}</h3>
-                  <p className="text-xs text-gray-600 flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-[#E85D75] shrink-0" />
-                    <span>
-                      {req.hospitalName} • Rendezvous: <strong>{req.meetingPoint}</strong>
-                    </span>
-                  </p>
-
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-gray-700">
-                    <span className="flex items-center gap-1 font-bold text-amber-600">
-                      <Clock className="w-3.5 h-3.5" /> {req.appointmentDate} at{' '}
-                      {req.appointmentTime}
-                    </span>
-                    <span className="font-semibold text-emerald-700">
-                      Est. Stipend: $52.00 (2 hrs)
-                    </span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {req.mobilityNeeds.map((m) => (
-                      <span
-                        key={m}
-                        className="text-[10px] font-bold bg-white text-gray-700 px-2.5 py-0.5 rounded-md border border-gray-300"
-                      >
-                        ♿ {m}
+            {requests.length > 0 ? (
+              requests.map((req) => (
+                <div
+                  key={req.id}
+                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hover:border-[#48A6A5] transition-all shadow-sm"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-[#1F3449] font-mono bg-white px-2.5 py-0.5 rounded border border-gray-300">
+                        {req.id}
                       </span>
-                    ))}
+                      <span className="text-xs font-bold text-[#E85D75] bg-[#E85D75]/10 px-2 py-0.5 rounded">
+                        {req.department}
+                      </span>
+                      <span className="text-xs font-bold text-[#48A6A5] bg-[#48A6A5]/10 px-2 py-0.5 rounded">
+                        🗣️ {req.languagePreference}
+                      </span>
+                    </div>
+
+                    <h3 className="text-xl font-black text-[#1F3449]">{req.patientName}</h3>
+                    <p className="text-xs text-gray-600 flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-[#E85D75] shrink-0" />
+                      <span>
+                        {req.hospitalName} • Rendezvous: <strong>{req.meetingPoint}</strong>
+                      </span>
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-gray-700">
+                      <span className="flex items-center gap-1 font-bold text-amber-600">
+                        <Clock className="w-3.5 h-3.5" /> {req.appointmentDate} at{' '}
+                        {req.appointmentTime}
+                      </span>
+                      <span className="font-semibold text-emerald-700">
+                        Est. Stipend: $52.00 (2 hrs)
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {req.mobilityNeeds.map((m) => (
+                        <span
+                          key={m}
+                          className="text-[10px] font-bold bg-white text-gray-700 px-2.5 py-0.5 rounded-md border border-gray-300"
+                        >
+                          ♿ {m}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-3 self-stretch md:self-center">
+                    <button
+                      onClick={() => setSelectedPalPatientSummary(req)}
+                      className="w-full sm:w-auto px-4 py-3 rounded-xl bg-white hover:bg-gray-100 text-[#1F3449] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 border border-gray-300 shadow-sm"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-[#48A6A5]" />
+                      <span>Read-Only Health Info</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleAcceptRequest(req.id)}
+                      className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Accept Pal Assignment</span>
+                    </button>
                   </div>
                 </div>
-
-                <div className="flex flex-col sm:flex-row items-center gap-3 self-stretch md:self-center">
-                  <button
-                    onClick={() => setSelectedPalPatientSummary(req)}
-                    className="w-full sm:w-auto px-4 py-3 rounded-xl bg-white hover:bg-gray-100 text-[#1F3449] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 border border-gray-300 shadow-sm"
-                  >
-                    <ShieldCheck className="w-4 h-4 text-[#48A6A5]" />
-                    <span>Read-Only Health Info</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleAcceptRequest(req.id)}
-                    className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Accept Pal Assignment</span>
-                  </button>
-                </div>
+              ))
+            ) : (
+              <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-2xl border border-gray-200">
+                <Clock className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                <div className="font-bold text-gray-700">No Pending Escort Requests</div>
+                <div className="text-xs text-gray-500 mt-1">New patient companion requests will appear here in real time.</div>
               </div>
-            ))}
+            )}
           </div>
         </div>
       )}
@@ -844,11 +830,14 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
           </div>
 
           <div className="space-y-4">
-            {requests.map((req) => (
-              <div
-                key={req.id}
-                className="bg-gray-50 p-6 rounded-2xl border-2 border-[#48A6A5]/50 space-y-4 shadow-sm"
-              >
+            {requests.filter((r) => r.status === 'in_progress').length > 0 ? (
+              requests
+                .filter((r) => r.status === 'in_progress')
+                .map((req) => (
+                  <div
+                    key={req.id}
+                    className="bg-gray-50 p-6 rounded-2xl border-2 border-[#48A6A5]/50 space-y-4 shadow-sm"
+                  >
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-200 pb-3">
                   <div>
                     <span className="text-xs font-bold text-[#48A6A5] uppercase">PATIENT:</span>
@@ -926,7 +915,14 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
                   </a>
                 </div>
               </div>
-            ))}
+            ))
+          ) : (
+            <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-2xl border border-gray-200">
+              <UserCheck className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+              <div className="font-bold text-gray-700">No Active Companion Assignments</div>
+              <div className="text-xs text-gray-500 mt-1">Accept requests from the Available Feed to begin an active accompaniment duty.</div>
+            </div>
+          )}
           </div>
         </div>
       )}
@@ -1023,7 +1019,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
                   Badge #{activePal.badgeNumber || 'PAL-ACTIVE'}
                 </span>
                 <span className="text-[10px] text-gray-500 block">
-                  {activePal.hospitalAffiliations?.join(', ') || 'Metro Health Medical Center'}
+                  {activePal.hospitalAffiliations?.join(', ') || 'Path Pal Partner Hospital'}
                 </span>
               </div>
             </div>

@@ -13,41 +13,7 @@ interface FeedbackItem {
   verified: boolean;
 }
 
-const INITIAL_FEEDBACKS: FeedbackItem[] = [
-  {
-    id: 'f-1',
-    authorName: 'Margaret Reynolds',
-    role: 'Patient',
-    rating: 5,
-    comment: 'Navigating the Metro Health pavilion in a wheelchair used to panic me. Pal Elena was waiting right at the valet desk, took me through radiology and pharmacy, and held my hand during a scary diagnosis.',
-    hospital: 'Metro Health Medical Center',
-    date: 'July 29, 2026',
-    palName: 'Elena Rostova',
-    verified: true
-  },
-  {
-    id: 'f-2',
-    authorName: 'David K. (Son)',
-    role: 'Family Member',
-    rating: 5,
-    comment: 'I live 400 miles away in Boston and couldn’t accompany my 82-year-old father to his cardiology follow-up. PathPal sent real-time updates and SMS check-ins. It gave our family total peace of mind.',
-    hospital: 'St. Jude Regional Health Center',
-    date: 'July 26, 2026',
-    palName: 'Marcus Chen',
-    verified: true
-  },
-  {
-    id: 'f-3',
-    authorName: 'Dr. Sarah Jenkins, Chief of Patient Experience',
-    role: 'Hospital Staff',
-    rating: 5,
-    comment: 'PathPal reduced our outpatient no-show rate by 42% in 60 days! Patients arrive on time, calm, and prepared. It’s an invaluable asset for HCAHPS scores.',
-    hospital: 'Valley Care Community Hospital',
-    date: 'July 22, 2026',
-    palName: 'PathPal System',
-    verified: true
-  }
-];
+const INITIAL_FEEDBACKS: FeedbackItem[] = [];
 
 interface TestimonialsAndFeedbackProps {
   onOpenPalAccount: () => void;
@@ -62,8 +28,8 @@ export const TestimonialsAndFeedback: React.FC<TestimonialsAndFeedbackProps> = (
   const [authorName, setAuthorName] = useState('');
   const [role, setRole] = useState<'Patient' | 'Family Member' | 'Hospital Staff'>('Patient');
   const [rating, setRating] = useState(5);
-  const [palName, setPalName] = useState('Elena Rostova');
-  const [hospital, setHospital] = useState('Metro Health Medical Center');
+  const [palName, setPalName] = useState('');
+  const [hospital, setHospital] = useState('');
   const [comment, setComment] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
@@ -163,36 +129,56 @@ export const TestimonialsAndFeedback: React.FC<TestimonialsAndFeedbackProps> = (
 
         {/* Testimonials Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {filteredFeedbacks.map((f) => (
-            <div key={f.id} className="bg-gray-50 p-6 rounded-3xl border border-gray-200 space-y-4 hover:border-[#48A6A5] transition-all flex flex-col justify-between shadow-sm">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center text-amber-500 text-xs">
-                    {'★'.repeat(f.rating)}
+          {filteredFeedbacks.length > 0 ? (
+            filteredFeedbacks.map((f) => (
+              <div key={f.id} className="bg-gray-50 p-6 rounded-3xl border border-gray-200 space-y-4 hover:border-[#48A6A5] transition-all flex flex-col justify-between shadow-sm">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center text-amber-500 text-xs">
+                      {'★'.repeat(f.rating)}
+                    </div>
+                    <span className="text-[10px] text-gray-500 font-bold uppercase">{f.date}</span>
                   </div>
-                  <span className="text-[10px] text-gray-500 font-bold uppercase">{f.date}</span>
+                  <p className="text-xs sm:text-sm text-gray-700 font-light italic leading-relaxed">
+                    "{f.comment}"
+                  </p>
                 </div>
-                <p className="text-xs sm:text-sm text-gray-700 font-light italic leading-relaxed">
-                  "{f.comment}"
-                </p>
-              </div>
 
-              <div className="pt-4 border-t border-gray-200 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#1F3449]">{f.authorName}</span>
-                  <span className="bg-[#48A6A5]/10 text-[#48A6A5] text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-[#48A6A5]/30">
-                    {f.role}
-                  </span>
-                </div>
-                <div className="text-[10px] text-gray-500 font-light flex items-center justify-between">
-                  <span>Companion: {f.palName}</span>
-                  <span className="text-emerald-700 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> Verified Visit
-                  </span>
+                <div className="pt-4 border-t border-gray-200 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#1F3449]">{f.authorName}</span>
+                    <span className="bg-[#48A6A5]/10 text-[#48A6A5] text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-[#48A6A5]/30">
+                      {f.role}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-gray-500 font-light flex items-center justify-between">
+                    <span>Companion: {f.palName}</span>
+                    <span className="text-emerald-700 font-bold flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Verified Visit
+                    </span>
+                  </div>
                 </div>
               </div>
+            ))
+          ) : (
+            <div className="col-span-full bg-gray-50 p-12 rounded-3xl border border-dashed border-gray-300 text-center space-y-3">
+              <MessageSquare className="w-10 h-10 text-[#48A6A5]/50 mx-auto" />
+              <h3 className="text-lg font-bold text-[#1F3449]">No Reviews Submitted Yet</h3>
+              <p className="text-xs text-gray-500 max-w-md mx-auto">
+                Be the first patient, family member, or care coordinator to share your experience with a verified PathPal companion.
+              </p>
+              <button
+                onClick={() => {
+                  setSubmitted(false);
+                  setShowSubmitModal(true);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-[#48A6A5] text-white text-xs font-bold uppercase tracking-wider shadow-sm inline-flex items-center gap-1.5"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>Submit First Review</span>
+              </button>
             </div>
-          ))}
+          )}
         </div>
 
       </div>
