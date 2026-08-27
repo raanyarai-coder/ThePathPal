@@ -848,61 +848,53 @@ export async function loginAdmin(
       };
     }
 
-    let supabaseUser: any = null;
-    try {
-      const { data: sbData, error: sbError } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password: cleanPassword,
-      });
-      if (!sbError && sbData?.user) {
-        supabaseUser = sbData.user;
-      }
-    } catch {}
+    // Direct Supabase Authentication
+    const { data: sbData, error: sbError } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password: cleanPassword,
+    });
 
-    const isAuthorizedAdmin =
-      Boolean(supabaseUser) ||
-      cleanEmail.includes('admin') ||
-      cleanEmail === 'arvind531@gmail.com' ||
-      cleanEmail.endsWith('@pathpal.health') ||
-      cleanEmail.endsWith('@metrohealth.org') ||
-      cleanPassword.length >= 4;
-
-    if (isAuthorizedAdmin) {
-      const nameSegment = cleanEmail.split('@')[0].replace(/[._-]/g, ' ');
-      const formattedName =
-        nameSegment.replace(/\b\w/g, (char) => char.toUpperCase()) || 'Administrator';
-
-      const adminUser: AdminUser = {
-        id: supabaseUser?.id || `admin-${Date.now()}`,
-        email: cleanEmail,
-        name: formattedName,
-        role: 'admin',
-        hospital: 'Metro Health Medical Center',
-        badgeNumber: 'ADM-9901',
-        token: supabaseUser?.id || `adm_token_${Date.now()}`,
-        lastLogin: new Date().toISOString(),
-      };
-
-      saveAdminSession(adminUser);
+    if (sbError) {
       return {
-        data: {
-          user: supabaseUser || { id: adminUser.id, email: adminUser.email },
-          adminUser,
-        },
-        error: null,
+        data: null,
+        error: { message: sbError.message || 'Invalid Supabase Admin credentials.' },
       };
     }
 
+    if (!sbData?.user) {
+      return {
+        data: null,
+        error: { message: 'Supabase authentication failed: User not found.' },
+      };
+    }
+
+    const user = sbData.user;
+    const nameSegment = (user.user_metadata?.full_name || cleanEmail.split('@')[0]).replace(/[._-]/g, ' ');
+    const formattedName = nameSegment.replace(/\b\w/g, (char: string) => char.toUpperCase()) || 'Administrator';
+
+    const adminUser: AdminUser = {
+      id: user.id,
+      email: user.email || cleanEmail,
+      name: formattedName,
+      role: 'admin',
+      hospital: user.user_metadata?.hospital || 'Metro Health Medical Center',
+      badgeNumber: user.user_metadata?.badge_number || `ADM-${user.id.slice(0, 4).toUpperCase()}`,
+      token: user.id,
+      lastLogin: new Date().toISOString(),
+    };
+
+    saveAdminSession(adminUser);
     return {
-      data: null,
-      error: {
-        message: 'Invalid Administrator credentials. Please enter a valid authorized admin email and password.',
+      data: {
+        user,
+        adminUser,
       },
+      error: null,
     };
   } catch (err: any) {
     return {
       data: null,
-      error: { message: err?.message || 'An error occurred during Admin authentication.' },
+      error: { message: err?.message || 'An error occurred during Supabase Admin authentication.' },
     };
   }
 }

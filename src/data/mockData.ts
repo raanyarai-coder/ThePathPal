@@ -86,57 +86,7 @@ export const SAMPLE_PALS: Pal[] = [
   },
 ];
 
-export const INITIAL_REQUESTS: PalRequest[] = [
-  {
-    id: 'REQ-101',
-    patientName: 'Eleanor Vance',
-    patientPhone: '(555) 234-5678',
-    hospitalId: 'hosp-1',
-    hospitalName: 'Metro Health Medical Center',
-    appointmentDate: '2026-08-03',
-    appointmentTime: '09:30 AM',
-    department: 'Cardiology',
-    meetingPoint: 'Main Entrance Valet Desk',
-    mobilityNeeds: ['Wheelchair Assistance', 'Elevator Pal'],
-    languagePreference: 'English',
-    notes: 'A bit anxious about finding the second floor cardiac wing after parking.',
-    status: 'matched',
-    assignedPal: SAMPLE_PALS[0],
-    createdAt: '2026-08-01 10:15',
-  },
-  {
-    id: 'REQ-102',
-    patientName: 'Roberto Gomez',
-    patientPhone: '(555) 876-5432',
-    hospitalId: 'hosp-1',
-    hospitalName: 'Metro Health Medical Center',
-    appointmentDate: '2026-08-03',
-    appointmentTime: '11:00 AM',
-    department: 'Oncology',
-    meetingPoint: 'Outpatient Pavilion Desk',
-    mobilityNeeds: ['Walking Companion'],
-    languagePreference: 'Spanish',
-    notes: 'Prefers Spanish speaking Pal to help locate outpatient radiology.',
-    status: 'in_progress',
-    assignedPal: SAMPLE_PALS[1],
-    createdAt: '2026-08-01 11:30',
-  },
-  {
-    id: 'REQ-103',
-    patientName: 'David Miller',
-    patientPhone: '(555) 345-6789',
-    hospitalId: 'hosp-2',
-    hospitalName: 'St. Jude Regional Health Center',
-    appointmentDate: '2026-08-04',
-    appointmentTime: '02:00 PM',
-    department: 'Rehabilitation Unit',
-    meetingPoint: 'North Entrance Information Desk',
-    mobilityNeeds: ['Vision Accommodations'],
-    languagePreference: 'English',
-    status: 'pending',
-    createdAt: '2026-08-01 13:45',
-  },
-];
+export const INITIAL_REQUESTS: PalRequest[] = [];
 
 export const PILOT_METRICS: PilotMetric[] = [
   {

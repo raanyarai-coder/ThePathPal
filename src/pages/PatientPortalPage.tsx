@@ -20,7 +20,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
 }) => {
   const { t, language, setLanguage } = useLanguage();
   const [activeTab, setActiveTab] = useState<'request' | 'my_escorts' | 'financials'>('request');
-  const [requests, setRequests] = useState<PalRequest[]>(INITIAL_REQUESTS);
+  const [requests, setRequests] = useState<PalRequest[]>([]);
   
   // Supabase Auth state
   const [authUser, setAuthUser] = useState<any>(null);
@@ -159,7 +159,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
           }`}
         >
           <Calendar className="w-4 h-4 text-[#48A6A5]" />
-          <span>My Scheduled Visits ({requests.length})</span>
+          <span>My Scheduled Visits{requests.length > 0 ? ` (${requests.length})` : ''}</span>
         </button>
 
         <button
@@ -330,81 +330,102 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
               <h2 className="text-2xl font-black text-[#1F3449]">Your Upcoming Companion Visits</h2>
             </div>
             <span className="text-xs font-bold bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200">
-              {requests.length} Active Pal Visit
+              {requests.length} Active Pal {requests.length === 1 ? 'Visit' : 'Visits'}
             </span>
           </div>
 
-          <div className="space-y-4">
-            {requests.map((req) => (
-              <div key={req.id} className="bg-gray-50 p-6 rounded-2xl border border-gray-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold text-[#48A6A5] bg-[#48A6A5]/10 px-2.5 py-0.5 rounded border border-[#48A6A5]/30">
-                      {req.id}
-                    </span>
-                    <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded">
-                      MATCHED & CONFIRMED
-                    </span>
-                  </div>
-
-                  <h3 className="text-xl font-black text-[#1F3449]">{req.hospitalName}</h3>
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-gray-700 font-medium">
-                    <span className="flex items-center gap-1.5 text-[#E85D75] font-bold">
-                      <Clock className="w-4 h-4" /> {req.appointmentDate} at {req.appointmentTime}
-                    </span>
-                    <span className="flex items-center gap-1.5 text-[#48A6A5]">
-                      <MapPin className="w-4 h-4" /> Meeting: {req.meetingPoint}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3 pt-2">
-                    <div className="w-10 h-10 rounded-full bg-[#E85D75] text-white font-black flex items-center justify-center text-sm shadow-sm">
-                      {req.assignedPal?.name.charAt(0) || 'P'}
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-[#1F3449]">Assigned Pal: {req.assignedPal?.name || 'Elena Rostova'}</div>
-                      <div className="text-[11px] text-gray-500">Badge #{req.assignedPal?.badgeNumber || 'PAL-8802'} • CPR & CHW Certified</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center gap-3 self-stretch md:self-center">
-                  <button
-                    onClick={() => {
-                      const gCalUrl = createGoogleCalendarUrl({
-                        title: `PathPal Companion Visit: ${req.hospitalName}`,
-                        description: `Scheduled PathPal companion visit at ${req.hospitalName} (${req.department}). Assigned Pal: ${req.assignedPal?.name || 'Elena Rostova'}. Meeting Point: ${req.meetingPoint}.`,
-                        location: `${req.hospitalName}, ${req.meetingPoint}`,
-                        startTime: new Date(`${req.appointmentDate}T10:00:00`),
-                        endTime: new Date(`${req.appointmentDate}T12:00:00`),
-                        reminderMinutesBefore: [1440, 120, 30]
-                      });
-                      window.open(gCalUrl, '_blank', 'noopener,noreferrer');
-                    }}
-                    className="w-full sm:w-auto px-4 py-3 rounded-xl bg-white hover:bg-gray-100 text-[#48A6A5] border border-[#48A6A5]/40 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-sm"
-                    title="Add appointment to Google Calendar"
-                  >
-                    <Calendar className="w-4 h-4 text-[#48A6A5]" />
-                    <span>Sync Calendar</span>
-                  </button>
-                  <button
-                    onClick={onOpenGpsModal}
-                    className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#48A6A5] text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md hover:bg-[#48A6A5]/90 transition-all"
-                  >
-                    <Navigation className="w-4 h-4" />
-                    <span>Track Pal Live GPS</span>
-                  </button>
-                  <a
-                    href="tel:18007284725"
-                    className="w-full sm:w-auto px-5 py-3 rounded-xl bg-white hover:bg-gray-100 text-[#1F3449] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 border border-gray-300 shadow-sm"
-                  >
-                    <Phone className="w-4 h-4" />
-                    <span>Call Pal</span>
-                  </a>
-                </div>
+          {requests.length === 0 ? (
+            <div className="bg-gray-50 border border-dashed border-gray-300 rounded-3xl p-10 sm:p-12 text-center space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-[#48A6A5]/10 text-[#48A6A5] flex items-center justify-center mx-auto">
+                <Calendar className="w-8 h-8" />
               </div>
-            ))}
-          </div>
+              <div className="space-y-1 max-w-md mx-auto">
+                <h3 className="text-lg font-black text-[#1F3449]">No Scheduled Visits</h3>
+                <p className="text-xs text-gray-600">
+                  You do not have any upcoming companion visits scheduled. Submit a request to pair with a verified Pal for your next hospital visit.
+                </p>
+              </div>
+              <button
+                onClick={() => setActiveTab('request')}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#E85D75] text-white font-bold text-xs uppercase tracking-wider hover:bg-[#E85D75]/90 transition-all shadow-md"
+              >
+                <Heart className="w-4 h-4 fill-white" />
+                <span>Request a Companion Pal</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {requests.map((req) => (
+                <div key={req.id} className="bg-gray-50 p-6 rounded-2xl border border-gray-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono font-bold text-[#48A6A5] bg-[#48A6A5]/10 px-2.5 py-0.5 rounded border border-[#48A6A5]/30">
+                        {req.id}
+                      </span>
+                      <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded">
+                        MATCHED & CONFIRMED
+                      </span>
+                    </div>
+
+                    <h3 className="text-xl font-black text-[#1F3449]">{req.hospitalName}</h3>
+                    <div className="flex flex-wrap items-center gap-4 text-xs text-gray-700 font-medium">
+                      <span className="flex items-center gap-1.5 text-[#E85D75] font-bold">
+                        <Clock className="w-4 h-4" /> {req.appointmentDate} at {req.appointmentTime}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-[#48A6A5]">
+                        <MapPin className="w-4 h-4" /> Meeting: {req.meetingPoint}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3 pt-2">
+                      <div className="w-10 h-10 rounded-full bg-[#E85D75] text-white font-black flex items-center justify-center text-sm shadow-sm">
+                        {req.assignedPal?.name.charAt(0) || 'P'}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-[#1F3449]">Assigned Pal: {req.assignedPal?.name || 'Elena Rostova'}</div>
+                        <div className="text-[11px] text-gray-500">Badge #{req.assignedPal?.badgeNumber || 'PAL-8802'} • CPR & CHW Certified</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-3 self-stretch md:self-center">
+                    <button
+                      onClick={() => {
+                        const gCalUrl = createGoogleCalendarUrl({
+                          title: `PathPal Companion Visit: ${req.hospitalName}`,
+                          description: `Scheduled PathPal companion visit at ${req.hospitalName} (${req.department}). Assigned Pal: ${req.assignedPal?.name || 'Elena Rostova'}. Meeting Point: ${req.meetingPoint}.`,
+                          location: `${req.hospitalName}, ${req.meetingPoint}`,
+                          startTime: new Date(`${req.appointmentDate}T10:00:00`),
+                          endTime: new Date(`${req.appointmentDate}T12:00:00`),
+                          reminderMinutesBefore: [1440, 120, 30]
+                        });
+                        window.open(gCalUrl, '_blank', 'noopener,noreferrer');
+                      }}
+                      className="w-full sm:w-auto px-4 py-3 rounded-xl bg-white hover:bg-gray-100 text-[#48A6A5] border border-[#48A6A5]/40 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-sm"
+                      title="Add appointment to Google Calendar"
+                    >
+                      <Calendar className="w-4 h-4 text-[#48A6A5]" />
+                      <span>Sync Calendar</span>
+                    </button>
+                    <button
+                      onClick={onOpenGpsModal}
+                      className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#48A6A5] text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md hover:bg-[#48A6A5]/90 transition-all"
+                    >
+                      <Navigation className="w-4 h-4" />
+                      <span>Track Pal Live GPS</span>
+                    </button>
+                    <a
+                      href="tel:18007284725"
+                      className="w-full sm:w-auto px-5 py-3 rounded-xl bg-white hover:bg-gray-100 text-[#1F3449] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 border border-gray-300 shadow-sm"
+                    >
+                      <Phone className="w-4 h-4" />
+                      <span>Call Pal</span>
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -23,7 +23,6 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  Sparkles,
   RefreshCw,
   User,
   Radio,
@@ -34,7 +33,7 @@ import {
   Calendar,
   Layers,
 } from 'lucide-react';
-import { SAMPLE_HOSPITALS, INITIAL_REQUESTS, SAMPLE_PALS } from '../data/mockData';
+import { SAMPLE_HOSPITALS, SAMPLE_PALS } from '../data/mockData';
 import { PalRequest, PalApplication, Pal } from '../types';
 import {
   fetchPalApplications,
@@ -53,8 +52,8 @@ import {
 export const HospitalPortalPage: React.FC = () => {
   // Admin Authentication State
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
-  const [loginEmail, setLoginEmail] = useState('admin@metrohealth.org');
-  const [loginPassword, setLoginPassword] = useState('admin2026');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -92,7 +91,8 @@ export const HospitalPortalPage: React.FC = () => {
   const loadAdminData = async () => {
     setIsLoadingData(true);
     try {
-      setRequests(INITIAL_REQUESTS);
+      const liveReqs = await fetchPalRequests();
+      setRequests(liveReqs || []);
       await Promise.all([
         loadApplications(),
         loadPals(),
@@ -158,21 +158,6 @@ export const HospitalPortalPage: React.FC = () => {
       setLoginError(res.error.message);
       return;
     }
-
-    if (res.data?.adminUser) {
-      setAdminUser(res.data.adminUser);
-      loadAdminData();
-    }
-  };
-
-  const handleQuickDemoLogin = async () => {
-    setLoginEmail('admin@metrohealth.org');
-    setLoginPassword('admin2026');
-    setIsLoggingIn(true);
-    setLoginError(null);
-
-    const res = await loginAdmin('admin@metrohealth.org', 'admin2026');
-    setIsLoggingIn(false);
 
     if (res.data?.adminUser) {
       setAdminUser(res.data.adminUser);
@@ -272,14 +257,14 @@ export const HospitalPortalPage: React.FC = () => {
             <div>
               <label className="block text-xs font-bold text-[#1F3449] mb-1.5 flex items-center justify-between">
                 <span>Administrator Email</span>
-                <span className="text-[10px] text-gray-500 font-normal">e.g. admin@metrohealth.org</span>
+                <span className="text-[10px] text-gray-500 font-normal">Supabase Admin Account</span>
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
                 <input
                   type="email"
                   required
-                  placeholder="admin@pathpal.health"
+                  placeholder="admin@yourorganization.org"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
                   className="w-full text-xs pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 text-[#1F3449] font-medium"
@@ -290,7 +275,7 @@ export const HospitalPortalPage: React.FC = () => {
             <div>
               <label className="block text-xs font-bold text-[#1F3449] mb-1.5 flex items-center justify-between">
                 <span>Password</span>
-                <span className="text-[10px] text-gray-500 font-normal">Min 4 characters</span>
+                <span className="text-[10px] text-gray-500 font-normal">Secure Password</span>
               </label>
               <div className="relative">
                 <Key className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
@@ -320,7 +305,7 @@ export const HospitalPortalPage: React.FC = () => {
               {isLoggingIn ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Verifying Admin Authorization...</span>
+                  <span>Verifying Supabase Admin...</span>
                 </>
               ) : (
                 <>
@@ -330,18 +315,6 @@ export const HospitalPortalPage: React.FC = () => {
               )}
             </button>
           </form>
-
-          {/* Quick Demo Fill Button */}
-          <div className="pt-2 border-t border-gray-100 space-y-2">
-            <button
-              type="button"
-              onClick={handleQuickDemoLogin}
-              className="w-full text-xs font-bold text-[#48A6A5] hover:text-[#48A6A5]/80 bg-[#48A6A5]/10 hover:bg-[#48A6A5]/20 py-2.5 rounded-xl transition-all border border-[#48A6A5]/30 flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>One-Click Quick Admin Demo Sign In</span>
-            </button>
-          </div>
 
           {/* HIPAA & Security Compliance Notice */}
           <div className="bg-amber-50/70 p-3.5 rounded-2xl border border-amber-200/80 flex items-start gap-2.5 text-[11px] text-amber-900 leading-relaxed">
