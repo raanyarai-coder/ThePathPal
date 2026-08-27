@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, ShieldCheck, MapPin, Clock, Calendar, Phone, CheckCircle2, AlertCircle, Calculator, Navigation, ShieldAlert, FileText, ChevronRight, UserCheck, Lock, Globe, Activity, Video, Database, UserPlus } from 'lucide-react';
+import { Heart, ShieldCheck, MapPin, Clock, Calendar, Phone, CheckCircle2, AlertCircle, Calculator, Navigation, ShieldAlert, FileText, ChevronRight, UserCheck, Lock, Globe, Activity, Database, UserPlus } from 'lucide-react';
 import { SAMPLE_HOSPITALS, SAMPLE_PALS, INITIAL_REQUESTS } from '../data/mockData';
 import { PalRequest } from '../types';
-import { PatientVideoBroadcastModal } from '../components/PatientVideoBroadcastModal';
 import { useLanguage } from '../context/LanguageContext';
 import { createGoogleCalendarUrl, downloadIcsFile } from '../utils/calendarUtils';
 import { getCurrentPatientUser } from '../lib/supabase';
@@ -22,8 +21,6 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
   const { t, language, setLanguage } = useLanguage();
   const [activeTab, setActiveTab] = useState<'request' | 'my_escorts' | 'financials'>('request');
   const [requests, setRequests] = useState<PalRequest[]>(INITIAL_REQUESTS);
-  const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
-  const [activeBroadcastReq, setActiveBroadcastReq] = useState<PalRequest | null>(null);
   
   // Supabase Auth state
   const [authUser, setAuthUser] = useState<any>(null);
@@ -391,17 +388,6 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                     <span>Sync Calendar</span>
                   </button>
                   <button
-                    onClick={() => {
-                      setActiveBroadcastReq(req);
-                      setIsBroadcastOpen(true);
-                    }}
-                    className="w-full sm:w-auto px-4 py-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-sm"
-                    title="Start one-way live video stream to Pal during transit"
-                  >
-                    <Video className="w-4 h-4 text-red-600" />
-                    <span>Transit Video Broadcast</span>
-                  </button>
-                  <button
                     onClick={onOpenGpsModal}
                     className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#48A6A5] text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md hover:bg-[#48A6A5]/90 transition-all"
                   >
@@ -470,15 +456,6 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
           </div>
         </div>
       )}
-
-      {/* ONE-WAY TRANSIT VIDEO BROADCAST MODAL */}
-      <PatientVideoBroadcastModal
-        isOpen={isBroadcastOpen}
-        onClose={() => setIsBroadcastOpen(false)}
-        assignedPalName={activeBroadcastReq?.assignedPal?.name || 'Elena Rostova, RN'}
-        hospitalName={activeBroadcastReq?.hospitalName || 'St. Jude Medical Center'}
-        meetingZone={activeBroadcastReq?.meetingPoint || 'Main Entrance Lobby (Zone A)'}
-      />
 
     </div>
   );
