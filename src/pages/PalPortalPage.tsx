@@ -31,6 +31,7 @@ import {
   formatPalFromDb,
   fetchPalRequests,
   assignPalToRequest,
+  verifyPalEmailAndActivate,
 } from '../lib/supabase';
 import { Pal, PalRequest } from '../types';
 import { MedicalSummaryWidget } from '../components/MedicalSummaryWidget';
@@ -150,53 +151,23 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
         return;
       }
 
-      // 2. If not yet linked by auth_user_id, link via approved application if email is confirmed
-      if (user.email_confirmed_at && user.email) {
-        const { data: application } = await supabase
-          .from('pal_applications')
-          .select('*')
-          .eq('email', user.email)
-          .eq('status', 'approved')
-          .maybeSingle();
-
-        const appName = application?.name || user.user_metadata?.full_name;
-        const appPhone = application?.phone || user.user_metadata?.phone;
-
-        if (appName && appPhone) {
-          const { data: existingPal } = await supabase
-            .from('pals')
-            .select('*')
-            .eq('name', appName)
-            .eq('phone', appPhone)
-            .maybeSingle();
-
-          if (existingPal) {
-            const { data: linkedPal } = await supabase
-              .from('pals')
-              .update({ auth_user_id: user.id })
-              .eq('id', existingPal.id)
-              .select()
-              .single();
-
-            if (linkedPal) {
-              const formatted = formatPalFromDb(linkedPal);
-              setPalInfo(formatted);
-              setActivationError(null);
-              await loadRequests();
-              return;
-            }
-          }
-        }
+      // 2. If not yet linked by auth_user_id, run verification/activation sync
+      const res = await verifyPalEmailAndActivate();
+      if (res.data?.palRecord) {
+        setPalInfo(res.data.palRecord);
+        setActivationError(null);
+        await loadRequests();
+        return;
       }
 
       setPalInfo(null);
       setActivationError(
-        'Your Pal profile has not been created yet. Please contact the administrator.'
+        res.error?.message || 'Your Pal profile has not been initialized. Please complete email verification.'
       );
     } catch (err: any) {
       console.error('Exception fetching pal record:', err);
       setActivationError(
-        'Your Pal profile has not been created yet. Please contact the administrator.'
+        'Unable to load Pal profile. Please refresh or contact administrator.'
       );
     }
   };

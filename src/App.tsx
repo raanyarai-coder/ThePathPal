@@ -47,14 +47,38 @@ export default function App() {
     setChargesModalOpen(true);
   };
 
-  // Sync Hash on mount and change
+  // Sync Hash and Path on mount and change
   useEffect(() => {
-    const handleHashChange = () => {
+    const handleLocationChange = () => {
+      const pathname = window.location.pathname.toLowerCase();
       const rawHash = window.location.hash.replace('#', '');
-      const hashPage = rawHash.split('?')[0];
+      const hashPage = rawHash.split('?')[0].toLowerCase();
+
+      // Check if arriving on email verification route or auth callback
+      if (
+        pathname.includes('/pal/verify') ||
+        pathname.includes('/pal-verify') ||
+        hashPage === 'pal-verify' ||
+        window.location.hash.includes('access_token') ||
+        window.location.search.includes('type=signup') ||
+        window.location.search.includes('type=email') ||
+        window.location.search.includes('code=')
+      ) {
+        setCurrentPage('pal-verify');
+        return;
+      }
 
       if (hashPage === 'pal-apply' || hashPage === 'become-pal' || hashPage === 'apply-pal') {
         setBecomePalModalOpen(true);
+        return;
+      }
+
+      if (
+        hashPage === 'pal-signup' ||
+        pathname.includes('/pal/signup') ||
+        pathname.includes('/pal-signup')
+      ) {
+        setCurrentPage('pal-signup');
         return;
       }
 
@@ -63,9 +87,13 @@ export default function App() {
       }
     };
 
-    handleHashChange();
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    handleLocationChange();
+    window.addEventListener('hashchange', handleLocationChange);
+    window.addEventListener('popstate', handleLocationChange);
+    return () => {
+      window.removeEventListener('hashchange', handleLocationChange);
+      window.removeEventListener('popstate', handleLocationChange);
+    };
   }, []);
 
   // Global Keyboard Shortcuts for WCAG Accessibility

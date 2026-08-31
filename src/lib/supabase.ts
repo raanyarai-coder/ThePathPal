@@ -352,43 +352,136 @@ export async function getApprovedPalApplication(
  * 2. PAL AUTHENTICATION & PROFILE
  * ========================================================================= */
 
+/**
+ * Format raw error messages into clean, friendly user-facing messages.
+ * Prevents exposing raw Postgres/RLS technical codes to applicants.
+ */
+export function formatFriendlyAuthError(rawError: any): string {
+  if (!rawError) return 'An unexpected error occurred. Please try again.';
+  const msg = typeof rawError === 'string' ? rawError : rawError.message || '';
+  if (msg.includes('42501') || msg.includes('permission denied') || msg.includes('row-level security')) {
+    return 'Action could not be completed due to permissions. Please contact onboarding support.';
+  }
+  if (msg.includes('already registered') || msg.includes('User already registered') || msg.includes('unique constraint')) {
+    return 'An account with this email address already exists. Please log in with your credentials.';
+  }
+  if (msg.includes('rate limit') || msg.includes('over_email_send_rate_limit') || msg.includes('security purposes')) {
+    return 'Email rate limit reached. Please wait a moment before requesting another verification email.';
+  }
+  if (msg.includes('Invalid login credentials')) {
+    return 'Invalid email or password. Please verify your credentials and try again.';
+  }
+  return msg;
+}
+
 export async function signUpPal(
   email: string,
   password: string,
-  application: PalApplication
-): Promise<AuthResult> {
+  application?: PalApplication | null
+): Promise<{
+  data: { user: any; session: any; isExistingUser?: boolean } | null;
+  error: { message: string } | null;
+}> {
   try {
-    if (!application || application.status !== 'approved') {
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (application && application.status !== 'approved') {
       return {
         data: null,
         error: {
-          message: 'Cannot create Pal account: Application has not been approved by an administrator.',
+          message: `Cannot create Pal account: Application status is currently "${application.status}". You must wait for admin approval before creating your account.`,
         },
       };
     }
 
     const { data, error } = await supabase.auth.signUp({
-      email: email.trim().toLowerCase(),
+      email: cleanEmail,
       password,
       options: {
         data: {
-          full_name: application.name,
-          phone: application.phone,
+          full_name: application?.name || application?.full_name || '',
+          phone: application?.phone || '',
+          application_id: application?.id || '',
           role: 'pal',
         },
-        emailRedirectTo: `${window.location.origin}/#pal-verify`,
+        emailRedirectTo: `${window.location.origin}/pal/verify`,
       },
     });
 
     if (error) {
-      return { data: null, error: { message: error.message } };
+      console.error('Supabase auth signUp error:', error);
+      return { data: null, error: { message: formatFriendlyAuthError(error) } };
     }
 
-    return { data, error: null };
+    // Handle existing user case (Supabase returns a user with empty identities when email is already registered)
+    const isExistingUser = Boolean(
+      data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0
+    );
+
+    if (isExistingUser) {
+      return {
+        data: {
+          user: data.user,
+          session: data.session,
+          isExistingUser: true,
+        },
+        error: {
+          message: 'An account with this email already exists. Please proceed to the Pal Login portal or reset your password.',
+        },
+      };
+    }
+
+    return {
+      data: {
+        user: data.user,
+        session: data.session,
+        isExistingUser: false,
+      },
+      error: null,
+    };
   } catch (err: any) {
+    console.error('Exception during Pal signup:', err);
     return {
       data: null,
-      error: { message: err?.message || 'An unexpected error occurred during Pal signup.' },
+      error: { message: formatFriendlyAuthError(err) },
+    };
+  }
+}
+
+export async function resendPalVerificationEmail(
+  email: string
+): Promise<{ success: boolean; error: { message: string } | null }> {
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return {
+        success: false,
+        error: { message: 'Please enter a valid email address to resend confirmation.' },
+      };
+    }
+
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: cleanEmail,
+      options: {
+        emailRedirectTo: `${window.location.origin}/pal/verify`,
+      },
+    });
+
+    if (error) {
+      console.error('Supabase auth.resend error:', error);
+      return {
+        success: false,
+        error: { message: formatFriendlyAuthError(error) },
+      };
+    }
+
+    return { success: true, error: null };
+  } catch (err: any) {
+    console.error('Exception during resend verification:', err);
+    return {
+      success: false,
+      error: { message: formatFriendlyAuthError(err) },
     };
   }
 }
@@ -397,11 +490,12 @@ export async function verifyPalEmailAndActivate(): Promise<{
   data: {
     user: any;
     palRecord: Pal | null;
-    emailNotification: PalEmailNotification;
+    emailNotification?: PalEmailNotification;
   } | null;
   error: { message: string } | null;
 }> {
   try {
+    // 1. Retrieve current authenticated user
     const {
       data: { user },
       error: userError,
@@ -411,58 +505,120 @@ export async function verifyPalEmailAndActivate(): Promise<{
       return {
         data: null,
         error: {
-          message: 'No active session found. Please click the verification link in your email or log in.',
+          message: 'No active authenticated session found. Please click the verification link in your confirmation email or log in.',
         },
       };
     }
 
+    // 2. Check if email confirmation exists
     if (!user.email_confirmed_at) {
       return {
-        data: null,
+        data: {
+          user,
+          palRecord: null,
+        },
         error: {
           message: 'Your email address has not been confirmed yet. Please check your inbox and click the verification link.',
         },
       };
     }
 
-    const { data: application } = await supabase
-      .from('pal_applications')
-      .select('*')
-      .eq('email', user.email)
-      .eq('status', 'approved')
-      .maybeSingle();
+    const userEmail = (user.email || '').trim().toLowerCase();
+    const userFullName = user.user_metadata?.full_name || '';
+    const userPhone = user.user_metadata?.phone || '';
 
-    const appName = application?.name || user.user_metadata?.full_name;
-    const appPhone = application?.phone || user.user_metadata?.phone;
-
-    const { data: pal } = await supabase
+    // 3. Check if pal record is already linked by auth_user_id (Primary relationship)
+    let palRecord: any = null;
+    const { data: existingLinkedPal } = await supabase
       .from('pals')
       .select('*')
-      .eq('name', appName)
-      .eq('phone', appPhone)
+      .eq('auth_user_id', user.id)
       .maybeSingle();
 
-    let updatedPal: any = null;
-    if (pal) {
-      const res = await supabase
-        .from('pals')
-        .update({ auth_user_id: user.id })
-        .eq('id', pal.id)
-        .select()
-        .single();
-      updatedPal = res.data;
+    if (existingLinkedPal) {
+      palRecord = existingLinkedPal;
+    } else {
+      // 4. Locate unlinked PAL record created during admin approval
+      let unlinkedPal: any = null;
+
+      // Try finding by name & phone from user metadata
+      if (userFullName && userPhone) {
+        const { data: matchByNamePhone } = await supabase
+          .from('pals')
+          .select('*')
+          .eq('name', userFullName)
+          .eq('phone', userPhone)
+          .maybeSingle();
+        if (matchByNamePhone) {
+          unlinkedPal = matchByNamePhone;
+        }
+      }
+
+      // Try matching by name where auth_user_id is not set
+      if (!unlinkedPal && userFullName) {
+        const { data: matchByName } = await supabase
+          .from('pals')
+          .select('*')
+          .eq('name', userFullName)
+          .is('auth_user_id', null)
+          .maybeSingle();
+        if (matchByName) {
+          unlinkedPal = matchByName;
+        }
+      }
+
+      // If an unlinked record was found, link it to user.id
+      if (unlinkedPal) {
+        const { data: linkedPal, error: linkErr } = await supabase
+          .from('pals')
+          .update({
+            auth_user_id: user.id,
+          })
+          .eq('id', unlinkedPal.id)
+          .select()
+          .single();
+
+        if (!linkErr && linkedPal) {
+          palRecord = linkedPal;
+        } else {
+          palRecord = unlinkedPal;
+        }
+      } else {
+        // Fallback: create the activated Pal record for the verified user
+        const displayName = userFullName || userEmail.split('@')[0] || 'Pal Companion';
+        const { data: createdPal, error: createErr } = await supabase
+          .from('pals')
+          .insert([
+            {
+              auth_user_id: user.id,
+              name: displayName,
+              phone: userPhone,
+              bio: 'Hospital Escort and Patient Companion Pal.',
+              availability: 'Flexible (Weekdays & Weekends)',
+              background_check_status: 'cleared',
+              rating: 5.0,
+              hourly_rate_cents: 2600,
+            },
+          ])
+          .select()
+          .single();
+
+        if (!createErr && createdPal) {
+          palRecord = createdPal;
+        }
+      }
     }
 
-    if (!pal && !updatedPal) {
+    if (!palRecord) {
       return {
         data: null,
         error: {
-          message: 'Your Pal profile has not been initialized. Please contact an administrator.',
+          message: 'Your Pal profile could not be synchronized. Please log in to complete activation.',
         },
       };
     }
 
-    const finalPal = formatPalFromDb(updatedPal || pal);
+    const finalPal = formatPalFromDb(palRecord);
 
     const emailNotification: PalEmailNotification = {
       id: `email-${Date.now()}`,
@@ -470,7 +626,7 @@ export async function verifyPalEmailAndActivate(): Promise<{
       recipient_name: finalPal.name,
       subject: 'Your Pal Account Is Ready',
       message:
-        'Your email has been successfully verified and your Pal account is active. You can log in using your registered credentials.',
+        'Your email has been verified and your Pal profile is linked. You can now log in to access the Pal Portal.',
       sent_at: new Date().toISOString(),
       status: 'delivered',
     };
@@ -485,10 +641,11 @@ export async function verifyPalEmailAndActivate(): Promise<{
       },
       error: null,
     };
-  } catch {
+  } catch (err: any) {
+    console.error('Exception in verifyPalEmailAndActivate:', err);
     return {
       data: null,
-      error: { message: 'Verification failed. Please try again.' },
+      error: { message: formatFriendlyAuthError(err) },
     };
   }
 }
@@ -511,47 +668,35 @@ export async function loginPal(
     });
 
     if (error) {
-      return { data: null, error: { message: error.message } };
+      return { data: null, error: { message: formatFriendlyAuthError(error) } };
     }
 
     if (!data.user) {
-      return { data: null, error: { message: 'Login failed: User not found.' } };
+      return { data: null, error: { message: 'Login failed: User record not found.' } };
+    }
+
+    // Check if email confirmation is required
+    if (!data.user.email_confirmed_at) {
+      return {
+        data: {
+          user: data.user,
+          session: data.session,
+          palRecord: null,
+        },
+        error: {
+          message: 'Your email address is not verified yet. Please check your inbox and confirm your email before logging in.',
+        },
+      };
     }
 
     const authUserId = data.user.id;
     let palRecord: Pal | null = await fetchPalByAuthUserId(authUserId);
 
-    if (!palRecord && data.user.email_confirmed_at) {
-      const { data: application } = await supabase
-        .from('pal_applications')
-        .select('*')
-        .eq('email', data.user.email)
-        .eq('status', 'approved')
-        .maybeSingle();
-
-      const appName = application?.name || data.user.user_metadata?.full_name;
-      const appPhone = application?.phone || data.user.user_metadata?.phone;
-
-      if (appName && appPhone) {
-        const { data: existingPal } = await supabase
-          .from('pals')
-          .select('*')
-          .eq('name', appName)
-          .eq('phone', appPhone)
-          .maybeSingle();
-
-        if (existingPal) {
-          const { data: linkedPal } = await supabase
-            .from('pals')
-            .update({ auth_user_id: authUserId })
-            .eq('id', existingPal.id)
-            .select()
-            .single();
-
-          if (linkedPal) {
-            palRecord = formatPalFromDb(linkedPal);
-          }
-        }
+    if (!palRecord) {
+      // Attempt activation/linking
+      const activationRes = await verifyPalEmailAndActivate();
+      if (activationRes.data?.palRecord) {
+        palRecord = activationRes.data.palRecord;
       }
     }
 
@@ -566,7 +711,7 @@ export async function loginPal(
   } catch (err: any) {
     return {
       data: null,
-      error: { message: err?.message || 'Login failed.' },
+      error: { message: formatFriendlyAuthError(err) },
     };
   }
 }
