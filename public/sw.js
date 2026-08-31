@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pathpal-offline-v1';
+const CACHE_NAME = 'pathpal-offline-v2';
 const OFFLINE_URLS = [
   '/',
   '/index.html',

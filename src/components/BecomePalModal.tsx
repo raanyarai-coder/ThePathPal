@@ -43,25 +43,18 @@ export const BecomePalModal: React.FC<BecomePalModalProps> = ({
 
       setIsSubmitting(false);
 
-      if (res?.error) {
-        setErrorMessage(res.error.message);
-        return;
-      }
-
-      if (res?.success || res?.data) {
-        setSubmittedApp(
-          res.data || {
-            id: `app-${Date.now()}`,
-            name,
-            email,
-            phone,
-            languages,
-            specialties,
-            bio,
-            status: 'pending',
-            created_at: new Date().toISOString(),
-          }
-        );
+      if (res?.success) {
+        setSubmittedApp({
+          id: `app-${Date.now()}`,
+          name,
+          email,
+          phone,
+          languages,
+          specialties,
+          bio,
+          status: 'pending',
+          created_at: new Date().toISOString(),
+        });
       }
     } catch (err: any) {
       setIsSubmitting(false);

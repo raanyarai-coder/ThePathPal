@@ -196,13 +196,14 @@ export async function submitPalApplication(data: {
   languages?: string;
   specialties?: string;
   bio?: string;
-}): Promise<{ success: boolean; data?: PalApplication | null; error?: { message: string } | null }> {
+}): Promise<{ success: boolean }> {
   const name = (data.name || data.full_name || '').trim();
   const email = data.email.trim().toLowerCase();
   const phone = data.phone.trim();
   const languages = (data.languages || 'English').trim();
 
-  const { error } = await supabase.from('pal_applications')
+  const { error } = await supabase
+    .from('pal_applications')
     .insert({
       name,
       email,
@@ -216,19 +217,7 @@ export async function submitPalApplication(data: {
     throw new Error('Unable to submit application at this time.');
   }
 
-  const applicationRecord: PalApplication = {
-    id: `app-${Date.now()}`,
-    name,
-    email,
-    phone,
-    languages,
-    specialties: data.specialties || '',
-    bio: data.bio || '',
-    status: 'pending',
-    created_at: new Date().toISOString(),
-  };
-
-  return { success: true, data: applicationRecord, error: null };
+  return { success: true };
 }
 
 export async function fetchPalApplications(): Promise<PalApplication[]> {
