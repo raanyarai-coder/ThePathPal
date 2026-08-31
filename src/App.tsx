@@ -24,6 +24,7 @@ import { CalendarIntegrationModal } from './components/CalendarIntegrationModal'
 import { OfflineStatusBanner } from './components/OfflineStatusBanner';
 import { CareBotChat } from './components/CareBotChat';
 import { SupabaseAuthModal } from './components/SupabaseAuthModal';
+import { EmergencySosButton } from './components/EmergencySosButton';
 
 type PageType = 'home' | 'patient' | 'pal' | 'hospital' | 'about' | 'pal-signup' | 'pal-verify';
 
@@ -104,6 +105,10 @@ export default function App() {
         } else if (key === 'c') {
           e.preventDefault();
           setCalendarModalOpen(true);
+        } else if (key === 's') {
+          e.preventDefault();
+          document.getElementById('floating-emergency-sos-button')?.click();
+          document.getElementById('emergency-sos-active-btn')?.click();
         }
       } else if (e.key === 'Escape' && !isInput) {
         // Close modals on Escape
@@ -270,6 +275,9 @@ export default function App() {
 
         {/* Interactive CareBot Chatbot */}
         <CareBotChat />
+
+        {/* Floating Emergency SOS System */}
+        <EmergencySosButton />
         </div>
       </LanguageProvider>
     </ThemeProvider>

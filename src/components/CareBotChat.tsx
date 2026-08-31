@@ -111,15 +111,15 @@ export const CareBotChat: React.FC = () => {
   return (
     <>
       {/* Floating Chat Trigger Button */}
-      <div className="fixed bottom-6 right-6 z-40">
+      <div className="fixed bottom-20 sm:bottom-6 right-6 sm:right-56 z-30">
         {!isOpen ? (
           <button
             onClick={() => setIsOpen(true)}
-            className="flex items-center gap-3 px-5 py-3.5 rounded-full bg-[#48A6A5] text-white font-black uppercase text-xs tracking-wider shadow-2xl hover:bg-[#48A6A5]/90 transition-all border border-white/20 animate-bounce"
+            className="flex items-center gap-2.5 px-4 py-3 rounded-full bg-[#48A6A5] text-white font-black uppercase text-xs tracking-wider shadow-2xl hover:bg-[#48A6A5]/90 transition-all border border-white/20"
           >
-            <Bot className="w-5 h-5 text-white" />
+            <Bot className="w-4 h-4 text-white" />
             <span>Ask CareBot AI</span>
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
           </button>
         ) : null}
       </div>

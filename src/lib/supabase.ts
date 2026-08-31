@@ -196,39 +196,39 @@ export async function submitPalApplication(data: {
   languages?: string;
   specialties?: string;
   bio?: string;
-}): Promise<{ data: PalApplication | null; error: { message: string } | null }> {
-  try {
-    const applicantName = (data.name || data.full_name || '').trim();
-    const applicantEmail = data.email.trim().toLowerCase();
-    const applicantPhone = data.phone.trim();
-    const applicantLanguages = (data.languages || 'English').trim();
+}): Promise<{ success: boolean; data?: PalApplication | null; error?: { message: string } | null }> {
+  const name = (data.name || data.full_name || '').trim();
+  const email = data.email.trim().toLowerCase();
+  const phone = data.phone.trim();
+  const languages = (data.languages || 'English').trim();
 
-    if (!applicantName || !applicantEmail) {
-      return { data: null, error: { message: 'Full name and email are required.' } };
-    }
+  const { error } = await supabase.from('pal_applications')
+    .insert({
+      name,
+      email,
+      phone,
+      languages,
+      status: 'pending',
+    });
 
-    const { data: inserted, error: dbError } = await supabase
-      .from('pal_applications')
-      .insert({
-        name: applicantName,
-        email: applicantEmail,
-        phone: applicantPhone,
-        languages: applicantLanguages,
-        status: 'pending',
-      })
-      .select()
-      .single();
-
-    if (dbError) {
-      console.error('Pal application submission error:', dbError.message);
-      return { data: null, error: { message: 'Unable to submit application at this time: ' + dbError.message } };
-    }
-
-    return { data: formatApplicationFromDb(inserted), error: null };
-  } catch (err: any) {
-    console.error('Error submitting pal application:', err);
-    return { data: null, error: { message: err?.message || 'An unexpected error occurred. Please try again.' } };
+  if (error) {
+    console.error('PAL application submission error:', error);
+    throw new Error('Unable to submit application at this time.');
   }
+
+  const applicationRecord: PalApplication = {
+    id: `app-${Date.now()}`,
+    name,
+    email,
+    phone,
+    languages,
+    specialties: data.specialties || '',
+    bio: data.bio || '',
+    status: 'pending',
+    created_at: new Date().toISOString(),
+  };
+
+  return { success: true, data: applicationRecord, error: null };
 }
 
 export async function fetchPalApplications(): Promise<PalApplication[]> {

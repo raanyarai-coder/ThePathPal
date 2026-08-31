@@ -31,24 +31,41 @@ export const BecomePalModal: React.FC<BecomePalModalProps> = ({
     setIsSubmitting(true);
     setErrorMessage(null);
 
-    const res = await submitPalApplication({
-      full_name: name,
-      email,
-      phone,
-      languages,
-      specialties,
-      bio,
-    });
+    try {
+      const res = await submitPalApplication({
+        full_name: name,
+        email,
+        phone,
+        languages,
+        specialties,
+        bio,
+      });
 
-    setIsSubmitting(false);
+      setIsSubmitting(false);
 
-    if (res.error) {
-      setErrorMessage(res.error.message);
-      return;
-    }
+      if (res?.error) {
+        setErrorMessage(res.error.message);
+        return;
+      }
 
-    if (res.data) {
-      setSubmittedApp(res.data);
+      if (res?.success || res?.data) {
+        setSubmittedApp(
+          res.data || {
+            id: `app-${Date.now()}`,
+            name,
+            email,
+            phone,
+            languages,
+            specialties,
+            bio,
+            status: 'pending',
+            created_at: new Date().toISOString(),
+          }
+        );
+      }
+    } catch (err: any) {
+      setIsSubmitting(false);
+      setErrorMessage(err?.message || 'Unable to submit application at this time.');
     }
   };
 
