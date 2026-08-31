@@ -32,21 +32,44 @@ import {
   Phone,
   Calendar,
   Layers,
+  DollarSign,
+  Star,
+  Receipt,
+  CreditCard,
+  MessageSquare,
+  Hospital,
 } from 'lucide-react';
-import { SAMPLE_HOSPITALS, SAMPLE_PALS } from '../data/mockData';
-import { PalRequest, PalApplication, Pal } from '../types';
+import {
+  PalRequest,
+  PalApplication,
+  Pal,
+  Patient,
+  Match,
+  HospitalVisit,
+  Membership,
+  Payment,
+  Payout,
+  Review,
+  HospitalInquiry,
+  AdminUser,
+} from '../types';
 import {
   fetchPalApplications,
   approvePalApplication,
+  rejectPalApplication,
   fetchAllPals,
   fetchAllPatients,
   fetchPalRequests,
+  fetchAllMatches,
+  fetchAllHospitalVisits,
+  fetchAllMemberships,
+  fetchAllPayments,
+  fetchAllPayouts,
+  fetchAllReviews,
   fetchHospitalInquiries,
-  fetchActiveLocationSessions,
-  getStoredAdminSession,
   loginAdmin,
+  validateAdminSession,
   signOutAdmin,
-  AdminUser,
 } from '../lib/supabase';
 
 export const HospitalPortalPage: React.FC = () => {
@@ -57,9 +80,20 @@ export const HospitalPortalPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   // Portal State (Only populated after Admin authentication)
-  const [activeTab, setActiveTab] = useState<'dispatch' | 'applications' | 'pals' | 'patients'>('dispatch');
+  const [activeTab, setActiveTab] = useState<
+    | 'dispatch'
+    | 'applications'
+    | 'pals'
+    | 'patients'
+    | 'visits'
+    | 'financials'
+    | 'reviews'
+    | 'inquiries'
+  >('dispatch');
+
   const [requests, setRequests] = useState<PalRequest[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,57 +103,83 @@ export const HospitalPortalPage: React.FC = () => {
   const [approvedLinks, setApprovedLinks] = useState<{ [key: string]: string }>({});
   const [copiedAppId, setCopiedAppId] = useState<string | null>(null);
 
-  // Pals list state
+  // Directory lists
   const [palsList, setPalsList] = useState<Pal[]>([]);
-  // Patients list state
-  const [patientsList, setPatientsList] = useState<any[]>([]);
+  const [patientsList, setPatientsList] = useState<Patient[]>([]);
+  const [visitsList, setVisitsList] = useState<HospitalVisit[]>([]);
+  const [membershipsList, setMembershipsList] = useState<Membership[]>([]);
+  const [paymentsList, setPaymentsList] = useState<Payment[]>([]);
+  const [payoutsList, setPayoutsList] = useState<Payout[]>([]);
+  const [reviewsList, setReviewsList] = useState<Review[]>([]);
+  const [inquiriesList, setInquiriesList] = useState<HospitalInquiry[]>([]);
+
   const [isLoadingData, setIsLoadingData] = useState(false);
 
-  // Check stored session on mount
+  // Strict Admin Session Check on Startup
   useEffect(() => {
-    const session = getStoredAdminSession();
-    if (session) {
-      setAdminUser(session);
-      loadAdminData();
-    }
+    const verifySession = async () => {
+      setIsCheckingAuth(true);
+      try {
+        const verifiedAdmin = await validateAdminSession();
+        if (verifiedAdmin) {
+          setAdminUser(verifiedAdmin);
+          await loadAllAdminData();
+        } else {
+          setAdminUser(null);
+        }
+      } catch (err) {
+        console.error('Session validation error:', err);
+        setAdminUser(null);
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    verifySession();
   }, []);
 
-  const loadAdminData = async () => {
+  const loadAllAdminData = async () => {
     setIsLoadingData(true);
     try {
-      const liveReqs = await fetchPalRequests();
-      setRequests(liveReqs || []);
-      await Promise.all([
-        loadApplications(),
-        loadPals(),
-        loadPatients(),
+      const [
+        liveReqs,
+        apps,
+        pals,
+        patients,
+        visits,
+        memberships,
+        payments,
+        payouts,
+        reviews,
+        inquiries,
+      ] = await Promise.all([
+        fetchPalRequests(),
+        fetchPalApplications(),
+        fetchAllPals(),
+        fetchAllPatients(),
+        fetchAllHospitalVisits(),
+        fetchAllMemberships(),
+        fetchAllPayments(),
+        fetchAllPayouts(),
+        fetchAllReviews(),
+        fetchHospitalInquiries(),
       ]);
+
+      setRequests(liveReqs || []);
+      setApplications(apps || []);
+      setPalsList(pals || []);
+      setPatientsList(patients || []);
+      setVisitsList(visits || []);
+      setMembershipsList(memberships || []);
+      setPaymentsList(payments || []);
+      setPayoutsList(payouts || []);
+      setReviewsList(reviews || []);
+      setInquiriesList(inquiries || []);
     } catch (e) {
       console.error('Error loading admin portal data:', e);
     } finally {
       setIsLoadingData(false);
     }
-  };
-
-  const loadApplications = async () => {
-    const apps = await fetchPalApplications();
-    setApplications(apps);
-  };
-
-  const loadPals = async () => {
-    try {
-      const pals = await fetchAllPals();
-      setPalsList(pals || []);
-    } catch {
-      setPalsList([]);
-    }
-  };
-
-  const loadPatients = async () => {
-    try {
-      const patients = await fetchAllPatients();
-      setPatientsList(patients);
-    } catch {}
   };
 
   const handleAdminLogin = async (e: React.FormEvent) => {
@@ -137,18 +197,23 @@ export const HospitalPortalPage: React.FC = () => {
 
     if (res.data?.adminUser) {
       setAdminUser(res.data.adminUser);
-      loadAdminData();
+      await loadAllAdminData();
     }
   };
 
   const handleAdminSignOut = async () => {
     await signOutAdmin();
     setAdminUser(null);
-    // Securely clear sensitive patient and pal data from memory
     setRequests([]);
     setApplications([]);
     setPalsList([]);
     setPatientsList([]);
+    setVisitsList([]);
+    setMembershipsList([]);
+    setPaymentsList([]);
+    setPayoutsList([]);
+    setReviewsList([]);
+    setInquiriesList([]);
   };
 
   const handleApprove = async (appId: string) => {
@@ -158,8 +223,17 @@ export const HospitalPortalPage: React.FC = () => {
         ...prev,
         [appId]: res.data!.signupLink,
       }));
-      await loadApplications();
-      await loadPals();
+      const [apps, pals] = await Promise.all([fetchPalApplications(), fetchAllPals()]);
+      setApplications(apps || []);
+      setPalsList(pals || []);
+    }
+  };
+
+  const handleReject = async (appId: string) => {
+    const res = await rejectPalApplication(appId);
+    if (res.success) {
+      const apps = await fetchPalApplications();
+      setApplications(apps || []);
     }
   };
 
@@ -181,13 +255,23 @@ export const HospitalPortalPage: React.FC = () => {
     return true;
   });
 
+  if (isCheckingAuth) {
+    return (
+      <div className="max-w-md mx-auto py-24 px-4 text-center space-y-4">
+        <RefreshCw className="w-8 h-8 text-[#48A6A5] animate-spin mx-auto" />
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+          Verifying Administrator Permissions...
+        </p>
+      </div>
+    );
+  }
+
   /* =========================================================================
    * VIEW 1: LOCKED ADMIN LOGIN GATEWAY (NO PAL/PATIENT DATA VISIBLE)
    * ========================================================================= */
   if (!adminUser) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-8 animate-fade-in text-[#1F3449]">
-        
         {/* Security Access Control Header Banner */}
         <div className="text-center space-y-3">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#1F3449]/10 text-[#1F3449] text-xs font-black uppercase tracking-wider border border-[#1F3449]/20">
@@ -204,7 +288,6 @@ export const HospitalPortalPage: React.FC = () => {
 
         {/* Login Card */}
         <div className="bg-white p-6 sm:p-10 rounded-3xl border-2 border-gray-200 shadow-2xl space-y-6 max-w-lg mx-auto">
-          
           <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
             <div className="w-12 h-12 rounded-2xl bg-[#1F3449] text-white flex items-center justify-center shadow-md">
               <ShieldCheck className="w-6 h-6 text-[#48A6A5]" />
@@ -231,14 +314,14 @@ export const HospitalPortalPage: React.FC = () => {
             <div>
               <label className="block text-xs font-bold text-[#1F3449] mb-1.5 flex items-center justify-between">
                 <span>Administrator Email</span>
-                <span className="text-[10px] text-gray-500 font-normal">Supabase Admin Account</span>
+                <span className="text-[10px] text-gray-500 font-normal">Database Admin Account</span>
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
                 <input
                   type="email"
                   required
-                  placeholder="admin@yourorganization.org"
+                  placeholder="admin@pathpal.health"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
                   className="w-full text-xs pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 text-[#1F3449] font-medium"
@@ -279,7 +362,7 @@ export const HospitalPortalPage: React.FC = () => {
               {isLoggingIn ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Verifying Supabase Admin...</span>
+                  <span>Verifying Database Authorization...</span>
                 </>
               ) : (
                 <>
@@ -297,9 +380,7 @@ export const HospitalPortalPage: React.FC = () => {
               <strong>HIPAA Security Notice:</strong> All patient appointment schedules, companion contact coordinates, and applicant records are encrypted and protected under 45 CFR § 164.312.
             </span>
           </div>
-
         </div>
-
       </div>
     );
   }
@@ -309,7 +390,6 @@ export const HospitalPortalPage: React.FC = () => {
    * ========================================================================= */
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 animate-fade-in text-[#1F3449]">
-      
       {/* Admin Portal Header Banner */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border-2 border-[#48A6A5]/40 shadow-xl flex flex-col lg:flex-row items-center justify-between gap-6 overflow-hidden relative">
         <div className="space-y-3 flex-1">
@@ -319,11 +399,11 @@ export const HospitalPortalPage: React.FC = () => {
               ADMIN HUB
             </span>
             <span className="text-xs font-bold text-[#48A6A5] bg-[#48A6A5]/10 px-3 py-1 rounded-full border border-[#48A6A5]/30 font-mono">
-              Site License #HOSP-9901 Active
+              Badge: {adminUser.badgeNumber || 'ADM-9901'}
             </span>
             <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-300 flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              Admin Session: {adminUser.name}
+              Admin: {adminUser.name}
             </span>
           </div>
 
@@ -336,7 +416,7 @@ export const HospitalPortalPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2 pt-2">
             <button
               onClick={() => setActiveTab('dispatch')}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
                 activeTab === 'dispatch'
                   ? 'bg-[#48A6A5] text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -345,18 +425,15 @@ export const HospitalPortalPage: React.FC = () => {
               Dispatch Table
             </button>
             <button
-              onClick={() => {
-                setActiveTab('applications');
-                loadApplications();
-              }}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+              onClick={() => setActiveTab('applications')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'applications'
                   ? 'bg-[#48A6A5] text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               <UserCheck className="w-3.5 h-3.5" />
-              <span>Pal Applications & Approvals</span>
+              <span>Pal Applications</span>
               {applications.filter((a) => a.status === 'pending').length > 0 && (
                 <span className="bg-amber-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">
                   {applications.filter((a) => a.status === 'pending').length}
@@ -364,32 +441,70 @@ export const HospitalPortalPage: React.FC = () => {
               )}
             </button>
             <button
-              onClick={() => {
-                setActiveTab('pals');
-                loadPals();
-              }}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+              onClick={() => setActiveTab('pals')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'pals'
                   ? 'bg-[#48A6A5] text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Verified Pals Directory</span>
+              <span>Verified Pals</span>
             </button>
             <button
-              onClick={() => {
-                setActiveTab('patients');
-                loadPatients();
-              }}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+              onClick={() => setActiveTab('patients')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'patients'
                   ? 'bg-[#48A6A5] text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               <Users className="w-3.5 h-3.5" />
-              <span>Patient Directory</span>
+              <span>Patients</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('visits')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'visits'
+                  ? 'bg-[#48A6A5] text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Visits ({visitsList.length})</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('financials')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'financials'
+                  ? 'bg-[#48A6A5] text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <DollarSign className="w-3.5 h-3.5" />
+              <span>Financials</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('reviews')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'reviews'
+                  ? 'bg-[#48A6A5] text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Star className="w-3.5 h-3.5" />
+              <span>Reviews ({reviewsList.length})</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('inquiries')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'inquiries'
+                  ? 'bg-[#48A6A5] text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Hospital className="w-3.5 h-3.5" />
+              <span>Inquiries ({inquiriesList.length})</span>
             </button>
           </div>
         </div>
@@ -403,13 +518,17 @@ export const HospitalPortalPage: React.FC = () => {
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-500 font-bold uppercase text-[10px]">Admin Email:</span>
-              <span className="font-mono text-gray-700 text-[11px] truncate max-w-[140px]">{adminUser.email}</span>
+              <span className="font-mono text-gray-700 text-[11px] truncate max-w-[140px]">
+                {adminUser.email}
+              </span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-500 font-bold uppercase text-[10px]">Badge ID:</span>
-              <span className="font-mono font-bold text-[#48A6A5]">{adminUser.badgeNumber || 'ADM-9901'}</span>
+              <span className="font-mono font-bold text-[#48A6A5]">
+                {adminUser.badgeNumber || 'ADM-9901'}
+              </span>
             </div>
-            
+
             <button
               onClick={handleAdminSignOut}
               className="w-full mt-2 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 py-2 rounded-xl transition-all border border-rose-200 flex items-center justify-center gap-1.5 cursor-pointer"
@@ -424,19 +543,29 @@ export const HospitalPortalPage: React.FC = () => {
       {/* Admin Impact Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-1">
-          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Active Verified Pals</span>
-          <div className="text-3xl font-black text-[#E85D75]">{palsList.filter((p) => p.isVerified).length} Active</div>
+          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+            Active Verified Pals
+          </span>
+          <div className="text-3xl font-black text-[#E85D75]">
+            {palsList.filter((p) => p.isVerified).length} Active
+          </div>
           <span className="text-[10px] font-bold text-emerald-600">Credentialed Directory</span>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-1">
-          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Avg Match Speed</span>
-          <div className="text-3xl font-black text-[#48A6A5]">3.2 Mins</div>
-          <span className="text-[10px] font-bold text-gray-600">Target: &lt; 5 mins</span>
+          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+            Total Requests
+          </span>
+          <div className="text-3xl font-black text-[#48A6A5]">{requests.length} Requests</div>
+          <span className="text-[10px] font-bold text-gray-600">
+            {requests.filter((r) => r.status === 'pending').length} Pending
+          </span>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-1">
-          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Pal Applications</span>
+          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+            Pal Applications
+          </span>
           <div className="text-3xl font-black text-[#1F3449]">{applications.length} Total</div>
           <span className="text-[10px] font-bold text-amber-600 font-mono">
             {applications.filter((a) => a.status === 'pending').length} Pending Approval
@@ -444,9 +573,13 @@ export const HospitalPortalPage: React.FC = () => {
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-1">
-          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Schedule H CHNA</span>
-          <div className="text-3xl font-black text-[#1F3449]">1,240 Hrs</div>
-          <span className="text-[10px] font-bold text-[#48A6A5]">Tax-Exempt Credit Approved</span>
+          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+            Hospital Visits
+          </span>
+          <div className="text-3xl font-black text-[#1F3449]">{visitsList.length} Logged</div>
+          <span className="text-[10px] font-bold text-[#48A6A5]">
+            {reviewsList.length} Patient Reviews
+          </span>
         </div>
       </div>
 
@@ -455,8 +588,12 @@ export const HospitalPortalPage: React.FC = () => {
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-200 pb-4">
             <div>
-              <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">DISPATCH LOG</span>
-              <h2 className="text-2xl font-black text-[#1F3449]">Live Campus Companion Dispatch Table</h2>
+              <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">
+                DISPATCH LOG
+              </span>
+              <h2 className="text-2xl font-black text-[#1F3449]">
+                Live Campus Companion Dispatch Table
+              </h2>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -475,7 +612,9 @@ export const HospitalPortalPage: React.FC = () => {
                 <button
                   onClick={() => setFilterStatus('all')}
                   className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                    filterStatus === 'all' ? 'bg-[#48A6A5] text-white font-black' : 'text-gray-700 hover:text-[#1F3449]'
+                    filterStatus === 'all'
+                      ? 'bg-[#48A6A5] text-white font-black'
+                      : 'text-gray-700 hover:text-[#1F3449]'
                   }`}
                 >
                   All
@@ -483,7 +622,9 @@ export const HospitalPortalPage: React.FC = () => {
                 <button
                   onClick={() => setFilterStatus('matched')}
                   className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                    filterStatus === 'matched' ? 'bg-[#E85D75] text-white font-black' : 'text-gray-700 hover:text-[#1F3449]'
+                    filterStatus === 'matched'
+                      ? 'bg-[#E85D75] text-white font-black'
+                      : 'text-gray-700 hover:text-[#1F3449]'
                   }`}
                 >
                   Matched
@@ -491,7 +632,9 @@ export const HospitalPortalPage: React.FC = () => {
                 <button
                   onClick={() => setFilterStatus('in_progress')}
                   className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                    filterStatus === 'in_progress' ? 'bg-[#48A6A5] text-white font-black' : 'text-gray-700 hover:text-[#1F3449]'
+                    filterStatus === 'in_progress'
+                      ? 'bg-[#48A6A5] text-white font-black'
+                      : 'text-gray-700 hover:text-[#1F3449]'
                   }`}
                 >
                   Active
@@ -521,7 +664,9 @@ export const HospitalPortalPage: React.FC = () => {
                       <td className="p-3 text-gray-600">{req.department}</td>
                       <td className="p-3 text-gray-500">{req.meetingPoint}</td>
                       <td className="p-3 font-bold text-[#E85D75]">
-                        {req.assignedPal ? `${req.assignedPal.name} (#${req.assignedPal.badgeNumber})` : 'Unassigned'}
+                        {req.assignedPal
+                          ? `${req.assignedPal.name} (#${req.assignedPal.badgeNumber})`
+                          : 'Unassigned'}
                       </td>
                       <td className="p-3">
                         <span
@@ -543,8 +688,10 @@ export const HospitalPortalPage: React.FC = () => {
                     <td colSpan={6} className="p-8 text-center text-gray-500">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <Clock className="w-8 h-8 text-gray-300" />
-                        <span className="font-bold text-gray-700">No Active Companion Dispatches</span>
-                        <span className="text-xs text-gray-500">Live patient accompaniment requests will appear here in real time.</span>
+                        <span className="font-bold text-gray-700">No Companion Dispatches</span>
+                        <span className="text-xs text-gray-500">
+                          Live patient accompaniment requests will appear here in real time.
+                        </span>
                       </div>
                     </td>
                   </tr>
@@ -559,8 +706,12 @@ export const HospitalPortalPage: React.FC = () => {
       {activeTab === 'applications' && (
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
           <div className="border-b border-gray-200 pb-4">
-            <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">ONBOARDING PIPELINE</span>
-            <h2 className="text-2xl font-black text-[#1F3449]">Pal Applications & Signup Approval Gate</h2>
+            <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">
+              ONBOARDING PIPELINE
+            </span>
+            <h2 className="text-2xl font-black text-[#1F3449]">
+              Pal Applications & Signup Approval Gate
+            </h2>
             <p className="text-xs text-gray-600 mt-1">
               Review Pal candidate submissions and authorize approved applicants to complete their credentialing.
             </p>
@@ -579,82 +730,105 @@ export const HospitalPortalPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {applications.map((app) => {
-                  const signupLink =
-                    approvedLinks[app.id] || `${window.location.origin}/#pal-signup?app_id=${app.id}`;
-                  const isApproved = app.status === 'approved';
+                {applications.length > 0 ? (
+                  applications.map((app) => {
+                    const signupLink =
+                      approvedLinks[app.id] ||
+                      `${window.location.origin}/#pal-signup?app_id=${app.id}`;
+                    const isApproved = app.status === 'approved';
 
-                  return (
-                    <tr key={app.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="p-3 font-mono font-bold text-[#48A6A5]">{app.id}</td>
-                      <td className="p-3">
-                        <div className="font-bold text-[#1F3449]">{app.name || app.full_name}</div>
-                        <div className="text-[10px] text-gray-500 line-clamp-1">{app.bio}</div>
-                      </td>
-                      <td className="p-3">
-                        <div className="font-mono text-gray-800">{app.email}</div>
-                        <div className="text-[10px] text-gray-500">{app.phone}</div>
-                      </td>
-                      <td className="p-3">
-                        <div className="font-semibold text-gray-700">{app.languages}</div>
-                        <div className="text-[10px] text-gray-500">{app.specialties}</div>
-                      </td>
-                      <td className="p-3">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
-                            isApproved
-                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                              : 'bg-amber-100 text-amber-800 border border-amber-300'
-                          }`}
-                        >
-                          {app.status}
-                        </span>
-                      </td>
-                      <td className="p-3">
-                        {!isApproved ? (
-                          <button
-                            onClick={() => handleApprove(app.id)}
-                            className="px-3 py-1.5 bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center gap-1.5 cursor-pointer"
+                    return (
+                      <tr key={app.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="p-3 font-mono font-bold text-[#48A6A5]">{app.id}</td>
+                        <td className="p-3">
+                          <div className="font-bold text-[#1F3449]">
+                            {app.name || app.full_name}
+                          </div>
+                          <div className="text-[10px] text-gray-500 line-clamp-1">{app.bio}</div>
+                        </td>
+                        <td className="p-3">
+                          <div className="font-mono text-gray-800">{app.email}</div>
+                          <div className="text-[10px] text-gray-500">{app.phone}</div>
+                        </td>
+                        <td className="p-3">
+                          <div className="font-semibold text-gray-700">{app.languages}</div>
+                          <div className="text-[10px] text-gray-500">{app.specialties}</div>
+                        </td>
+                        <td className="p-3">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                              isApproved
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                : app.status === 'rejected'
+                                ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                                : 'bg-amber-100 text-amber-800 border border-amber-300'
+                            }`}
                           >
-                            <Check className="w-3.5 h-3.5" />
-                            <span>Approve Applicant</span>
-                          </button>
-                        ) : (
-                          <div className="space-y-1.5">
+                            {app.status}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          {!isApproved && app.status !== 'rejected' ? (
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={() => handleCopyLink(app.id, signupLink)}
-                                className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-[10px] font-bold border border-gray-300 flex items-center gap-1 cursor-pointer"
+                                onClick={() => handleApprove(app.id)}
+                                className="px-3 py-1.5 bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center gap-1 cursor-pointer"
                               >
-                                {copiedAppId === app.id ? (
-                                  <>
-                                    <Check className="w-3 h-3 text-emerald-600" />
-                                    <span className="text-emerald-700 font-bold">Copied!</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Copy className="w-3 h-3 text-gray-500" />
-                                    <span>Copy Signup Link</span>
-                                  </>
-                                )}
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Approve</span>
                               </button>
-                              <a
-                                href={`#pal-signup?app_id=${app.id}`}
-                                className="px-2.5 py-1 bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-sm"
+                              <button
+                                onClick={() => handleReject(app.id)}
+                                className="px-2.5 py-1.5 bg-gray-200 hover:bg-rose-100 hover:text-rose-700 text-gray-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
                               >
-                                <span>Open Signup</span>
-                                <ExternalLink className="w-3 h-3" />
-                              </a>
+                                Reject
+                              </button>
                             </div>
-                            <span className="text-[10px] text-gray-400 font-mono block">
-                              #pal-signup?app_id={app.id}
-                            </span>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                          ) : isApproved ? (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleCopyLink(app.id, signupLink)}
+                                  className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-[10px] font-bold border border-gray-300 flex items-center gap-1 cursor-pointer"
+                                >
+                                  {copiedAppId === app.id ? (
+                                    <>
+                                      <Check className="w-3 h-3 text-emerald-600" />
+                                      <span className="text-emerald-700 font-bold">Copied!</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="w-3 h-3 text-gray-500" />
+                                      <span>Copy Signup Link</span>
+                                    </>
+                                  )}
+                                </button>
+                                <a
+                                  href={`#pal-signup?app_id=${app.id}`}
+                                  className="px-2.5 py-1 bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-sm"
+                                >
+                                  <span>Open Signup</span>
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
+                              </div>
+                              <span className="text-[10px] text-gray-400 font-mono block">
+                                #pal-signup?app_id={app.id}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">Rejected</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-gray-500">
+                      No applications submitted yet.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -665,7 +839,9 @@ export const HospitalPortalPage: React.FC = () => {
       {activeTab === 'pals' && (
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
           <div className="border-b border-gray-200 pb-4">
-            <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">COMPANION NETWORK</span>
+            <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">
+              COMPANION NETWORK
+            </span>
             <h2 className="text-2xl font-black text-[#1F3449]">Verified Pals Directory</h2>
             <p className="text-xs text-gray-600 mt-1">
               Active PathPal companions credentialed for hospital campus accompaniment.
@@ -693,7 +869,9 @@ export const HospitalPortalPage: React.FC = () => {
                       </td>
                       <td className="p-3">
                         <div className="font-bold text-[#1F3449]">{pal.name}</div>
-                        <div className="text-[10px] text-gray-500 font-mono">{pal.phone ? `Phone: ${pal.phone}` : (pal.email || 'Contact on file')}</div>
+                        <div className="text-[10px] text-gray-500 font-mono">
+                          {pal.phone ? `Phone: ${pal.phone}` : pal.email || 'Contact on file'}
+                        </div>
                       </td>
                       <td className="p-3">
                         <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300">
@@ -701,7 +879,9 @@ export const HospitalPortalPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="p-3">
-                        <div className="font-bold text-amber-600">★ {pal.rating.toFixed(1)} / 5.0</div>
+                        <div className="font-bold text-amber-600">
+                          ★ {(pal.rating || 5.0).toFixed(1)} / 5.0
+                        </div>
                       </td>
                       <td className="p-3">
                         <span
@@ -714,7 +894,9 @@ export const HospitalPortalPage: React.FC = () => {
                           {pal.account_status || 'active'}
                         </span>
                       </td>
-                      <td className="p-3 text-gray-600">{(pal.hospitalAffiliations || ['Path Pal Partner Hospital']).join(', ')}</td>
+                      <td className="p-3 text-gray-600">
+                        {(pal.hospitalAffiliations || ['Path Pal Partner Hospital']).join(', ')}
+                      </td>
                     </tr>
                   ))
                 ) : (
@@ -723,7 +905,9 @@ export const HospitalPortalPage: React.FC = () => {
                       <div className="flex flex-col items-center justify-center gap-2">
                         <ShieldCheck className="w-8 h-8 text-gray-300" />
                         <span className="font-bold text-gray-700">No Verified Pals in Directory</span>
-                        <span className="text-xs text-gray-500">Approved companion applications will appear here automatically once credentialed.</span>
+                        <span className="text-xs text-gray-500">
+                          Approved companion applications will appear here automatically once credentialed.
+                        </span>
                       </div>
                     </td>
                   </tr>
@@ -738,7 +922,9 @@ export const HospitalPortalPage: React.FC = () => {
       {activeTab === 'patients' && (
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
           <div className="border-b border-gray-200 pb-4">
-            <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">PATIENT REGISTRY</span>
+            <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">
+              PATIENT REGISTRY
+            </span>
             <h2 className="text-2xl font-black text-[#1F3449]">Registered Patients Directory</h2>
             <p className="text-xs text-gray-600 mt-1">
               Active patient profiles registered for campus escort assistance.
@@ -761,7 +947,9 @@ export const HospitalPortalPage: React.FC = () => {
                     <tr key={pt.id} className="hover:bg-gray-50 transition-colors">
                       <td className="p-3 font-bold text-[#1F3449]">{pt.name || 'Patient'}</td>
                       <td className="p-3 font-mono text-gray-700">{pt.phone || 'On file'}</td>
-                      <td className="p-3 text-gray-500">{new Date(pt.created_at || Date.now()).toLocaleDateString()}</td>
+                      <td className="p-3 text-gray-500">
+                        {new Date(pt.created_at || Date.now()).toLocaleDateString()}
+                      </td>
                       <td className="p-3">
                         <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
                           Active Registered
@@ -786,6 +974,279 @@ export const HospitalPortalPage: React.FC = () => {
         </div>
       )}
 
+      {/* TAB 5: Hospital Visits */}
+      {activeTab === 'visits' && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
+          <div className="border-b border-gray-200 pb-4">
+            <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">
+              CLINICAL APPOINTMENTS
+            </span>
+            <h2 className="text-2xl font-black text-[#1F3449]">Hospital Visits & Escort Logs</h2>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-gray-100 border-b border-gray-200 text-gray-700 uppercase font-black text-[10px]">
+                  <th className="p-3">Visit ID</th>
+                  <th className="p-3">Hospital & Department</th>
+                  <th className="p-3">Pal ID</th>
+                  <th className="p-3">Patient ID</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Scheduled At</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {visitsList.length > 0 ? (
+                  visitsList.map((v) => (
+                    <tr key={v.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="p-3 font-mono font-bold text-[#48A6A5]">{v.id}</td>
+                      <td className="p-3">
+                        <div className="font-bold text-[#1F3449]">{v.hospital_name}</div>
+                        <div className="text-[10px] text-gray-500">{v.department}</div>
+                      </td>
+                      <td className="p-3 font-mono">#{v.pal_id || 'N/A'}</td>
+                      <td className="p-3 font-mono">#{v.patient_id || 'N/A'}</td>
+                      <td className="p-3">
+                        <span className="bg-[#48A6A5]/15 text-[#48A6A5] text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                          {v.status}
+                        </span>
+                      </td>
+                      <td className="p-3 text-gray-500">
+                        {v.scheduled_at ? new Date(v.scheduled_at).toLocaleString() : 'N/A'}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-gray-500">
+                      No hospital visits logged yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 6: Financials (Memberships, Payments, Payouts) */}
+      {activeTab === 'financials' && (
+        <div className="space-y-6">
+          {/* Memberships */}
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-4">
+            <h3 className="text-xl font-black text-[#1F3449] flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-[#48A6A5]" />
+              <span>Active Patient Memberships</span>
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-gray-100 border-b border-gray-200 text-gray-700 uppercase font-black text-[10px]">
+                    <th className="p-3">ID</th>
+                    <th className="p-3">Plan Name</th>
+                    <th className="p-3">Price</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3">Start Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {membershipsList.length > 0 ? (
+                    membershipsList.map((m) => (
+                      <tr key={m.id}>
+                        <td className="p-3 font-mono">{m.id}</td>
+                        <td className="p-3 font-bold">{m.plan_name}</td>
+                        <td className="p-3 text-emerald-600 font-bold">
+                          ${((m.price_cents || 0) / 100).toFixed(2)}
+                        </td>
+                        <td className="p-3 uppercase font-bold text-xs">{m.status}</td>
+                        <td className="p-3 text-gray-500">{m.start_date || 'N/A'}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="p-4 text-center text-gray-500">
+                        No active memberships.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Payments & Payouts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-lg space-y-4">
+              <h3 className="text-lg font-black text-[#1F3449] flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-emerald-600" />
+                <span>Patient Payments</span>
+              </h3>
+              <div className="space-y-2">
+                {paymentsList.length > 0 ? (
+                  paymentsList.map((p) => (
+                    <div
+                      key={p.id}
+                      className="p-3 bg-gray-50 rounded-xl border border-gray-200 flex justify-between items-center text-xs"
+                    >
+                      <div>
+                        <div className="font-bold text-[#1F3449]">{p.description}</div>
+                        <div className="text-[10px] text-gray-500 font-mono">
+                          {p.stripe_payment_id || 'ID: ' + p.id}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-black text-emerald-600">
+                          +${((p.amount_cents || 0) / 100).toFixed(2)}
+                        </div>
+                        <span className="text-[10px] uppercase font-bold text-emerald-700">
+                          {p.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-gray-500 p-4 text-center">No payment records.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-lg space-y-4">
+              <h3 className="text-lg font-black text-[#1F3449] flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-amber-600" />
+                <span>Pal Payouts</span>
+              </h3>
+              <div className="space-y-2">
+                {payoutsList.length > 0 ? (
+                  payoutsList.map((po) => (
+                    <div
+                      key={po.id}
+                      className="p-3 bg-gray-50 rounded-xl border border-gray-200 flex justify-between items-center text-xs"
+                    >
+                      <div>
+                        <div className="font-bold text-[#1F3449]">Pal #{po.pal_id} Payout</div>
+                        <div className="text-[10px] text-gray-500 font-mono">
+                          {po.stripe_transfer_id || 'ID: ' + po.id}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-black text-amber-600">
+                          -${((po.amount_cents || 0) / 100).toFixed(2)}
+                        </div>
+                        <span className="text-[10px] uppercase font-bold text-gray-600">
+                          {po.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-gray-500 p-4 text-center">No payout records.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 7: Reviews & Ratings */}
+      {activeTab === 'reviews' && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
+          <div className="border-b border-gray-200 pb-4">
+            <span className="text-xs font-black uppercase text-[#F1B84C] tracking-wider">
+              QUALITY & FEEDBACK
+            </span>
+            <h2 className="text-2xl font-black text-[#1F3449]">Companion Escort Reviews</h2>
+          </div>
+
+          <div className="space-y-3">
+            {reviewsList.length > 0 ? (
+              reviewsList.map((rev) => (
+                <div
+                  key={rev.id}
+                  className="p-4 rounded-2xl bg-gray-50 border border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-[#1F3449]">
+                        {rev.pal_name || `Pal #${rev.pal_id}`}
+                      </span>
+                      <div className="flex text-amber-500 text-xs">
+                        {'★'.repeat(rev.rating)}
+                        {'☆'.repeat(5 - rev.rating)}
+                      </div>
+                    </div>
+                    {rev.comment && <p className="text-xs text-gray-700 italic">"{rev.comment}"</p>}
+                  </div>
+                  <span className="text-[10px] text-gray-400 font-mono">
+                    {new Date(rev.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="p-8 text-center text-gray-500">
+                <Star className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                <p className="font-bold">No Reviews Yet</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 8: Hospital Inquiries */}
+      {activeTab === 'inquiries' && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
+          <div className="border-b border-gray-200 pb-4">
+            <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">
+              PARTNERSHIPS
+            </span>
+            <h2 className="text-2xl font-black text-[#1F3449]">Hospital Partnership Inquiries</h2>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-gray-100 border-b border-gray-200 text-gray-700 uppercase font-black text-[10px]">
+                  <th className="p-3">Hospital</th>
+                  <th className="p-3">Contact</th>
+                  <th className="p-3">Est. Dispatches</th>
+                  <th className="p-3">Notes</th>
+                  <th className="p-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {inquiriesList.length > 0 ? (
+                  inquiriesList.map((inq) => (
+                    <tr key={inq.id} className="hover:bg-gray-50">
+                      <td className="p-3 font-bold text-[#1F3449]">{inq.hospital_name}</td>
+                      <td className="p-3">
+                        <div>{inq.contact_name}</div>
+                        <div className="text-[10px] text-gray-500 font-mono">
+                          {inq.contact_email} {inq.contact_phone && `• ${inq.contact_phone}`}
+                        </div>
+                      </td>
+                      <td className="p-3 font-bold text-[#48A6A5]">
+                        {inq.estimated_annual_dispatches || 0} / yr
+                      </td>
+                      <td className="p-3 text-gray-600 max-w-xs truncate">{inq.notes || '—'}</td>
+                      <td className="p-3">
+                        <span className="bg-[#48A6A5]/10 text-[#48A6A5] px-2 py-0.5 rounded-full font-bold uppercase text-[10px]">
+                          {inq.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="p-8 text-center text-gray-500">
+                      No hospital inquiries yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

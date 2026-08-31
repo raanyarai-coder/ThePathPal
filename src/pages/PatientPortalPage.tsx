@@ -4,7 +4,7 @@ import { SAMPLE_HOSPITALS, SAMPLE_PALS, INITIAL_REQUESTS } from '../data/mockDat
 import { PalRequest } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { createGoogleCalendarUrl, downloadIcsFile } from '../utils/calendarUtils';
-import { getCurrentPatientUser } from '../lib/supabase';
+import { getCurrentPatientUser, createPalRequest, fetchPalRequests } from '../lib/supabase';
 import { supabase } from '../lib/supabaseClient';
 
 interface PatientPortalPageProps {
@@ -21,11 +21,18 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
   const { t, language, setLanguage } = useLanguage();
   const [activeTab, setActiveTab] = useState<'request' | 'my_escorts' | 'financials'>('request');
   const [requests, setRequests] = useState<PalRequest[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Supabase Auth state
   const [authUser, setAuthUser] = useState<any>(null);
 
   useEffect(() => {
+    fetchPalRequests().then((data) => {
+      if (data && data.length > 0) {
+        setRequests(data);
+      }
+    });
+
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
         setAuthUser(user);
@@ -58,12 +65,12 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
 
   const selectedHospital = SAMPLE_HOSPITALS.find((h) => h.id === selectedHospitalId) || SAMPLE_HOSPITALS[0];
 
-  const handleCreateRequest = (e: React.FormEvent) => {
+  const handleCreateRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!patientName || !patientPhone) return;
 
-    const newReq: PalRequest = {
-      id: `PAT-${Math.floor(1000 + Math.random() * 9000)}`,
+    setIsSubmitting(true);
+    const res = await createPalRequest({
       patientName,
       patientPhone,
       hospitalId: selectedHospital.id,
@@ -72,14 +79,15 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
       appointmentTime,
       department,
       meetingPoint,
-      mobilityNeeds: selectedMobility,
       languagePreference,
-      status: 'matched',
-      assignedPal: SAMPLE_PALS[0],
-      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
-    };
+      mobilityNeeds: selectedMobility,
+    });
+    setIsSubmitting(false);
 
-    setRequests([newReq, ...requests]);
+    if (res.data) {
+      setRequests((prev) => [res.data!, ...prev]);
+    }
+
     setFormSubmitted(true);
     setActiveTab('my_escorts');
   };

@@ -8,7 +8,22 @@ import {
   getValidSupabaseUrl,
   getValidSupabaseAnonKey,
 } from './supabaseClient';
-import { Pal, PalApplication, PalEmailNotification, PalRequest } from '../types';
+import {
+  Pal,
+  PalApplication,
+  PalEmailNotification,
+  PalRequest,
+  Match,
+  HospitalVisit,
+  Membership,
+  Payment,
+  Payout,
+  Review,
+  HospitalInquiry,
+  Notification,
+  Patient,
+  AdminUser,
+} from '../types';
 
 export {
   supabase,
@@ -49,44 +64,61 @@ function saveSentPalEmail(email: PalEmailNotification) {
 
 /**
  * Transforms raw database row from `pals` table into application `Pal` object.
- * Database columns in `pals`:
- * - id: int4
- * - auth_user_id: uuid
- * - name: text
- * - phone: text
- * - bio: text
- * - availability: text
- * - background_check_status: text
- * - rating: numeric
- * - hourly_rate_cents: int4
- * - stripe_account_id: text
- * - created_at: timestamp
+ * Does NOT assign arbitrary fake ratings, languages, or avatars unless present in database.
  */
 export function formatPalFromDb(row: any): Pal {
   if (!row) return null as any;
   const badgeNumber = `PAL-${String(row.id).padStart(4, '0')}`;
+
+  let languagesList: string[] = [];
+  if (Array.isArray(row.languages)) {
+    languagesList = row.languages;
+  } else if (typeof row.languages === 'string' && row.languages.trim()) {
+    languagesList = row.languages.split(',').map((s: string) => s.trim()).filter(Boolean);
+  }
+
+  let specialtiesList: string[] = [];
+  if (Array.isArray(row.specialties)) {
+    specialtiesList = row.specialties;
+  } else if (typeof row.specialties === 'string' && row.specialties.trim()) {
+    specialtiesList = row.specialties.split(',').map((s: string) => s.trim()).filter(Boolean);
+  }
+
+  let affiliationsList: string[] = [];
+  if (Array.isArray(row.hospital_affiliations || row.hospitalAffiliations)) {
+    affiliationsList = row.hospital_affiliations || row.hospitalAffiliations;
+  } else if (
+    typeof (row.hospital_affiliations || row.hospitalAffiliations) === 'string' &&
+    (row.hospital_affiliations || row.hospitalAffiliations).trim()
+  ) {
+    affiliationsList = (row.hospital_affiliations || row.hospitalAffiliations)
+      .split(',')
+      .map((s: string) => s.trim())
+      .filter(Boolean);
+  }
+
   return {
     id: row.id,
     auth_user_id: row.auth_user_id || undefined,
-    name: row.name || 'PathPal Companion',
+    name: row.name || 'Pal Companion',
     phone: row.phone || '',
-    bio: row.bio || 'Compassionate healthcare companion.',
-    availability: row.availability || 'Weekdays & Weekends',
-    background_check_status: row.background_check_status || 'cleared',
-    rating: row.rating !== null && row.rating !== undefined ? Number(row.rating) : 5.0,
-    hourly_rate_cents: row.hourly_rate_cents || 2600,
+    bio: row.bio || '',
+    availability: row.availability || '',
+    background_check_status: row.background_check_status || 'pending',
+    rating: row.rating !== null && row.rating !== undefined ? Number(row.rating) : undefined,
+    hourly_rate_cents: row.hourly_rate_cents !== null && row.hourly_rate_cents !== undefined ? Number(row.hourly_rate_cents) : 0,
     stripe_account_id: row.stripe_account_id || undefined,
     created_at: row.created_at || new Date().toISOString(),
-    // Computed attributes
     badgeNumber,
     isVerified: row.background_check_status === 'cleared' || Boolean(row.auth_user_id),
     account_status: row.auth_user_id ? 'active' : 'approved_pending_verification',
     email_verified: Boolean(row.auth_user_id),
-    completedVisits: 0,
-    languages: ['English', 'Spanish'],
-    specialties: ['Hospital Escort', 'Patient Mobility Guidance'],
-    hospitalAffiliations: ['Path Pal Partner Hospital'],
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
+    completedVisits: row.completed_visits || row.completedVisits || 0,
+    languages: languagesList,
+    specialties: specialtiesList,
+    hospitalAffiliations: affiliationsList,
+    avatar: row.avatar_url || row.avatar || undefined,
+    email: row.email || undefined,
   };
 }
 
@@ -106,17 +138,56 @@ export function formatApplicationFromDb(row: any): PalApplication {
     bio: row.bio || '',
     specialties: row.specialties || '',
     admin_notes: row.admin_notes || '',
-    approved_at: row.approved_at,
+    approved_at: row.approved_at || undefined,
+    signup_completed_at: row.signup_completed_at || undefined,
+  };
+}
+
+/**
+ * Formats a raw database row from `pal_requests` into `PalRequest` object.
+ */
+export function formatPalRequestFromDb(row: any, assignedPal?: Pal): PalRequest {
+  let mobilityNeeds: string[] = [];
+  if (Array.isArray(row.mobility_needs)) {
+    mobilityNeeds = row.mobility_needs;
+  } else if (typeof row.mobility_needs === 'string' && row.mobility_needs.trim()) {
+    mobilityNeeds = row.mobility_needs.split(',').map((s: string) => s.trim()).filter(Boolean);
+  } else if (row.notes && row.notes.includes('Mobility:')) {
+    const match = row.notes.match(/Mobility:\s*([^;]+)/);
+    if (match && match[1]) {
+      mobilityNeeds = match[1].split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+  }
+
+  let appDate = row.scheduled_at ? row.scheduled_at.split('T')[0] : new Date().toISOString().split('T')[0];
+  let appTime = row.scheduled_at && row.scheduled_at.includes('T')
+    ? row.scheduled_at.split('T')[1].substring(0, 5)
+    : '10:00 AM';
+
+  return {
+    id: row.id,
+    patient_id: row.patient_id || undefined,
+    patientName: row.patient_name || (row.patient ? row.patient.name : 'Patient'),
+    patientPhone: row.patient_phone || (row.patient ? row.patient.phone : ''),
+    hospitalId: row.hospital_id || 'hosp-01',
+    hospitalName: row.hospital_name || 'Hospital Campus',
+    appointmentDate: appDate,
+    appointmentTime: appTime,
+    department: row.department || 'General Clinic',
+    meetingPoint: row.meeting_point || 'Main Lobby Entrance',
+    mobilityNeeds: mobilityNeeds.length > 0 ? mobilityNeeds : ['Escort Assistance'],
+    languagePreference: row.language_preference || 'English',
+    notes: row.notes || '',
+    status: row.status || 'pending',
+    assignedPal,
+    createdAt: row.created_at || new Date().toISOString(),
   };
 }
 
 /* =========================================================================
- * 1. PAL APPLICATION SUBMISSION & MANAGEMENT
+ * 1. PAL APPLICATIONS
  * ========================================================================= */
 
-/**
- * Saves a new Pal companion application.
- */
 export async function submitPalApplication(data: {
   name?: string;
   full_name?: string;
@@ -136,7 +207,7 @@ export async function submitPalApplication(data: {
       return { data: null, error: { message: 'Full name and email are required.' } };
     }
 
-    const { error: dbError } = await supabase
+    const { data: inserted, error: dbError } = await supabase
       .from('pal_applications')
       .insert({
         name: applicantName,
@@ -144,37 +215,22 @@ export async function submitPalApplication(data: {
         phone: applicantPhone,
         languages: applicantLanguages,
         status: 'pending',
-      });
+      })
+      .select()
+      .single();
 
     if (dbError) {
       console.error('Pal application submission error:', dbError.message);
-      return { data: null, error: { message: 'Unable to submit application at this time. Please try again.' } };
+      return { data: null, error: { message: 'Unable to submit application at this time: ' + dbError.message } };
     }
 
-    const application: PalApplication = {
-      id: '',
-      name: applicantName,
-      full_name: applicantName,
-      email: applicantEmail,
-      phone: applicantPhone,
-      languages: applicantLanguages,
-      status: 'pending',
-      created_at: new Date().toISOString(),
-      bio: data.bio || '',
-      specialties: data.specialties || '',
-      admin_notes: '',
-    };
-
-    return { data: application, error: null };
+    return { data: formatApplicationFromDb(inserted), error: null };
   } catch (err: any) {
     console.error('Error submitting pal application:', err);
-    return { data: null, error: { message: 'An unexpected error occurred. Please try again.' } };
+    return { data: null, error: { message: err?.message || 'An unexpected error occurred. Please try again.' } };
   }
 }
 
-/**
- * Fetches all Pal applications for Admin review.
- */
 export async function fetchPalApplications(): Promise<PalApplication[]> {
   try {
     const { data, error } = await supabase
@@ -196,9 +252,6 @@ export async function fetchPalApplications(): Promise<PalApplication[]> {
   return [];
 }
 
-/**
- * Approves a Pal application and prepares credentials.
- */
 export async function approvePalApplication(
   applicationId: string,
   _adminNotes: string = 'Approved by Administrator'
@@ -231,7 +284,7 @@ export async function approvePalApplication(
         {
           name: application.name,
           phone: application.phone,
-          bio: 'Hospital Escort and Patient Companion Pal.',
+          bio: application.bio || 'Hospital Escort and Patient Companion Pal.',
           availability: 'Flexible (Weekdays & Weekends)',
           background_check_status: 'cleared',
           rating: 5.0,
@@ -248,9 +301,26 @@ export async function approvePalApplication(
   }
 }
 
-/**
- * Retrieves an approved application by ID.
- */
+export async function rejectPalApplication(
+  applicationId: string,
+  _adminNotes: string = 'Application rejected by Administrator'
+): Promise<{ success: boolean; error: { message: string } | null }> {
+  try {
+    const { error } = await supabase
+      .from('pal_applications')
+      .update({ status: 'rejected' })
+      .eq('id', applicationId);
+
+    if (error) {
+      return { success: false, error: { message: error.message } };
+    }
+
+    return { success: true, error: null };
+  } catch (err: any) {
+    return { success: false, error: { message: err?.message || 'Failed to reject application.' } };
+  }
+}
+
 export async function getApprovedPalApplication(
   applicationId: string
 ): Promise<{ data: PalApplication | null; error: { message: string } | null }> {
@@ -262,7 +332,7 @@ export async function getApprovedPalApplication(
       .maybeSingle();
 
     if (error) {
-      return { data: null, error: { message: 'Application could not be retrieved.' } };
+      return { data: null, error: { message: 'Application could not be retrieved: ' + error.message } };
     }
 
     if (!data) {
@@ -564,7 +634,7 @@ export async function getCurrentPalUser(): Promise<{ user: any | null; palRecord
 }
 
 /* =========================================================================
- * 3. PATIENT FUNCTIONS
+ * 3. PATIENTS
  * ========================================================================= */
 
 export async function signUpPatient(
@@ -642,14 +712,23 @@ export async function getCurrentPatientUser() {
   }
 }
 
-export async function fetchAllPatients(): Promise<any[]> {
+export async function fetchAllPatients(): Promise<Patient[]> {
   try {
     const { data, error } = await supabase
       .from('patients')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data) return data;
+    if (!error && data) {
+      return data.map((row: any) => ({
+        id: row.id,
+        auth_user_id: row.auth_user_id,
+        name: row.name || 'Patient',
+        phone: row.phone || '',
+        email: row.email || '',
+        created_at: row.created_at || new Date().toISOString(),
+      }));
+    }
   } catch {}
   return [];
 }
@@ -661,47 +740,118 @@ export async function fetchAllPatients(): Promise<any[]> {
 export async function createPalRequest(requestData: {
   patient_id?: number;
   patient_name?: string;
+  patientName?: string;
+  patientPhone?: string;
+  hospitalId?: string;
+  hospitalName?: string;
   department?: string;
   meeting_point?: string;
+  meetingPoint?: string;
   scheduled_at?: string;
+  appointmentDate?: string;
+  appointmentTime?: string;
   notes?: string;
   status?: string;
-}): Promise<{ data: any | null; error: { message: string } | null }> {
+  mobilityNeeds?: string[];
+  languagePreference?: string;
+}): Promise<{ data: PalRequest | null; error: { message: string } | null }> {
   try {
+    const patient_name = requestData.patient_name || requestData.patientName || 'Patient';
+    const department = requestData.department || 'Main Outpatient';
+    const meeting_point = requestData.meeting_point || requestData.meetingPoint || 'Main Lobby Entrance';
+    const scheduled_at =
+      requestData.scheduled_at ||
+      (requestData.appointmentDate && requestData.appointmentTime
+        ? `${requestData.appointmentDate}T${requestData.appointmentTime}`
+        : new Date().toISOString());
+
+    const notesExtra = [
+      requestData.notes,
+      requestData.hospitalName ? `Hospital: ${requestData.hospitalName}` : '',
+      requestData.patientPhone ? `Phone: ${requestData.patientPhone}` : '',
+      requestData.languagePreference ? `Language: ${requestData.languagePreference}` : '',
+      requestData.mobilityNeeds?.length ? `Mobility: ${requestData.mobilityNeeds.join(', ')}` : '',
+    ]
+      .filter(Boolean)
+      .join(' | ');
+
     const { data, error } = await supabase
       .from('pal_requests')
       .insert({
         patient_id: requestData.patient_id || null,
-        patient_name: requestData.patient_name || 'Patient',
-        department: requestData.department || 'Main Outpatient',
-        meeting_point: requestData.meeting_point || 'Main Lobby Entrance',
-        scheduled_at: requestData.scheduled_at || new Date().toISOString(),
-        notes: requestData.notes || '',
+        patient_name,
+        department,
+        meeting_point,
+        scheduled_at,
+        notes: notesExtra,
         status: requestData.status || 'pending',
       })
       .select()
       .maybeSingle();
 
     if (error) {
-      return { data: null, error: { message: 'Could not create companion request.' } };
+      return { data: null, error: { message: 'Could not create companion request: ' + error.message } };
     }
 
-    return { data, error: null };
+    const formatted: PalRequest = {
+      id: String(data?.id || `REQ-${Date.now()}`),
+      patientName: data?.patient_name || patient_name,
+      patientPhone: requestData.patientPhone || '',
+      hospitalId: requestData.hospitalId || 'hosp-1',
+      hospitalName: requestData.hospitalName || 'PathPal Partner Medical Center',
+      appointmentDate: requestData.appointmentDate || new Date().toISOString().split('T')[0],
+      appointmentTime: requestData.appointmentTime || '10:00 AM',
+      department: data?.department || department,
+      meetingPoint: data?.meeting_point || meeting_point,
+      mobilityNeeds: requestData.mobilityNeeds || ['Companion Escort'],
+      languagePreference: requestData.languagePreference || 'English',
+      status: (data?.status as any) || 'pending',
+      assignedPal: undefined,
+      createdAt: data?.created_at || new Date().toISOString(),
+    };
+
+    return { data: formatted, error: null };
   } catch (err: any) {
     return { data: null, error: { message: err?.message || 'Failed to create request.' } };
   }
 }
 
-export async function fetchPalRequests(): Promise<any[]> {
+export async function fetchPalRequests(): Promise<PalRequest[]> {
   try {
     const { data, error } = await supabase
       .from('pal_requests')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data) return data;
-  } catch {}
-  return [];
+    if (error) {
+      console.warn('Error fetching pal requests:', error.message);
+      return [];
+    }
+
+    if (!data) return [];
+
+    // Also fetch all matches to pair assigned Pals
+    const { data: matchesData } = await supabase.from('matches').select('*');
+    const { data: palsData } = await supabase.from('pals').select('*');
+
+    const palsMap = new Map<number, Pal>();
+    if (palsData) {
+      palsData.forEach((p: any) => palsMap.set(p.id, formatPalFromDb(p)));
+    }
+
+    const matchesMap = new Map<string, any>();
+    if (matchesData) {
+      matchesData.forEach((m: any) => matchesMap.set(m.request_id, m));
+    }
+
+    return data.map((r: any) => {
+      const match = matchesMap.get(r.id);
+      const pal = match ? palsMap.get(match.pal_id) : undefined;
+      return formatPalRequestFromDb(r, pal);
+    });
+  } catch {
+    return [];
+  }
 }
 
 export async function assignPalToRequest(
@@ -720,12 +870,16 @@ export async function assignPalToRequest(
     }
 
     // 2. Create match record
-    await supabase.from('matches').insert({
+    const { error: matchErr } = await supabase.from('matches').insert({
       request_id: requestId,
       pal_id: palId,
       status: 'accepted',
       matched_at: new Date().toISOString(),
     });
+
+    if (matchErr) {
+      return { success: false, error: matchErr.message };
+    }
 
     return { success: true, error: null };
   } catch (e: any) {
@@ -733,8 +887,182 @@ export async function assignPalToRequest(
   }
 }
 
+export async function fetchAllMatches(): Promise<Match[]> {
+  try {
+    const { data, error } = await supabase
+      .from('matches')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+
+    const pals = await fetchAllPals();
+    const palsMap = new Map(pals.map((p) => [p.id, p]));
+
+    return data.map((row: any) => ({
+      id: row.id,
+      request_id: row.request_id,
+      pal_id: row.pal_id,
+      status: row.status || 'pending',
+      matched_at: row.matched_at,
+      created_at: row.created_at || new Date().toISOString(),
+      pal: palsMap.get(row.pal_id),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 /* =========================================================================
- * 5. HOSPITAL INQUIRIES & VISITS
+ * 5. HOSPITAL VISITS
+ * ========================================================================= */
+
+export async function fetchAllHospitalVisits(): Promise<HospitalVisit[]> {
+  try {
+    const { data, error } = await supabase
+      .from('hospital_visits')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+
+    return data.map((row: any) => ({
+      id: row.id,
+      match_id: row.match_id,
+      pal_id: row.pal_id,
+      patient_id: row.patient_id,
+      hospital_name: row.hospital_name || 'Hospital Campus',
+      department: row.department || 'Outpatient Clinic',
+      scheduled_at: row.scheduled_at,
+      started_at: row.started_at,
+      completed_at: row.completed_at,
+      status: row.status || 'scheduled',
+      notes: row.notes || '',
+      created_at: row.created_at || new Date().toISOString(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/* =========================================================================
+ * 6. MEMBERSHIPS
+ * ========================================================================= */
+
+export async function fetchAllMemberships(): Promise<Membership[]> {
+  try {
+    const { data, error } = await supabase
+      .from('memberships')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+
+    return data.map((row: any) => ({
+      id: row.id,
+      patient_id: row.patient_id,
+      plan_name: row.plan_name || 'Care Access Plan',
+      status: row.status || 'active',
+      start_date: row.start_date,
+      renewal_date: row.renewal_date,
+      end_date: row.end_date,
+      price_cents: row.price_cents || 0,
+      created_at: row.created_at || new Date().toISOString(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/* =========================================================================
+ * 7. PAYMENTS
+ * ========================================================================= */
+
+export async function fetchAllPayments(): Promise<Payment[]> {
+  try {
+    const { data, error } = await supabase
+      .from('payments')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+
+    return data.map((row: any) => ({
+      id: row.id,
+      patient_id: row.patient_id,
+      amount_cents: row.amount_cents || 0,
+      status: row.status || 'succeeded',
+      stripe_payment_id: row.stripe_payment_id,
+      description: row.description || 'Hospital Companion Escort',
+      created_at: row.created_at || new Date().toISOString(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/* =========================================================================
+ * 8. PAYOUTS
+ * ========================================================================= */
+
+export async function fetchAllPayouts(): Promise<Payout[]> {
+  try {
+    const { data, error } = await supabase
+      .from('payouts')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+
+    return data.map((row: any) => ({
+      id: row.id,
+      pal_id: row.pal_id,
+      amount_cents: row.amount_cents || 0,
+      status: row.status || 'paid',
+      stripe_transfer_id: row.stripe_transfer_id,
+      period_start: row.period_start,
+      period_end: row.period_end,
+      created_at: row.created_at || new Date().toISOString(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/* =========================================================================
+ * 9. REVIEWS
+ * ========================================================================= */
+
+export async function fetchAllReviews(): Promise<Review[]> {
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+
+    const pals = await fetchAllPals();
+    const palsMap = new Map(pals.map((p) => [p.id, p.name]));
+
+    return data.map((row: any) => ({
+      id: row.id,
+      visit_id: row.visit_id,
+      match_id: row.match_id,
+      pal_id: row.pal_id,
+      patient_id: row.patient_id,
+      rating: Number(row.rating) || 5,
+      comment: row.comment || '',
+      created_at: row.created_at || new Date().toISOString(),
+      pal_name: palsMap.get(row.pal_id) || `Pal #${row.pal_id}`,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/* =========================================================================
+ * 10. HOSPITAL INQUIRIES
  * ========================================================================= */
 
 export async function submitHospitalInquiry(inquiry: {
@@ -762,20 +1090,58 @@ export async function submitHospitalInquiry(inquiry: {
   }
 }
 
-export async function fetchHospitalInquiries(): Promise<any[]> {
+export async function fetchHospitalInquiries(): Promise<HospitalInquiry[]> {
   try {
     const { data, error } = await supabase
       .from('hospital_inquiries')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data) return data;
+    if (!error && data) {
+      return data.map((row: any) => ({
+        id: row.id,
+        hospital_name: row.hospital_name || 'Hospital',
+        contact_name: row.contact_name || 'Contact',
+        contact_email: row.contact_email || '',
+        contact_phone: row.contact_phone || '',
+        estimated_annual_dispatches: row.estimated_annual_dispatches || 0,
+        notes: row.notes || '',
+        status: row.status || 'new',
+        created_at: row.created_at || new Date().toISOString(),
+      }));
+    }
   } catch {}
   return [];
 }
 
 /* =========================================================================
- * 6. ACTIVE LOCATION SESSIONS (FOR ADMIN RADAR)
+ * 11. NOTIFICATIONS
+ * ========================================================================= */
+
+export async function fetchAllNotifications(): Promise<Notification[]> {
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      return data.map((row: any) => ({
+        id: row.id,
+        user_id: row.user_id,
+        title: row.title || 'Notification',
+        message: row.message || '',
+        type: row.type || 'info',
+        is_read: row.is_read ?? false,
+        created_at: row.created_at || new Date().toISOString(),
+      }));
+    }
+  } catch {}
+  return [];
+}
+
+/* =========================================================================
+ * 12. ACTIVE LOCATION SESSIONS (RADAR)
  * ========================================================================= */
 
 export async function fetchActiveLocationSessions(): Promise<any[]> {
@@ -792,44 +1158,58 @@ export async function fetchActiveLocationSessions(): Promise<any[]> {
 }
 
 /* =========================================================================
- * 7. ADMIN AUTHENTICATION & ACCESS CONTROL
+ * 13. ADMIN AUTHENTICATION & ACCESS CONTROL (STRICT DB VERIFICATION)
  * ========================================================================= */
 
-export interface AdminUser {
-  id: string;
-  email: string;
-  name: string;
-  role: 'admin';
-  hospital: string;
-  badgeNumber: string;
-  token?: string;
-  lastLogin: string;
-}
-
-const ADMIN_SESSION_STORAGE_KEY = 'pathpal_admin_session';
-
-export function getStoredAdminSession(): AdminUser | null {
+/**
+ * Verifies if a given Supabase auth user UUID exists in `public.admin_users`
+ * with `role = 'admin'` and `is_active = true`.
+ */
+export async function verifyAdminInDatabase(userId: string): Promise<{
+  isAdmin: boolean;
+  adminRecord: AdminUser | null;
+  error: string | null;
+}> {
   try {
-    const data = localStorage.getItem(ADMIN_SESSION_STORAGE_KEY);
-    return data ? JSON.parse(data) : null;
-  } catch {
-    return null;
-  }
-}
+    const { data, error } = await supabase
+      .from('admin_users')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
 
-export function saveAdminSession(admin: AdminUser): void {
-  try {
-    localStorage.setItem(ADMIN_SESSION_STORAGE_KEY, JSON.stringify(admin));
-  } catch (e) {
-    console.error('Failed to save admin session:', e);
-  }
-}
+    if (error) {
+      return { isAdmin: false, adminRecord: null, error: error.message };
+    }
 
-export function clearAdminSession(): void {
-  try {
-    localStorage.removeItem(ADMIN_SESSION_STORAGE_KEY);
-  } catch (e) {
-    console.error('Failed to clear admin session:', e);
+    if (!data) {
+      return {
+        isAdmin: false,
+        adminRecord: null,
+        error: 'Unauthorized: No administrator account record found for this user.',
+      };
+    }
+
+    if (data.role !== 'admin' || !data.is_active) {
+      return {
+        isAdmin: false,
+        adminRecord: null,
+        error: 'Access denied: Admin account is inactive or lacks administrator privileges.',
+      };
+    }
+
+    const adminUser: AdminUser = {
+      id: data.id,
+      email: data.email || '',
+      name: data.name || data.full_name || 'Administrator',
+      role: data.role,
+      is_active: data.is_active,
+      badgeNumber: data.badge_number || `ADM-${data.id.slice(0, 4).toUpperCase()}`,
+      created_at: data.created_at,
+    };
+
+    return { isAdmin: true, adminRecord: adminUser, error: null };
+  } catch (err: any) {
+    return { isAdmin: false, adminRecord: null, error: err?.message || 'Database query error.' };
   }
 }
 
@@ -848,7 +1228,7 @@ export async function loginAdmin(
       };
     }
 
-    // Direct Supabase Authentication
+    // 1. Authenticate with Supabase Auth
     const { data: sbData, error: sbError } = await supabase.auth.signInWithPassword({
       email: cleanEmail,
       password: cleanPassword,
@@ -857,7 +1237,7 @@ export async function loginAdmin(
     if (sbError) {
       return {
         data: null,
-        error: { message: sbError.message || 'Invalid Supabase Admin credentials.' },
+        error: { message: sbError.message || 'Invalid administrator login credentials.' },
       };
     }
 
@@ -869,69 +1249,73 @@ export async function loginAdmin(
     }
 
     const user = sbData.user;
-    const nameSegment = (user.user_metadata?.full_name || cleanEmail.split('@')[0]).replace(/[._-]/g, ' ');
-    const formattedName = nameSegment.replace(/\b\w/g, (char: string) => char.toUpperCase()) || 'Administrator';
 
-    const adminUser: AdminUser = {
-      id: user.id,
-      email: user.email || cleanEmail,
-      name: formattedName,
-      role: 'admin',
-      hospital: user.user_metadata?.hospital || 'Path Pal Admin',
-      badgeNumber: user.user_metadata?.badge_number || `ADM-${user.id.slice(0, 4).toUpperCase()}`,
-      token: user.id,
-      lastLogin: new Date().toISOString(),
-    };
+    // 2. Strict verification in public.admin_users table
+    const verification = await verifyAdminInDatabase(user.id);
 
-    saveAdminSession(adminUser);
+    if (!verification.isAdmin || !verification.adminRecord) {
+      // Sign out immediately if not an authorized active admin
+      await supabase.auth.signOut().catch(() => {});
+      return {
+        data: null,
+        error: {
+          message:
+            verification.error ||
+            'Access denied: You do not have verified administrator privileges in the database.',
+        },
+      };
+    }
+
     return {
       data: {
         user,
-        adminUser,
+        adminUser: verification.adminRecord,
       },
       error: null,
     };
   } catch (err: any) {
     return {
       data: null,
-      error: { message: err?.message || 'An error occurred during Supabase Admin authentication.' },
+      error: { message: err?.message || 'An error occurred during Admin authentication.' },
     };
+  }
+}
+
+export async function validateAdminSession(): Promise<AdminUser | null> {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.user) return null;
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      await supabase.auth.signOut().catch(() => {});
+      return null;
+    }
+
+    const verification = await verifyAdminInDatabase(user.id);
+    if (!verification.isAdmin || !verification.adminRecord) {
+      await supabase.auth.signOut().catch(() => {});
+      return null;
+    }
+
+    return verification.adminRecord;
+  } catch {
+    return null;
   }
 }
 
 export async function signOutAdmin(): Promise<{ error: { message: string } | null }> {
   try {
-    clearAdminSession();
     await supabase.auth.signOut().catch(() => {});
     return { error: null };
   } catch (err: any) {
     return { error: { message: err?.message || 'Error signing out administrator.' } };
   }
-}
-
-export async function getCurrentAdminUser(): Promise<AdminUser | null> {
-  const stored = getStoredAdminSession();
-  if (stored) return stored;
-
-  try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user) {
-      const adminUser: AdminUser = {
-        id: user.id,
-        email: user.email || 'admin@pathpal.health',
-        name: user.user_metadata?.full_name || 'Administrator',
-        role: 'admin',
-        hospital: 'Path Pal Admin',
-        badgeNumber: 'ADM-9901',
-        token: user.id,
-        lastLogin: new Date().toISOString(),
-      };
-      saveAdminSession(adminUser);
-      return adminUser;
-    }
-  } catch {}
-
-  return null;
 }

@@ -24,8 +24,14 @@ import {
   ArrowRight,
   ShieldAlert,
 } from 'lucide-react';
-import { supabase, loginPal, fetchPalByAuthUserId, formatPalFromDb } from '../lib/supabase';
-import { SAMPLE_PALS, INITIAL_REQUESTS } from '../data/mockData';
+import {
+  supabase,
+  loginPal,
+  fetchPalByAuthUserId,
+  formatPalFromDb,
+  fetchPalRequests,
+  assignPalToRequest,
+} from '../lib/supabase';
 import { Pal, PalRequest } from '../types';
 import { MedicalSummaryWidget } from '../components/MedicalSummaryWidget';
 import { EtaCalculatorWidget } from '../components/EtaCalculatorWidget';
@@ -61,7 +67,8 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
   const [activeTab, setActiveTab] = useState<
     'available_feed' | 'my_active' | 'eta_calculator' | 'earnings' | 'profile'
   >('available_feed');
-  const [requests, setRequests] = useState<PalRequest[]>(INITIAL_REQUESTS);
+  const [requests, setRequests] = useState<PalRequest[]>([]);
+  const [isLoadingRequests, setIsLoadingRequests] = useState<boolean>(false);
   const [selectedPalPatientSummary, setSelectedPalPatientSummary] = useState<PalRequest | null>(
     null
   );
@@ -86,6 +93,18 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
     };
   }, []);
 
+  const loadRequests = async () => {
+    setIsLoadingRequests(true);
+    try {
+      const liveReqs = await fetchPalRequests();
+      setRequests(liveReqs);
+    } catch (e) {
+      console.error('Error fetching pal requests:', e);
+    } finally {
+      setIsLoadingRequests(false);
+    }
+  };
+
   const loadAuthenticatedPal = async () => {
     setIsLoadingAuth(true);
     setActivationError(null);
@@ -96,7 +115,6 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
       } = await supabase.auth.getUser();
 
       if (userError) {
-        console.warn('Supabase auth check note:', userError.message);
         setAuthUser(null);
         setPalInfo(null);
       } else if (user) {
@@ -124,75 +142,52 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
         .eq('auth_user_id', user.id)
         .maybeSingle();
 
-      if (palDbError) {
-        console.error('Supabase query pals by auth_user_id error:', {
-          message: palDbError.message,
-          details: palDbError.details,
-          code: palDbError.code,
-        });
-      }
-
       if (palDb) {
         const formatted = formatPalFromDb(palDb);
         setPalInfo(formatted);
         setActivationError(null);
+        await loadRequests();
         return;
       }
 
       // 2. If not yet linked by auth_user_id, link via approved application if email is confirmed
       if (user.email_confirmed_at && user.email) {
-        const { data: application, error: appErr } = await supabase
+        const { data: application } = await supabase
           .from('pal_applications')
           .select('*')
           .eq('email', user.email)
           .eq('status', 'approved')
           .maybeSingle();
 
-        if (appErr) {
-          console.error('Error finding approved application:', appErr);
-        }
-
         const appName = application?.name || user.user_metadata?.full_name;
         const appPhone = application?.phone || user.user_metadata?.phone;
 
         if (appName && appPhone) {
-          const { data: existingPal, error: lookupErr } = await supabase
+          const { data: existingPal } = await supabase
             .from('pals')
             .select('*')
             .eq('name', appName)
             .eq('phone', appPhone)
             .maybeSingle();
 
-          if (lookupErr) {
-            console.error('Error looking up pal by name and phone:', lookupErr);
-          }
-
           if (existingPal) {
-            const { data: linkedPal, error: linkErr } = await supabase
+            const { data: linkedPal } = await supabase
               .from('pals')
               .update({ auth_user_id: user.id })
               .eq('id', existingPal.id)
               .select()
               .single();
 
-            if (linkErr) {
-              console.error('Error linking auth_user_id to existing pal:', linkErr);
-            } else if (linkedPal) {
+            if (linkedPal) {
               const formatted = formatPalFromDb(linkedPal);
               setPalInfo(formatted);
               setActivationError(null);
+              await loadRequests();
               return;
             }
           }
         }
       }
-
-      // If no matching Pal profile exists in pals table for this authenticated user:
-      console.warn('Pal profile not found for authenticated user:', {
-        authUserId: user.id,
-        userEmail: user.email,
-        emailConfirmedAt: user.email_confirmed_at,
-      });
 
       setPalInfo(null);
       setActivationError(
@@ -225,6 +220,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
         if (res.data.palRecord) {
           setPalInfo(res.data.palRecord);
           setActivationError(null);
+          await loadRequests();
         } else {
           await fetchPalProfile(res.data.user);
         }
@@ -248,14 +244,20 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
     setActivationError(null);
   };
 
-  const handleAcceptRequest = (reqId: string) => {
-    const assigned = palInfo || (isDemoMode ? SAMPLE_PALS[0] : null);
-    setRequests(
-      requests.map((r) =>
-        r.id === reqId ? { ...r, status: 'in_progress', assignedPal: assigned || undefined } : r
-      )
-    );
-    setActiveTab('my_active');
+  const handleAcceptRequest = async (reqId: string) => {
+    if (!palInfo) return;
+    try {
+      const palNumId = typeof palInfo.id === 'number' ? palInfo.id : parseInt(String(palInfo.id), 10);
+      const res = await assignPalToRequest(reqId, isNaN(palNumId) ? 1 : palNumId);
+      if (res.success) {
+        await loadRequests();
+        setActiveTab('my_active');
+      } else {
+        alert(res.error || 'Failed to accept assignment');
+      }
+    } catch (err) {
+      console.error('Error accepting assignment:', err);
+    }
   };
 
   // 1. Loading State
@@ -733,8 +735,10 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
           </div>
 
           <div className="space-y-4">
-            {requests.length > 0 ? (
-              requests.map((req) => (
+            {requests.filter((r) => r.status === 'pending').length > 0 ? (
+              requests
+                .filter((r) => r.status === 'pending')
+                .map((req) => (
                 <div
                   key={req.id}
                   className="bg-gray-50 p-6 rounded-2xl border border-gray-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hover:border-[#48A6A5] transition-all shadow-sm"
@@ -830,9 +834,9 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
           </div>
 
           <div className="space-y-4">
-            {requests.filter((r) => r.status === 'in_progress').length > 0 ? (
+            {requests.filter((r) => r.status === 'in_progress' || r.status === 'matched').length > 0 ? (
               requests
-                .filter((r) => r.status === 'in_progress')
+                .filter((r) => r.status === 'in_progress' || r.status === 'matched')
                 .map((req) => (
                   <div
                     key={req.id}
