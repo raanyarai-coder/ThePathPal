@@ -8,8 +8,12 @@ export function getValidSupabaseUrl(): string {
   const envUrl = import.meta.env.VITE_SUPABASE_URL;
   const rawUrl = typeof envUrl === 'string' && envUrl.trim().length > 0 ? envUrl.trim() : DEFAULT_SUPABASE_URL;
   try {
-    const formatted = rawUrl.startsWith('http://') || rawUrl.startsWith('https://') ? rawUrl : `https://${rawUrl}`;
+    let formatted = rawUrl.startsWith('http://') || rawUrl.startsWith('https://') ? rawUrl : `https://${rawUrl}`;
     const parsed = new URL(formatted);
+    // If hostname does not contain a dot (e.g. 'pzzrgstawlqxanfdjnbq'), append '.supabase.co'
+    if (!parsed.hostname.includes('.')) {
+      parsed.hostname = `${parsed.hostname}.supabase.co`;
+    }
     if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
       return parsed.origin;
     }
@@ -43,7 +47,7 @@ const customFetch: typeof fetch = async (input, init) => {
     }
     return response;
   } catch (error: any) {
-    console.error(`[Supabase Fetch Error] Network/fetch error requesting ${urlStr}:`, error);
+    console.warn(`[Supabase Fetch] Network request to ${urlStr} failed:`, error?.message || error);
     throw error;
   }
 };
