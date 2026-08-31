@@ -26,7 +26,6 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
     {
       category: "Quick Actions & Tools",
       items: [
-        { keys: ["Alt", "S"], label: "🚨 Trigger Emergency SOS (Hospital Security & Pal)" },
         { keys: ["Alt", "R"], label: "Request a Companion Pal" },
         { keys: ["Alt", "G"], label: "Open Live Indoor GPS Radar" },
         { keys: ["Alt", "K"], label: "Open Keyboard Accessibility Guide" },
