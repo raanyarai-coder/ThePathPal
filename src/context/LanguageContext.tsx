@@ -33,12 +33,12 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     btnLiveGps: 'Live GPS Radar',
 
     // Hero
-    heroBadge: 'Health Plan & Insurance Covered • $0 Out-of-Pocket',
+    heroBadge: 'Direct-Pay & Affordable Memberships • Starting at $35',
     heroTitlePrefix: 'Compassionate Hospital',
     heroTitleHighlight: 'Companion & Guidance',
     heroSubtitle: 'Connecting elderly, disabled, and non-English speaking patients with background-checked Community Health Workers for stress-free hospital visits.',
     heroStat1: 'Doorstep-to-Clinic Pal',
-    heroStat2: 'Health Plan Subsidized',
+    heroStat2: 'Transparent Flat Pricing',
     heroStat3: 'Multilingual CHWs',
 
     // Portals Selector
@@ -107,12 +107,12 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     btnLiveGps: 'Radar GPS en Vivo',
 
     // Hero
-    heroBadge: 'Cubierto por Seguro Médico • $0 de su Bolsillo',
+    heroBadge: 'Tarifas Directas y Membresías Accesibles • Desde $35',
     heroTitlePrefix: 'Acompañante y Escolta',
     heroTitleHighlight: 'Hospitalaria Compasiva',
     heroSubtitle: 'Conectando a adultos mayores, personas con discapacidad y pacientes de habla hispana con promotores de salud acreditados para visitas hospitalarias sin estrés.',
     heroStat1: 'Escolta desde Puerta a Clínica',
-    heroStat2: 'Cubierto por Seguro Médico',
+    heroStat2: 'Tarifas Transparentes',
     heroStat3: 'Acompañantes Multilingües',
 
     // Portals Selector
@@ -181,12 +181,12 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     btnLiveGps: 'लाइव GPS रडार',
 
     // Hero
-    heroBadge: 'स्वास्थ्य योजना और बीमा द्वारा कवर • $0 अपनी जेब से',
+    heroBadge: 'सस्ती प्रत्यक्ष दरें और सदस्यताएँ • $35 से शुरू',
     heroTitlePrefix: 'सहानुभूतिपूर्ण अस्पताल',
     heroTitleHighlight: 'साथी और मार्गदर्शन',
     heroSubtitle: 'बुजुर्गों, दिव्यांगों और गैर-अंग्रेजी भाषी मरीज़ों को तनावमुक्त अस्पताल दौरों के लिए पृष्ठभूमि-सत्यापित सामुदायिक स्वास्थ्य कार्यकर्ताओं से जोड़ना।',
     heroStat1: 'दरवाजे से क्लिनिक तक साथी',
-    heroStat2: 'स्वास्थ्य योजना द्वारा सब्सिडी प्राप्त',
+    heroStat2: 'पारदर्शी निश्चित मूल्य निर्धारण',
     heroStat3: 'बहुभाषी सामुदायिक स्वास्थ्य कार्यकर्ता',
 
     // Portals Selector

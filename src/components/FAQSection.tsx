@@ -19,7 +19,7 @@ const FAQ_ITEMS: FAQItem[] = [
     id: 'faq-2',
     category: 'costs',
     question: 'What does a PathPal companion visit cost, and is it covered by insurance?',
-    answer: 'Single hospital visits start at $35 per 2-hour session. PathPal is also available through $49/mo membership passes. Importantly, PathPal partners with health plans and hospital benefit programs, allowing many eligible seniors and high-risk patients to receive PathPal at $0 out-of-pocket cost with an approved benefit voucher.'
+    answer: 'Single hospital escort visits start at $35 per 2-hour session, and unlimited monthly membership passes are available for $49/mo. Please note that PathPal is currently direct-pay: the program is not yet approved for insurance coverage or health plan reimbursement, so visits are paid directly out-of-pocket with zero hidden fees.'
   },
   {
     id: 'faq-3',
@@ -95,7 +95,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ onRequestPal, onOpenPaym
             <span className="text-[#00F0FF] text-stroke-cyan">EVERY QUESTION.</span>
           </h2>
           <p className="text-sm text-gray-400 font-light max-w-2xl mx-auto">
-            Everything you need to know about companion matching, safety protocols, non-clinical scope, hospital integration, and zero-cost insurance coverage.
+            Everything you need to know about companion matching, safety protocols, non-clinical scope, hospital integration, and transparent pricing.
           </p>
         </div>
 

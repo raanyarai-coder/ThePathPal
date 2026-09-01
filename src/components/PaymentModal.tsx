@@ -73,7 +73,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, def
               </div>
               <h3 className="text-2xl font-black uppercase italic text-white">PathPal Care & Access Payment</h3>
               <p className="text-xs text-gray-300 font-light">
-                Select your service plan and complete payment via Credit Card, PayPal, Apple Pay, or Insurance Voucher.
+                Select your service plan and complete payment via Credit Card, PayPal, Apple Pay, or Partner Promo Voucher.
               </p>
             </div>
 
@@ -133,7 +133,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, def
                   { id: 'card', label: '💳 Credit Card' },
                   { id: 'paypal', label: '🅿️ PayPal' },
                   { id: 'applepay', label: '🍎 Apple Pay' },
-                  { id: 'voucher', label: '🎟️ Insurance Voucher' },
+                  { id: 'voucher', label: '🎟️ Promo / Grant' },
                 ].map((m) => (
                   <button
                     key={m.id}
@@ -160,7 +160,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, def
                 <Tag className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Insurance Voucher Code (e.g. VOUCHER2026)"
+                  placeholder="Partner Grant / Promo Code (e.g. GRANT2026)"
                   value={voucherCode}
                   onChange={(e) => setVoucherCode(e.target.value)}
                   className="w-full bg-[#1A2232] text-xs text-white pl-9 pr-3 py-2.5 rounded-xl border border-white/10 focus:border-[#00F0FF] focus:outline-none"
@@ -255,14 +255,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, def
 
               {paymentMethod === 'voucher' && (
                 <div className="p-4 bg-[#1A2232] rounded-2xl border border-white/10 space-y-2">
-                  <label className="block text-xs font-bold uppercase text-[#00F0FF]">Health Plan / Insurance Member ID</label>
+                  <label className="block text-xs font-bold uppercase text-[#00F0FF]">Hospital Partner Grant / Sponsorship ID</label>
                   <input
                     type="text"
                     required
-                    placeholder="Enter Insurance Member ID Number"
+                    placeholder="Enter Partner Grant / Sponsorship Code"
                     className="w-full bg-[#121824] text-xs text-white p-2.5 rounded-xl border border-white/10 focus:border-[#00F0FF] focus:outline-none"
                   />
-                  <p className="text-[10px] text-gray-400">Covers non-clinical companion navigation under partner health benefit codes.</p>
+                  <p className="text-[10px] text-gray-400">Covers non-clinical companion navigation under hospital community grant sponsorship.</p>
                 </div>
               )}
 

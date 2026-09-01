@@ -23,6 +23,12 @@ import {
   KeyRound,
   ArrowRight,
   ShieldAlert,
+  Bell,
+  Activity,
+  Layers,
+  Calculator,
+  User,
+  HeartHandshake,
 } from 'lucide-react';
 import {
   supabase,
@@ -32,11 +38,18 @@ import {
   fetchPalRequests,
   assignPalToRequest,
   verifyPalEmailAndActivate,
+  fetchAllHospitalVisits,
+  fetchUserNotifications,
+  markNotificationRead,
 } from '../lib/supabase';
-import { Pal, PalRequest } from '../types';
+import {
+  startPalLiveTracking,
+  stopPalLiveTracking,
+  LocationCoordinates,
+} from '../lib/locationService';
+import { Pal, PalRequest, HospitalVisit, Notification } from '../types';
 import { MedicalSummaryWidget } from '../components/MedicalSummaryWidget';
 import { EtaCalculatorWidget } from '../components/EtaCalculatorWidget';
-import { Calculator } from 'lucide-react';
 import { createGoogleCalendarUrl } from '../utils/calendarUtils';
 
 interface PalPortalPageProps {
@@ -54,7 +67,6 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
   const [authUser, setAuthUser] = useState<any | null>(null);
   const [palInfo, setPalInfo] = useState<Pal | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState<boolean>(true);
-  const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
   const [activationError, setActivationError] = useState<string | null>(null);
 
   // Login Form State for Unauthenticated Visitors
@@ -66,23 +78,36 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
   // Portal Operational State
   const [isOnDuty, setIsOnDuty] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<
-    'available_feed' | 'my_active' | 'eta_calculator' | 'earnings' | 'profile'
+    | 'available_feed'
+    | 'my_active'
+    | 'visits'
+    | 'availability'
+    | 'notifications'
+    | 'live_gps'
+    | 'eta_calculator'
+    | 'earnings'
+    | 'profile'
   >('available_feed');
-  const [requests, setRequests] = useState<PalRequest[]>([]);
-  const [isLoadingRequests, setIsLoadingRequests] = useState<boolean>(false);
-  const [selectedPalPatientSummary, setSelectedPalPatientSummary] = useState<PalRequest | null>(
-    null
-  );
 
-  // Check Supabase authentication and load linked Pal profile
+  // Real Database Collections
+  const [requests, setRequests] = useState<PalRequest[]>([]);
+  const [visits, setVisits] = useState<HospitalVisit[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState<boolean>(false);
+  const [selectedPalPatientSummary, setSelectedPalPatientSummary] = useState<PalRequest | null>(null);
+
+  // Live GPS Broadcast State
+  const [activeGpsSessionId, setActiveGpsSessionId] = useState<string | null>(null);
+  const [isStreamingGps, setIsStreamingGps] = useState<boolean>(false);
+  const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
+
   useEffect(() => {
     loadAuthenticatedPal();
 
-    // Listen for auth state changes
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         await fetchPalProfile(session.user);
-      } else if (!isDemoMode) {
+      } else {
         setAuthUser(null);
         setPalInfo(null);
         setIsLoadingAuth(false);
@@ -94,1026 +119,785 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
     };
   }, []);
 
-  const loadRequests = async () => {
-    setIsLoadingRequests(true);
-    try {
-      const liveReqs = await fetchPalRequests();
-      setRequests(liveReqs);
-    } catch (e) {
-      console.error('Error fetching pal requests:', e);
-    } finally {
-      setIsLoadingRequests(false);
-    }
-  };
-
   const loadAuthenticatedPal = async () => {
     setIsLoadingAuth(true);
     setActivationError(null);
     try {
       const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
 
-      if (userError) {
-        setAuthUser(null);
-        setPalInfo(null);
-      } else if (user) {
-        await fetchPalProfile(user);
+      if (sessionError) {
+        setActivationError(sessionError.message);
+        setIsLoadingAuth(false);
+        return;
+      }
+
+      if (session?.user) {
+        await fetchPalProfile(session.user);
       } else {
-        setAuthUser(null);
-        setPalInfo(null);
+        setIsLoadingAuth(false);
       }
     } catch (err: any) {
-      console.error('Error during Pal auth initial check:', err);
-    } finally {
+      console.error('Error verifying PAL session:', err);
+      setActivationError(err?.message || 'Authentication error.');
       setIsLoadingAuth(false);
     }
   };
 
   const fetchPalProfile = async (user: any) => {
-    setAuthUser(user);
-    setActivationError(null);
-
     try {
-      // 1. Query `pals` table where auth_user_id = user.id (Source of truth)
-      const { data: palDb, error: palDbError } = await supabase
-        .from('pals')
-        .select('*')
-        .eq('auth_user_id', user.id)
-        .maybeSingle();
+      setAuthUser(user);
+      const res = await verifyPalEmailAndActivate(user.id, user.email || '');
 
-      if (palDb) {
-        const formatted = formatPalFromDb(palDb);
-        setPalInfo(formatted);
-        setActivationError(null);
-        await loadRequests();
-        return;
-      }
-
-      // 2. If not yet linked by auth_user_id, run verification/activation sync
-      const res = await verifyPalEmailAndActivate();
-      if (res.data?.palRecord) {
+      if (res?.data?.palRecord) {
         setPalInfo(res.data.palRecord);
-        setActivationError(null);
-        await loadRequests();
-        return;
+      } else {
+        const palData = await fetchPalByAuthUserId(user.id);
+        if (palData) {
+          const formatted = formatPalFromDb(palData);
+          setPalInfo(formatted);
+        }
       }
 
-      setPalInfo(null);
-      setActivationError(
-        res.error?.message || 'Your Pal profile has not been initialized. Please complete email verification.'
-      );
-    } catch (err: any) {
-      console.error('Exception fetching pal record:', err);
-      setActivationError(
-        'Unable to load Pal profile. Please refresh or contact administrator.'
-      );
+      await loadPortalCollections();
+    } catch (err) {
+      console.error('Error fetching PAL profile details:', err);
+    } finally {
+      setIsLoadingAuth(false);
     }
   };
 
-  const handleLoginSubmit = async (e: React.FormEvent) => {
+  const loadPortalCollections = async () => {
+    setIsLoadingData(true);
+    try {
+      const [liveReqs, visitsData, notifsData] = await Promise.all([
+        fetchPalRequests(),
+        fetchAllHospitalVisits(),
+        fetchUserNotifications(),
+      ]);
+
+      setRequests(liveReqs || []);
+      setVisits(visitsData || []);
+      setNotifications(notifsData || []);
+    } catch (err) {
+      console.error('Error fetching PAL feed:', err);
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
+  const handlePalLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
     setIsLoggingIn(true);
 
     try {
-      const res = await loginPal(loginEmail, loginPassword);
+      const { data, error } = await loginPal(loginEmail, loginPassword);
 
-      if (res.error) {
-        setLoginError(res.error.message);
+      if (error) {
+        setLoginError(error.message);
         setIsLoggingIn(false);
         return;
       }
 
-      if (res.data?.user) {
-        setAuthUser(res.data.user);
-        if (res.data.palRecord) {
-          setPalInfo(res.data.palRecord);
-          setActivationError(null);
-          await loadRequests();
-        } else {
-          await fetchPalProfile(res.data.user);
-        }
+      if (data?.user) {
+        await fetchPalProfile(data.user);
       }
     } catch (err: any) {
-      setLoginError(err?.message || 'Login failed. Please verify credentials.');
+      setLoginError(err?.message || 'Login failed. Please check credentials.');
     } finally {
       setIsLoggingIn(false);
     }
   };
 
   const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (e) {
-      console.error('Sign out error:', e);
+    if (activeGpsSessionId) {
+      await stopPalLiveTracking(activeGpsSessionId);
+      setActiveGpsSessionId(null);
+      setIsStreamingGps(false);
     }
+    await supabase.auth.signOut();
     setAuthUser(null);
     setPalInfo(null);
-    setIsDemoMode(false);
-    setActivationError(null);
   };
 
-  const handleAcceptRequest = async (reqId: string) => {
+  const handleAcceptAssignment = async (reqId: string) => {
     if (!palInfo) return;
     try {
-      const palNumId = typeof palInfo.id === 'number' ? palInfo.id : parseInt(String(palInfo.id), 10);
-      const res = await assignPalToRequest(reqId, isNaN(palNumId) ? 1 : palNumId);
-      if (res.success) {
-        await loadRequests();
+      const res = await assignPalToRequest(reqId, palInfo.id, palInfo);
+      if (res.data) {
+        setRequests((prev) =>
+          prev.map((r) => (r.id === reqId ? { ...r, status: 'matched', assignedPal: palInfo } : r))
+        );
         setActiveTab('my_active');
-      } else {
-        alert(res.error || 'Failed to accept assignment');
       }
-    } catch (err) {
-      console.error('Error accepting assignment:', err);
+    } catch (err: any) {
+      alert(err?.message || 'Error accepting assignment');
     }
+  };
+
+  const handleStartGps = async () => {
+    if (!palInfo) return;
+    setIsStreamingGps(true);
+    try {
+      const { sessionId } = await startPalLiveTracking({
+        palId: typeof palInfo.id === 'number' ? palInfo.id : parseInt(palInfo.id, 10) || undefined,
+        userId: authUser?.id,
+        onPositionUpdate: (coords: LocationCoordinates) => {
+          setGpsCoords({ lat: coords.latitude, lng: coords.longitude });
+        },
+        onError: (errMsg) => {
+          console.warn('GPS tracking warning:', errMsg);
+        },
+      });
+
+      if (sessionId) {
+        setActiveGpsSessionId(sessionId);
+      }
+    } catch (e) {
+      console.error('Error starting live GPS tracking:', e);
+    }
+  };
+
+  const handleStopGps = async () => {
+    if (activeGpsSessionId) {
+      await stopPalLiveTracking(activeGpsSessionId);
+      setActiveGpsSessionId(null);
+    }
+    setIsStreamingGps(false);
+    setGpsCoords(null);
   };
 
   // 1. Loading State
   if (isLoadingAuth) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-4">
+      <div className="max-w-4xl mx-auto px-4 py-24 text-center space-y-4">
         <div className="w-12 h-12 border-4 border-[#48A6A5] border-t-transparent rounded-full animate-spin mx-auto" />
-        <h2 className="text-xl font-bold text-[#1F3449]">Verifying Pal Authentication Session...</h2>
-        <p className="text-xs text-gray-500">Querying Supabase Auth and Pal profile status.</p>
+        <h2 className="text-xl font-bold text-[#1F3449]">Verifying PAL Credentials & Session...</h2>
+        <p className="text-xs text-gray-500">Checking authorized background check status and dispatch profile.</p>
       </div>
     );
   }
 
-  // 2. Unauthenticated State (Prompt Login or Onboarding Links)
-  if (!authUser && !isDemoMode) {
+  // 2. Unauthenticated PAL Screen
+  if (!authUser && !palInfo) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 animate-fade-in text-[#1F3449]">
-        {/* Banner */}
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border-2 border-[#48A6A5]/40 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-black uppercase tracking-widest text-white bg-[#48A6A5] px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md">
-                <UserCheck className="w-3.5 h-3.5" />
-                PAL PORTAL
-              </span>
-              <span className="text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-                Authentication Required
-              </span>
+      <div className="max-w-xl mx-auto px-4 sm:px-6 py-12 animate-fade-in text-[#1F3449]">
+        <div className="bg-white p-8 sm:p-10 rounded-3xl border-2 border-gray-200 shadow-2xl space-y-6">
+          <div className="text-center space-y-2">
+            <div className="w-14 h-14 bg-[#48A6A5] text-white rounded-2xl mx-auto flex items-center justify-center shadow-lg">
+              <UserCheck className="w-7 h-7" />
             </div>
-            <h1 className="text-3xl sm:text-4xl font-black text-[#1F3449]">
-              Pal Companion Sign In
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-600 max-w-xl">
-              Sign in with your approved PathPal Companion credentials to manage hospital patient
-              escort dispatches, access read-only medical summaries, and record your CHW stipend
-              earnings.
+            <h1 className="text-2xl sm:text-3xl font-black text-[#1F3449]">PAL Companion Portal</h1>
+            <p className="text-xs text-gray-500 max-w-sm mx-auto">
+              Sign in with your verified PAL email and password.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          {loginError && (
+            <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2 animate-fade-in">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="font-medium">{loginError}</div>
+            </div>
+          )}
+
+          <form onSubmit={handlePalLogin} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                PAL Email Address
+              </label>
+              <div className="relative">
+                <input
+                  type="email"
+                  required
+                  placeholder="pal@hospitalpathpal.org"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  className="w-full text-xs p-3.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 pl-10"
+                />
+                <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••••••••"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full text-xs p-3.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 pl-10"
+                />
+                <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
+              </div>
+            </div>
+
             <button
-              type="button"
-              onClick={() => {
-                if (onBecomePal) {
-                  onBecomePal();
-                } else {
-                  window.location.hash = 'pal-apply';
-                }
-              }}
-              className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-black uppercase text-[#1F3449] border border-gray-300 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+              type="submit"
+              disabled={isLoggingIn}
+              className="w-full py-4 rounded-xl font-black text-xs uppercase tracking-wider text-white bg-[#48A6A5] hover:bg-[#48A6A5]/90 shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              <UserCheck className="w-3.5 h-3.5 text-[#48A6A5]" />
-              <span>Apply to Become a Pal</span>
+              {isLoggingIn ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Authenticating...</span>
+                </>
+              ) : (
+                <>
+                  <LogIn className="w-4 h-4" />
+                  <span>Sign In to PAL Portal</span>
+                </>
+              )}
             </button>
-          </div>
-        </div>
+          </form>
 
-        {/* Login Form Card */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-          <div className="md:col-span-7 bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
-            <div className="space-y-1">
-              <h2 className="text-xl font-black text-[#1F3449] flex items-center gap-2">
-                <LogIn className="w-5 h-5 text-[#48A6A5]" />
-                <span>Sign In to Your Pal Account</span>
-              </h2>
-              <p className="text-xs text-gray-500">
-                Enter your registered Supabase authentication credentials.
-              </p>
-            </div>
-
-            {loginError && (
-              <div className="p-4 rounded-2xl bg-red-50 border border-red-200 flex items-start gap-3 text-red-700 text-xs animate-shake">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <div className="font-bold">Authentication Failed</div>
-                  <div>{loginError}</div>
-                </div>
-              </div>
-            )}
-
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                  Pal Registered Email
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
-                  <input
-                    type="email"
-                    required
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    placeholder="e.g., marcus.vance@example.com"
-                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#48A6A5] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                  Password
-                </label>
-                <div className="relative">
-                  <KeyRound className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
-                  <input
-                    type="password"
-                    required
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#48A6A5] focus:outline-none"
-                  />
-                </div>
-              </div>
-
+          {onBecomePal && (
+            <div className="pt-4 border-t border-gray-100 text-center space-y-3">
+              <p className="text-xs text-gray-500">Don't have an approved PAL account?</p>
               <button
-                type="submit"
-                disabled={isLoggingIn}
-                className="w-full py-3.5 px-6 rounded-xl bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-black text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                onClick={onBecomePal}
+                className="w-full py-3 rounded-xl border-2 border-[#48A6A5] text-[#48A6A5] hover:bg-[#48A6A5]/5 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
               >
-                {isLoggingIn ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Signing In...</span>
-                  </>
-                ) : (
-                  <>
-                    <LogIn className="w-4 h-4" />
-                    <span>Log In to Pal Dashboard</span>
-                  </>
-                )}
-              </button>
-            </form>
-
-            <div className="border-t border-gray-200 pt-4 text-xs text-gray-500 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <a
-                href="#pal-verify"
-                className="text-[#48A6A5] font-bold hover:underline flex items-center gap-1"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Verify Email Address</span>
-              </a>
-              <a
-                href="#pal-signup"
-                className="text-gray-600 font-medium hover:text-[#1F3449] flex items-center gap-1"
-              >
-                <span>Have an Approved Signup Link?</span>
-                <ArrowRight className="w-3 h-3" />
-              </a>
-            </div>
-          </div>
-
-          {/* Side Helper Card */}
-          <div className="md:col-span-5 space-y-6">
-            <div className="bg-emerald-50/70 p-6 rounded-3xl border border-emerald-200 space-y-3">
-              <div className="flex items-center gap-2 text-emerald-800 font-black text-xs uppercase tracking-wider">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>Official Pal Onboarding Steps</span>
-              </div>
-              <ol className="text-xs text-emerald-900 space-y-2 font-medium list-decimal pl-4">
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onBecomePal) {
-                        onBecomePal();
-                      } else {
-                        window.location.hash = 'pal-apply';
-                      }
-                    }}
-                    className="text-[#48A6A5] font-bold underline hover:text-[#48A6A5]/80 text-left cursor-pointer"
-                  >
-                    Submit your Pal application
-                  </button>{' '}
-                  with language & mobility experience.
-                </li>
-                <li>Hospital Administrator reviews and approves your application.</li>
-                <li>Follow the approved signup link to create your Supabase Auth account.</li>
-                <li>Click the email confirmation link to activate your Pal record.</li>
-              </ol>
-              <button
-                type="button"
-                onClick={() => {
-                  if (onBecomePal) {
-                    onBecomePal();
-                  } else {
-                    window.location.hash = 'pal-apply';
-                  }
-                }}
-                className="w-full mt-2 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <UserCheck className="w-4 h-4" />
-                <span>Open Pal Application Form</span>
+                Apply to Become a PAL
               </button>
             </div>
-          </div>
+          )}
         </div>
       </div>
     );
   }
 
-  // 3. Authenticated User BUT No Pal Record Activated
-  if (authUser && !palInfo && !isDemoMode) {
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-12 space-y-6 animate-fade-in text-[#1F3449]">
-        <div className="bg-white p-8 rounded-3xl border-2 border-amber-300 shadow-xl space-y-6">
-          <div className="flex items-start gap-4">
-            <div className="p-3 bg-amber-100 rounded-2xl text-amber-700">
-              <ShieldAlert className="w-8 h-8" />
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs font-black uppercase tracking-widest text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded border border-amber-200">
-                Account Status: Activation Pending
-              </span>
-              <h1 className="text-2xl font-black text-[#1F3449]">
-                Pal Profile Not Found
-              </h1>
-              <p className="text-sm font-semibold text-amber-900 mt-2">
-                Your Pal profile has not been created yet. Please contact the administrator.
-              </p>
-            </div>
-          </div>
+  // 3. Authenticated PAL Portal Interface
+  const activePal: Pal = palInfo || {
+    id: authUser?.id || 'unlinked',
+    name: authUser?.user_metadata?.full_name || authUser?.email?.split('@')[0] || 'PAL Companion',
+    rating: 5.0,
+    completedVisits: 0,
+    languages: ['English'],
+    specialties: ['Hospital Wayfinding', 'Campus Companion'],
+    bio: 'Accredited Community Health Companion.',
+    isVerified: true,
+    badgeNumber: 'PAL-ACTIVE',
+  };
 
-          <div className="bg-gray-50 p-5 rounded-2xl border border-gray-200 space-y-2 text-xs">
-            <div className="font-bold text-gray-700">Session Diagnostics:</div>
-            <div className="text-gray-600">
-              Logged in as: <strong className="text-[#1F3449]">{authUser.email}</strong>
-            </div>
-            <div className="text-gray-500 font-mono text-[11px]">
-              Supabase Auth User ID: {authUser.id}
-            </div>
-            <div className="text-gray-500">
-              Email Confirmed:{' '}
-              <span
-                className={`font-bold ${
-                  authUser.email_confirmed_at ? 'text-emerald-700' : 'text-amber-700'
-                }`}
-              >
-                {authUser.email_confirmed_at ? 'Yes (Confirmed)' : 'Pending Confirmation'}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 pt-2">
-            <a
-              href="#pal-verify"
-              className="px-5 py-3 rounded-xl bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-black text-xs uppercase tracking-wider shadow-md flex items-center gap-2"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Complete / Check Email Verification</span>
-            </a>
-
-            <button
-              onClick={() => fetchPalProfile(authUser)}
-              className="px-5 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-[#1F3449] font-bold text-xs uppercase tracking-wider border border-gray-300 flex items-center gap-2"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span>Re-check Activation</span>
-            </button>
-
-            <button
-              onClick={handleSignOut}
-              className="px-5 py-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs uppercase tracking-wider border border-red-200 flex items-center gap-2 ml-auto"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Sign Out</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // 4. Authenticated Pal Profile
-  const activePal: Pal =
-    palInfo || {
-      id: authUser?.id || 'unlinked',
-      name: authUser?.user_metadata?.full_name || authUser?.email?.split('@')[0] || 'Pal Companion',
-      avatar: undefined,
-      rating: 5.0,
-      completedVisits: 0,
-      languages: ['English'],
-      specialties: ['Campus Companion Escort', 'Hospital Wayfinding Support'],
-      bio: 'Accredited PathPal Companion Health Worker.',
-      isVerified: true,
-      hospitalAffiliations: ['Path Pal Admin Network'],
-      badgeNumber: 'PAL-ACTIVE',
-    };
+  const myAssignments = requests.filter((r) => r.assignedPal?.id === activePal.id);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 animate-fade-in text-[#1F3449]">
-
-      {/* Pal Portal Header Banner */}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-fade-in text-[#1F3449]">
+      
+      {/* PAL Header Banner */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border-2 border-[#48A6A5]/40 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <span className="text-xs font-black uppercase tracking-widest text-white bg-[#48A6A5] px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md">
               <UserCheck className="w-3.5 h-3.5" />
-              PAL PORTAL
+              PAL COMPANION PORTAL
             </span>
             <span className="text-xs font-bold text-[#48A6A5] bg-[#48A6A5]/10 px-3 py-1 rounded-full border border-[#48A6A5]/30 font-mono">
               Badge #{activePal.badgeNumber || 'PAL-ACTIVE'}
             </span>
-            {authUser && (
-              <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
-                ✓ Authenticated Supabase User
-              </span>
-            )}
+            <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
+              ✓ Verified & Cleared
+            </span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-[#1F3449]">
             Welcome, {activePal.name}
           </h1>
           <p className="text-xs sm:text-sm text-gray-600 max-w-xl">
-            Accept companion escort assignments, guide patients safely through hospital campuses,
-            and track your CHW stipend earnings.
+            Accept companion escort requests, guide patients safely on campus, and stream live GPS coordinates.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Duty Status Toggle */}
-          <div className="flex items-center gap-2 bg-gray-100 p-2 rounded-2xl border border-gray-200">
-            <span className="text-xs font-bold text-gray-700 pl-2">Duty Status:</span>
-            <button
-              onClick={() => setIsOnDuty(!isOnDuty)}
-              className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-1.5 ${
-                isOnDuty
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'bg-gray-300 text-gray-700'
-              }`}
-            >
-              <Radio className={`w-3.5 h-3.5 ${isOnDuty ? 'animate-ping' : ''}`} />
-              <span>{isOnDuty ? 'ON-DUTY (RECEIVING ASSIGNMENTS)' : 'OFF-DUTY'}</span>
-            </button>
-          </div>
-
           <button
-            onClick={onOpenGpsModal}
-            className="bg-[#48A6A5] text-white font-black text-xs uppercase px-4 py-3 rounded-xl flex items-center gap-2 shadow-md hover:bg-[#48A6A5]/90 transition-all"
+            onClick={() => setIsOnDuty(!isOnDuty)}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 cursor-pointer ${
+              isOnDuty
+                ? 'bg-emerald-600 text-white shadow-md'
+                : 'bg-gray-200 text-gray-700'
+            }`}
           >
-            <Navigation className="w-4 h-4" />
-            <span>Indoor Campus Radar</span>
+            <Radio className={`w-3.5 h-3.5 ${isOnDuty ? 'animate-ping' : ''}`} />
+            <span>{isOnDuty ? 'ON-DUTY (RECEIVING FEED)' : 'OFF-DUTY'}</span>
           </button>
 
-          {authUser && (
-            <button
-              onClick={handleSignOut}
-              title="Sign Out"
-              className="p-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-red-600 border border-gray-300 transition-all"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          )}
+          <button
+            onClick={loadPortalCollections}
+            className="bg-gray-100 hover:bg-gray-200 text-[#1F3449] font-bold text-xs uppercase px-4 py-3 rounded-xl border border-gray-300 flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingData ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
+
+          <button
+            onClick={handleSignOut}
+            title="Sign Out"
+            className="p-3 rounded-xl bg-gray-100 hover:bg-rose-50 text-gray-600 hover:text-rose-600 border border-gray-300 transition-all cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      {/* Pal Quick Metrics Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-1">
-          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-            Completed Visits
-          </span>
-          <div className="text-2xl sm:text-3xl font-black text-[#1F3449]">
-            {activePal.completedVisits} Visits
-          </div>
-          <span className="text-[10px] font-bold text-emerald-600">100% On-Time Record</span>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-1">
-          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-            Patient Rating
-          </span>
-          <div className="text-2xl sm:text-3xl font-black text-[#F1B84C] flex items-center gap-1">
-            <span>{activePal.rating}</span>
-            <Star className="w-5 h-5 fill-[#F1B84C]" />
-          </div>
-          <span className="text-[10px] font-bold text-gray-500">Verified Patient Feedback</span>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-1">
-          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-            Hourly Stipend Rate
-          </span>
-          <div className="text-2xl sm:text-3xl font-black text-[#48A6A5]">$26.00 / hr</div>
-          <span className="text-[10px] font-bold text-[#48A6A5]">+ $5.00 Bonus Per Visit</span>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-1">
-          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-            Certifications
-          </span>
-          <div className="text-xs font-bold text-emerald-600 mt-1 flex items-center gap-1">
-            <ShieldCheck className="w-4 h-4" />
-            <span>CHW + CPR & BLS Active</span>
-          </div>
-          <span className="text-[10px] font-bold text-gray-500">Annual HIPAA Cleared</span>
-        </div>
-      </div>
-
-      {/* Pal Tabs Navigation */}
-      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white rounded-2xl border border-gray-200 text-xs font-bold shadow-sm">
+      {/* Navigation Tabs */}
+      <div className="flex flex-wrap items-center gap-1.5 p-2 bg-white rounded-2xl border border-gray-200 text-xs font-bold shadow-sm overflow-x-auto">
         <button
           onClick={() => setActiveTab('available_feed')}
-          className={`px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
             activeTab === 'available_feed'
               ? 'bg-[#48A6A5] text-white shadow-md'
-              : 'text-gray-700 hover:text-[#1F3449] hover:bg-gray-100'
+              : 'text-gray-600 hover:bg-gray-100'
           }`}
         >
           <Clock className="w-4 h-4" />
-          <span>Available Pal Feed ({requests.length})</span>
+          <span>Available Requests ({requests.filter((r) => r.status === 'pending').length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('my_active')}
-          className={`px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
             activeTab === 'my_active'
               ? 'bg-[#48A6A5] text-white shadow-md'
-              : 'text-gray-700 hover:text-[#1F3449] hover:bg-gray-100'
+              : 'text-gray-600 hover:bg-gray-100'
           }`}
         >
           <UserCheck className="w-4 h-4" />
-          <span>My Active Assignments</span>
+          <span>My Assignments ({myAssignments.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('visits')}
+          className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+            activeTab === 'visits'
+              ? 'bg-[#48A6A5] text-white shadow-md'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Activity className="w-4 h-4" />
+          <span>Hospital Visits ({visits.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('notifications')}
+          className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+            activeTab === 'notifications'
+              ? 'bg-[#48A6A5] text-white shadow-md'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Bell className="w-4 h-4" />
+          <span>Notifications ({notifications.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('live_gps')}
+          className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+            activeTab === 'live_gps'
+              ? 'bg-rose-600 text-white shadow-md'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Navigation className="w-4 h-4" />
+          <span>Live GPS Tracking {isStreamingGps && '●'}</span>
         </button>
 
         <button
           onClick={() => setActiveTab('eta_calculator')}
-          className={`px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
             activeTab === 'eta_calculator'
-              ? 'bg-[#48A6A5] text-white font-black shadow-md'
-              : 'text-gray-700 hover:text-[#1F3449] hover:bg-gray-100'
+              ? 'bg-[#48A6A5] text-white shadow-md'
+              : 'text-gray-600 hover:bg-gray-100'
           }`}
         >
-          <Calculator className="w-4 h-4 text-[#48A6A5]" />
-          <span>AI Dispatch ETA Predictor</span>
+          <Calculator className="w-4 h-4" />
+          <span>ETA Predictor</span>
         </button>
 
         <button
           onClick={() => setActiveTab('earnings')}
-          className={`px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
             activeTab === 'earnings'
               ? 'bg-emerald-600 text-white shadow-md'
-              : 'text-gray-700 hover:text-[#1F3449] hover:bg-gray-100'
+              : 'text-gray-600 hover:bg-gray-100'
           }`}
         >
           <DollarSign className="w-4 h-4" />
-          <span>Earnings & Stipend Log</span>
+          <span>Stipend Log</span>
         </button>
 
         <button
           onClick={() => setActiveTab('profile')}
-          className={`px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
             activeTab === 'profile'
               ? 'bg-[#1F3449] text-white shadow-md'
-              : 'text-gray-700 hover:text-[#1F3449] hover:bg-gray-100'
+              : 'text-gray-600 hover:bg-gray-100'
           }`}
         >
-          <Award className="w-4 h-4 text-[#F1B84C]" />
-          <span>Badge & Profile Details</span>
+          <User className="w-4 h-4" />
+          <span>Profile & Badge</span>
         </button>
       </div>
 
-      {/* TAB 1: AVAILABLE ESCORTS FEED */}
+      {/* =========================================================================
+       * TAB 1: AVAILABLE REQUESTS FEED
+       * ========================================================================= */}
       {activeTab === 'available_feed' && (
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
-          <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-            <div>
-              <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">
-                DISPATCH FEED
-              </span>
-              <h2 className="text-2xl font-black text-[#1F3449]">Pending Patient Pal Requests</h2>
-            </div>
-            <span className="text-xs font-bold text-[#48A6A5] bg-[#48A6A5]/10 px-3 py-1 rounded-full border border-[#48A6A5]/30">
-              Nearby Hospitals
-            </span>
-          </div>
-
-          <div className="space-y-4">
-            {requests.filter((r) => r.status === 'pending').length > 0 ? (
-              requests
-                .filter((r) => r.status === 'pending')
-                .map((req) => (
-                <div
-                  key={req.id}
-                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hover:border-[#48A6A5] transition-all shadow-sm"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-[#1F3449] font-mono bg-white px-2.5 py-0.5 rounded border border-gray-300">
-                        {req.id}
-                      </span>
-                      <span className="text-xs font-bold text-[#E85D75] bg-[#E85D75]/10 px-2 py-0.5 rounded">
-                        {req.department}
-                      </span>
-                      <span className="text-xs font-bold text-[#48A6A5] bg-[#48A6A5]/10 px-2 py-0.5 rounded">
-                        🗣️ {req.languagePreference}
-                      </span>
-                    </div>
-
-                    <h3 className="text-xl font-black text-[#1F3449]">{req.patientName}</h3>
-                    <p className="text-xs text-gray-600 flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-[#E85D75] shrink-0" />
-                      <span>
-                        {req.hospitalName} • Rendezvous: <strong>{req.meetingPoint}</strong>
-                      </span>
-                    </p>
-
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-gray-700">
-                      <span className="flex items-center gap-1 font-bold text-amber-600">
-                        <Clock className="w-3.5 h-3.5" /> {req.appointmentDate} at{' '}
-                        {req.appointmentTime}
-                      </span>
-                      <span className="font-semibold text-emerald-700">
-                        Est. Stipend: $52.00 (2 hrs)
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {req.mobilityNeeds.map((m) => (
-                        <span
-                          key={m}
-                          className="text-[10px] font-bold bg-white text-gray-700 px-2.5 py-0.5 rounded-md border border-gray-300"
-                        >
-                          ♿ {m}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-center gap-3 self-stretch md:self-center">
-                    <button
-                      onClick={() => setSelectedPalPatientSummary(req)}
-                      className="w-full sm:w-auto px-4 py-3 rounded-xl bg-white hover:bg-gray-100 text-[#1F3449] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 border border-gray-300 shadow-sm"
-                    >
-                      <ShieldCheck className="w-4 h-4 text-[#48A6A5]" />
-                      <span>Read-Only Health Info</span>
-                    </button>
-
-                    <button
-                      onClick={() => handleAcceptRequest(req.id)}
-                      className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all"
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Accept Pal Assignment</span>
-                    </button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-2xl border border-gray-200">
-                <Clock className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                <div className="font-bold text-gray-700">No Pending Escort Requests</div>
-                <div className="text-xs text-gray-500 mt-1">New patient companion requests will appear here in real time.</div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 2: MY ACTIVE ESCORTS */}
-      {activeTab === 'my_active' && (
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#48A6A5]/40 space-y-6 shadow-lg">
-          <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-            <div>
-              <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">
-                ACTIVE ASSIGNMENT
-              </span>
-              <h2 className="text-2xl font-black text-[#1F3449]">
-                Your Accepted Companion Assignments
-              </h2>
-            </div>
-            <span className="text-xs font-bold bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200">
-              Live Pal: {activePal.name}
-            </span>
-          </div>
-
-          <div className="space-y-4">
-            {requests.filter((r) => r.status === 'in_progress' || r.status === 'matched').length > 0 ? (
-              requests
-                .filter((r) => r.status === 'in_progress' || r.status === 'matched')
-                .map((req) => (
-                  <div
-                    key={req.id}
-                    className="bg-gray-50 p-6 rounded-2xl border-2 border-[#48A6A5]/50 space-y-4 shadow-sm"
-                  >
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-200 pb-3">
-                  <div>
-                    <span className="text-xs font-bold text-[#48A6A5] uppercase">PATIENT:</span>
-                    <h3 className="text-2xl font-black text-[#1F3449]">{req.patientName}</h3>
-                    <p className="text-xs text-gray-600">
-                      {req.hospitalName} ({req.department})
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setSelectedPalPatientSummary(req)}
-                    className="px-4 py-2 rounded-xl bg-white text-[#48A6A5] border border-[#48A6A5]/40 text-xs font-bold flex items-center gap-1.5 shadow-sm"
-                  >
-                    <Lock className="w-3.5 h-3.5" /> Audit Read-Only Medical Summary
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                  <div className="bg-white p-3 rounded-xl border border-gray-200">
-                    <span className="text-gray-500 block font-mono text-[10px]">
-                      RENDEZVOUS SPOT:
-                    </span>
-                    <span className="text-[#1F3449] font-bold">{req.meetingPoint}</span>
-                  </div>
-                  <div className="bg-white p-3 rounded-xl border border-gray-200">
-                    <span className="text-gray-500 block font-mono text-[10px]">TIME:</span>
-                    <span className="text-[#1F3449] font-bold">
-                      {req.appointmentDate} at {req.appointmentTime}
-                    </span>
-                  </div>
-                  <div className="bg-white p-3 rounded-xl border border-gray-200">
-                    <span className="text-gray-500 block font-mono text-[10px]">
-                      MOBILITY REQ:
-                    </span>
-                    <span className="text-[#E85D75] font-bold">
-                      {req.mobilityNeeds.join(', ')}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3 pt-2">
-                  <button
-                    onClick={() => {
-                      const gCalUrl = createGoogleCalendarUrl({
-                        title: `PathPal Escort Duty: ${req.patientName} at ${req.hospitalName}`,
-                        description: `Pal Escort Assignment for ${req.patientName}.\nACTION REQUIRED: Log into PathPal 45 minutes before departure to review read-only medical summary, mobility needs (${req.mobilityNeeds.join(
-                          ', '
-                        )}), and allergy alerts.\nMeeting Point: ${req.meetingPoint}.`,
-                        location: `${req.hospitalName}, ${req.meetingPoint}`,
-                        startTime: new Date(`${req.appointmentDate}T10:00:00`),
-                        endTime: new Date(`${req.appointmentDate}T12:00:00`),
-                        reminderMinutesBefore: [1440, 120, 45, 15],
-                      });
-                      window.open(gCalUrl, '_blank', 'noopener,noreferrer');
-                    }}
-                    className="px-5 py-3 rounded-xl bg-white hover:bg-gray-100 text-[#48A6A5] font-bold text-xs uppercase tracking-wider flex items-center gap-2 border border-[#48A6A5]/40 transition-all shadow-sm"
-                  >
-                    <Calendar className="w-4 h-4 text-[#48A6A5]" />
-                    <span>Sync Duty & Medical Review Reminder</span>
-                  </button>
-
-                  <button
-                    onClick={onOpenGpsModal}
-                    className="px-6 py-3 rounded-xl bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-md"
-                  >
-                    <Navigation className="w-4 h-4" />
-                    <span>Launch Campus Navigation & Beacon Check-In</span>
-                  </button>
-
-                  <a
-                    href={`tel:${req.patientPhone}`}
-                    className="px-5 py-3 rounded-xl bg-white hover:bg-gray-100 text-[#1F3449] font-bold text-xs uppercase tracking-wider flex items-center gap-2 border border-gray-300 shadow-sm"
-                  >
-                    <Phone className="w-4 h-4" />
-                    <span>Call Patient</span>
-                  </a>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-2xl border border-gray-200">
-              <UserCheck className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-              <div className="font-bold text-gray-700">No Active Companion Assignments</div>
-              <div className="text-xs text-gray-500 mt-1">Accept requests from the Available Feed to begin an active accompaniment duty.</div>
-            </div>
-          )}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 2.5: AI DISPATCH ETA PREDICTOR */}
-      {activeTab === 'eta_calculator' && (
-        <div className="space-y-4">
-          <EtaCalculatorWidget
-            onApplyEta={() => {
-              setActiveTab('my_active');
-            }}
-          />
-        </div>
-      )}
-
-      {/* TAB 3: EARNINGS & STIPEND LOG */}
-      {activeTab === 'earnings' && (
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-emerald-500/40 space-y-6 shadow-lg">
+        <div className="space-y-6">
           <div className="border-b border-gray-200 pb-4">
-            <span className="text-xs font-black uppercase text-emerald-600 tracking-wider">
-              CHW STIPEND LOG
-            </span>
-            <h2 className="text-2xl font-black text-[#1F3449]">
-              Pal Earnings & Payout Breakdown
-            </h2>
+            <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">LIVE FEED</span>
+            <h2 className="text-2xl font-black text-[#1F3449]">Available Escort Requests</h2>
             <p className="text-xs text-gray-600">
-              Pals earn $22-$28/hour plus hospital bonus credits disbursed weekly via direct deposit
-              or debit card.
+              Patients requiring on-campus accompaniment, wayfinding, or mobility assistance.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-200 space-y-2">
-              <span className="text-[10px] font-bold uppercase text-gray-500">
-                THIS WEEK EARNINGS
-              </span>
-              <div className="text-3xl font-black text-emerald-600">$468.00</div>
-              <p className="text-xs text-gray-600">18 Hours Logged • 9 Escorts</p>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {requests
+              .filter((r) => r.status === 'pending')
+              .map((req) => (
+                <div
+                  key={req.id}
+                  className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm hover:border-[#48A6A5] transition-all space-y-4"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase">Request ID: {req.id}</span>
+                      <h3 className="font-bold text-base text-[#1F3449]">{req.hospitalName}</h3>
+                      <p className="text-xs text-gray-600 font-medium">{req.department}</p>
+                    </div>
+                    <span className="bg-amber-100 text-amber-800 text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
+                      Open Request
+                    </span>
+                  </div>
 
-            <div className="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-200 space-y-2">
-              <span className="text-[10px] font-bold uppercase text-gray-500">MONTHLY TOTAL</span>
-              <div className="text-3xl font-black text-[#1F3449]">$1,840.00</div>
-              <p className="text-xs text-gray-600">71 Hours Logged • 35 Escorts</p>
-            </div>
+                  <div className="space-y-1.5 text-xs text-gray-600 bg-gray-50 p-3 rounded-xl">
+                    <div><strong>Patient:</strong> {req.patientName}</div>
+                    <div><strong>Date & Time:</strong> {req.appointmentDate} at {req.appointmentTime}</div>
+                    <div><strong>Meeting Point:</strong> {req.meetingPoint}</div>
+                    {req.mobilityNeeds && req.mobilityNeeds.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {req.mobilityNeeds.map((m) => (
+                          <span key={m} className="bg-blue-50 text-blue-700 text-[10px] px-2 py-0.5 rounded font-semibold">
+                            {m}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
-            <div className="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-200 space-y-2">
-              <span className="text-[10px] font-bold uppercase text-gray-500">HOSPITAL BONUSES</span>
-              <div className="text-3xl font-black text-[#F1B84C]">$140.00</div>
-              <p className="text-xs text-gray-600">5-Star Rating Bonuses</p>
-            </div>
-          </div>
+                  <div className="flex items-center justify-between pt-2">
+                    <button
+                      onClick={() => setSelectedPalPatientSummary(req)}
+                      className="text-xs font-bold text-[#48A6A5] hover:underline cursor-pointer"
+                    >
+                      View AI Briefing
+                    </button>
+                    <button
+                      onClick={() => handleAcceptAssignment(req.id)}
+                      className="bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs transition-all cursor-pointer"
+                    >
+                      Accept Assignment
+                    </button>
+                  </div>
+                </div>
+              ))}
 
-          <div className="text-center pt-2">
-            <button
-              onClick={() => onOpenChargesModal('pal_earnings')}
-              className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider shadow-md flex items-center justify-center gap-2 mx-auto"
-            >
-              <DollarSign className="w-4 h-4" />
-              <span>Launch Pal Earnings & Stipend Calculator</span>
-            </button>
+            {requests.filter((r) => r.status === 'pending').length === 0 && (
+              <div className="col-span-full p-12 text-center text-gray-400 bg-white rounded-3xl border border-gray-200 space-y-2">
+                <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-500" />
+                <p>No open patient requests pending acceptance at this moment.</p>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* TAB 4: BADGE & CERTIFICATIONS */}
-      {activeTab === 'profile' && (
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 space-y-6 shadow-lg">
-          <div className="border-b border-gray-200 pb-4">
-            <span className="text-xs font-black uppercase text-[#F1B84C] tracking-wider">
-              ACCREDITATION BADGE
-            </span>
-            <h2 className="text-2xl font-black text-[#1F3449]">
-              Official PathPal Companion Badge & Clearances
-            </h2>
+      {/* =========================================================================
+       * TAB 2: MY ACTIVE ASSIGNMENTS
+       * ========================================================================= */}
+      {activeTab === 'my_active' && (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-xl font-black text-[#1F3449]">My Confirmed Escorts</h2>
+            <p className="text-xs text-gray-500">Upcoming hospital appointments you are assigned to escort.</p>
           </div>
 
-          <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 max-w-md space-y-4 shadow-sm">
-            <div className="flex items-center gap-4">
-              {activePal.avatar ? (
-                <img
-                  src={activePal.avatar}
-                  alt={activePal.name}
-                  className="w-16 h-16 rounded-2xl object-cover border-2 border-[#48A6A5] shadow-md"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-2xl bg-[#48A6A5] text-white font-black text-2xl flex items-center justify-center shadow-md">
-                  {activePal.name.slice(0, 2).toUpperCase()}
+          <div className="space-y-4">
+            {myAssignments.map((req) => (
+              <div key={req.id} className="bg-white p-6 rounded-3xl border-2 border-[#48A6A5] shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-base text-[#1F3449]">{req.hospitalName} - {req.department}</h3>
+                    <p className="text-xs text-gray-600">Patient: {req.patientName} ({req.patientPhone})</p>
+                  </div>
+                  <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full">
+                    Matched
+                  </span>
                 </div>
-              )}
-              <div>
-                <h3 className="text-xl font-black text-[#1F3449]">{activePal.name}</h3>
-                <span className="text-xs text-[#48A6A5] font-mono font-bold block">
-                  Badge #{activePal.badgeNumber || 'PAL-ACTIVE'}
-                </span>
-                <span className="text-[10px] text-gray-500 block">
-                  {activePal.hospitalAffiliations?.join(', ') || 'Path Pal Partner Hospital'}
-                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div><strong>Date:</strong> {req.appointmentDate} at {req.appointmentTime}</div>
+                  <div><strong>Meet:</strong> {req.meetingPoint}</div>
+                  <div><strong>Language:</strong> {req.languagePreference || 'English'}</div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100">
+                  <button
+                    onClick={() => setActiveTab('live_gps')}
+                    className="bg-[#48A6A5] text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Navigation className="w-3.5 h-3.5" />
+                    <span>Start Campus Navigation</span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedPalPatientSummary(req)}
+                    className="bg-gray-100 text-gray-700 font-bold text-xs px-4 py-2 rounded-xl hover:bg-gray-200 cursor-pointer"
+                  >
+                    Medical Brief
+                  </button>
+                </div>
               </div>
+            ))}
+
+            {myAssignments.length === 0 && (
+              <div className="p-12 text-center text-gray-400 bg-white rounded-3xl border border-gray-200 space-y-2">
+                <UserCheck className="w-8 h-8 mx-auto" />
+                <p>You have no active assignments accepted right now.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+       * TAB 3: VISITS
+       * ========================================================================= */}
+      {activeTab === 'visits' && (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-xl font-black text-[#1F3449]">Hospital Visits Log</h2>
+            <p className="text-xs text-gray-500">Completed and recorded visits from public.hospital_visits.</p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 font-bold uppercase tracking-wider">
+                <tr>
+                  <th className="p-4">Visit ID</th>
+                  <th className="p-4">Hospital</th>
+                  <th className="p-4">Department</th>
+                  <th className="p-4">Status</th>
+                  <th className="p-4">Scheduled Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 text-gray-700 font-medium">
+                {visits.map((v) => (
+                  <tr key={v.id} className="hover:bg-gray-50">
+                    <td className="p-4 font-mono font-bold">#{v.id}</td>
+                    <td className="p-4 font-bold text-[#1F3449]">{v.hospital_name || 'Hospital'}</td>
+                    <td className="p-4">{v.department || 'Outpatient'}</td>
+                    <td className="p-4">
+                      <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">
+                        {v.status}
+                      </span>
+                    </td>
+                    <td className="p-4 text-gray-500">
+                      {v.scheduled_at ? new Date(v.scheduled_at).toLocaleDateString() : 'N/A'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+       * TAB 4: NOTIFICATIONS
+       * ========================================================================= */}
+      {activeTab === 'notifications' && (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-xl font-black text-[#1F3449]">PAL Dispatch Alerts</h2>
+            <p className="text-xs text-gray-500">Real-time alerts from public.notifications table.</p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm divide-y divide-gray-100">
+            {notifications.map((n) => (
+              <div key={n.id} className="p-4 flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="font-bold text-xs text-[#1F3449]">{n.title}</div>
+                  <p className="text-xs text-gray-600">{n.message}</p>
+                </div>
+                <span className="text-[11px] text-gray-400">{new Date(n.created_at).toLocaleDateString()}</span>
+              </div>
+            ))}
+            {notifications.length === 0 && (
+              <div className="p-8 text-center text-gray-400">No alerts in your feed.</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+       * TAB 5: LIVE GPS STREAMING
+       * ========================================================================= */}
+      {activeTab === 'live_gps' && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
+          <div className="border-b border-gray-200 pb-4">
+            <span className="text-xs font-black uppercase text-rose-600 tracking-wider">LIVE TELEMETRY</span>
+            <h2 className="text-2xl font-black text-[#1F3449]">Real-Time GPS Location Broadcast</h2>
+            <p className="text-xs text-gray-600">
+              Streams your current campus coordinates directly to public.location_sessions and location_points for patient tracking.
+            </p>
+          </div>
+
+          <div className="p-6 rounded-2xl bg-gray-50 border border-gray-200 space-y-4 max-w-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-bold text-sm text-[#1F3449]">GPS Streaming Status</div>
+                <div className="text-xs text-gray-500">
+                  {isStreamingGps ? `Active Session #${activeGpsSessionId}` : 'Not currently streaming'}
+                </div>
+              </div>
+              <div
+                className={`w-4 h-4 rounded-full ${
+                  isStreamingGps ? 'bg-emerald-500 animate-ping' : 'bg-gray-300'
+                }`}
+              />
             </div>
 
-            {activePal.bio && (
-              <p className="text-xs text-gray-700 bg-white p-3 rounded-xl border border-gray-200 italic">
-                "{activePal.bio}"
-              </p>
+            {gpsCoords && (
+              <div className="text-xs font-mono bg-white p-3 rounded-xl border border-gray-200 text-gray-700">
+                Lat: {gpsCoords.lat.toFixed(6)}, Lng: {gpsCoords.lng.toFixed(6)}
+              </div>
             )}
 
-            <div className="space-y-1 text-xs">
-              <span className="font-bold text-gray-700 block">Specialties:</span>
-              <div className="flex flex-wrap gap-1.5">
-                {activePal.specialties.map((s, i) => (
-                  <span
-                    key={i}
-                    className="bg-[#48A6A5]/10 text-[#48A6A5] px-2 py-0.5 rounded font-medium text-[11px]"
-                  >
-                    ✓ {s}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-1 text-xs">
-              <span className="font-bold text-gray-700 block">Languages:</span>
-              <div className="flex flex-wrap gap-1.5">
-                {activePal.languages.map((l, i) => (
-                  <span
-                    key={i}
-                    className="bg-white text-gray-700 border border-gray-300 px-2 py-0.5 rounded font-medium text-[11px]"
-                  >
-                    🗣️ {l}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2 text-xs border-t border-gray-200 pt-3">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Background Check:</span>
-                <span className="text-emerald-700 font-bold flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Clear (Passed 2026)
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">CHW Certification:</span>
-                <span className="text-emerald-700 font-bold">State Approved</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">CPR / BLS First Aid:</span>
-                <span className="text-emerald-700 font-bold">Active Exp 2027</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">HIPAA Compliance:</span>
-                <span className="text-emerald-700 font-bold">Verified</span>
-              </div>
+            <div className="flex items-center gap-3 pt-2">
+              {!isStreamingGps ? (
+                <button
+                  onClick={handleStartGps}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase px-5 py-3 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-2"
+                >
+                  <Navigation className="w-4 h-4" />
+                  <span>Start Live Broadcast</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleStopGps}
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs uppercase px-5 py-3 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-2"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Stop Broadcast</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* PAL READ-ONLY MEDICAL SUMMARY MODAL */}
-      {selectedPalPatientSummary && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 border-2 border-[#48A6A5] shadow-2xl relative max-h-[90vh] overflow-y-auto space-y-4 text-[#1F3449]">
-            <button
-              onClick={() => setSelectedPalPatientSummary(null)}
-              className="absolute top-5 right-5 p-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
+      {/* =========================================================================
+       * TAB 6: ETA CALCULATOR
+       * ========================================================================= */}
+      {activeTab === 'eta_calculator' && (
+        <div className="space-y-6">
+          <EtaCalculatorWidget onOpenGpsModal={onOpenGpsModal} />
+        </div>
+      )}
 
-            <div className="flex items-center gap-2 text-xs font-bold text-[#48A6A5] uppercase tracking-wider">
-              <Lock className="w-4 h-4" />
-              <span>PAL COMPANION READ-ONLY AUDIT VIEW</span>
+      {/* =========================================================================
+       * TAB 7: EARNINGS & STIPEND LOG
+       * ========================================================================= */}
+      {activeTab === 'earnings' && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
+          <div className="border-b border-gray-200 pb-4">
+            <span className="text-xs font-black uppercase text-emerald-600 tracking-wider">CHW STIPENDS</span>
+            <h2 className="text-2xl font-black text-[#1F3449]">PAL Earnings & Disbursement</h2>
+            <p className="text-xs text-gray-600">
+              Community Health Worker companion stipends paid bi-weekly via direct deposit.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-1">
+              <div className="text-xs text-emerald-800 font-bold uppercase">Hourly Rate</div>
+              <div className="text-2xl font-black text-emerald-700">${((activePal.hourly_rate_cents || 2600) / 100).toFixed(2)}/hr</div>
+            </div>
+            <div className="p-5 rounded-2xl bg-blue-50 border border-blue-200 space-y-1">
+              <div className="text-xs text-blue-800 font-bold uppercase">Visits Completed</div>
+              <div className="text-2xl font-black text-blue-700">{activePal.completedVisits || 0}</div>
+            </div>
+            <div className="p-5 rounded-2xl bg-purple-50 border border-purple-200 space-y-1">
+              <div className="text-xs text-purple-800 font-bold uppercase">Next Payout</div>
+              <div className="text-2xl font-black text-purple-700">Friday (Direct Deposit)</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+       * TAB 8: PROFILE & BADGE
+       * ========================================================================= */}
+      {activeTab === 'profile' && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
+          <div className="border-b border-gray-200 pb-4">
+            <span className="text-xs font-black uppercase text-[#1F3449] tracking-wider">CREDENTIAL DETAILS</span>
+            <h2 className="text-2xl font-black text-[#1F3449]">PAL Verified Profile</h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl text-xs">
+            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-1">
+              <span className="text-gray-400 font-bold uppercase block">Name:</span>
+              <span className="font-bold text-[#1F3449]">{activePal.name}</span>
+            </div>
+            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-1">
+              <span className="text-gray-400 font-bold uppercase block">Badge ID:</span>
+              <span className="font-mono font-bold text-[#48A6A5]">{activePal.badgeNumber || 'PAL-ACTIVE'}</span>
+            </div>
+            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-1">
+              <span className="text-gray-400 font-bold uppercase block">Languages:</span>
+              <span className="font-medium text-gray-700">{activePal.languages?.join(', ') || 'English'}</span>
+            </div>
+            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-1">
+              <span className="text-gray-400 font-bold uppercase block">Rating:</span>
+              <span className="font-bold text-amber-600">★ {activePal.rating || '5.0'}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Patient Briefing Modal */}
+      {selectedPalPatientSummary && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white w-full max-w-xl rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl border-2 border-[#48A6A5]">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-[#48A6A5]" />
+                <h3 className="font-black text-lg text-[#1F3449]">Patient Care Brief</h3>
+              </div>
+              <button
+                onClick={() => setSelectedPalPatientSummary(null)}
+                className="text-gray-400 hover:text-gray-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             <MedicalSummaryWidget
-              isPalView={true}
-              initialData={{
-                patientName: selectedPalPatientSummary.patientName,
-                dob: '1958-04-12',
-                bloodType: 'O-Positive (O+)',
-                primaryLanguage:
-                  selectedPalPatientSummary.languagePreference || 'Spanish & English',
-                primaryDoctor: 'Dr. Robert Chen, MD',
-                doctorPhone: '(555) 234-8900',
-                medicalHistory: [
-                  'Hypertension',
-                  'Type 2 Diabetes',
-                  'Post-Op Knee Recovery',
-                ],
-                allergies: ['Penicillin (Severe Rash)', 'Latex'],
-                emergencyContactName: 'Carlos Santos',
-                emergencyContactRelation: 'Son',
-                emergencyContactPhone:
-                  selectedPalPatientSummary.patientPhone || '(555) 987-6543',
-                mobilityNotes:
-                  selectedPalPatientSummary.mobilityNeeds.join(', ') +
-                  ' - Requires steady arm support.',
-                uploadedFileName: 'Santos_Medical_Summary_2026.pdf',
-                uploadedFileSize: '1.2 MB',
-                lastUpdated: '2026-08-02 08:00',
-                isSharingActive: true,
-              }}
+              request={selectedPalPatientSummary}
+              onClose={() => setSelectedPalPatientSummary(null)}
             />
-
-            <div className="pt-2 flex justify-end">
-              <button
-                onClick={() => setSelectedPalPatientSummary(null)}
-                className="bg-[#48A6A5] text-white font-black text-xs px-6 py-3 rounded-xl uppercase tracking-wider hover:bg-[#48A6A5]/90 transition-all"
-              >
-                Close Read-Only View
-              </button>
-            </div>
           </div>
         </div>
       )}
+
     </div>
   );
 };

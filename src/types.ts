@@ -3,6 +3,7 @@ export interface Pal {
   auth_user_id?: string;
   name: string;
   phone?: string;
+  ssn?: string;
   bio?: string;
   availability?: string;
   background_check_status?: string;
@@ -30,6 +31,7 @@ export interface PalApplication {
   full_name?: string;
   email: string;
   phone: string;
+  ssn?: string;
   languages: string;
   status: 'pending' | 'approved' | 'rejected' | string;
   created_at: string;

@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
-import { X, UserCheck, CheckCircle2, AlertCircle, Loader2, ShieldCheck } from 'lucide-react';
-import { submitPalApplication } from '../lib/supabase';
+import {
+  X,
+  UserCheck,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  Lock,
+  FileCheck,
+} from 'lucide-react';
+import { submitPalApplication, isValidSSN } from '../lib/supabase';
 import { PalApplication } from '../types';
 
 interface BecomePalModalProps {
@@ -18,18 +29,55 @@ export const BecomePalModal: React.FC<BecomePalModalProps> = ({
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [languages, setLanguages] = useState('English, Spanish');
+  const [ssn, setSsn] = useState('');
+  const [showSsn, setShowSsn] = useState(false);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [specialties, setSpecialties] = useState('Wheelchair Mobility, Elderly Care Support');
   const [bio, setBio] = useState('Compassionate healthcare companion ready to support patients during appointments.');
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submittedApp, setSubmittedApp] = useState<PalApplication | null>(null);
 
   if (!isOpen) return null;
 
+  const handleSsnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, '').slice(0, 9);
+    let formatted = raw;
+    if (raw.length > 5) {
+      formatted = `${raw.slice(0, 3)}-${raw.slice(3, 5)}-${raw.slice(5)}`;
+    } else if (raw.length > 3) {
+      formatted = `${raw.slice(0, 3)}-${raw.slice(3)}`;
+    }
+    setSsn(formatted);
+  };
+
+  const validateForm = (): string | null => {
+    if (!name.trim()) return 'Please provide your full legal name.';
+    if (!email.trim() || !email.includes('@')) return 'Please provide a valid email address.';
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length < 10) return 'Please provide a valid 10-digit phone number.';
+    if (!isValidSSN(ssn)) return 'Please provide a valid 9-digit Social Security Number for background check compliance.';
+    if (!password || password.length < 8) return 'Password must be at least 8 characters long.';
+    if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) return 'Password must contain both letters and numbers.';
+    if (password !== confirmPassword) return 'Password and Confirm Password do not match.';
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setErrorMessage(null);
+
+    const validationErr = validateForm();
+    if (validationErr) {
+      setErrorMessage(validationErr);
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
       const res = await submitPalApplication({
@@ -37,15 +85,25 @@ export const BecomePalModal: React.FC<BecomePalModalProps> = ({
         email,
         phone,
         languages,
+        ssn,
         specialties,
         bio,
       });
 
       setIsSubmitting(false);
 
-      if (res?.success) {
+      if (res.error) {
+        setErrorMessage(res.error.message);
+        return;
+      }
+
+      if (res.success) {
+        // Clear sensitive password inputs immediately from memory
+        setPassword('');
+        setConfirmPassword('');
+
         setSubmittedApp({
-          id: `app-${Date.now()}`,
+          id: `app-submitted`,
           name,
           email,
           phone,
@@ -58,7 +116,7 @@ export const BecomePalModal: React.FC<BecomePalModalProps> = ({
       }
     } catch (err: any) {
       setIsSubmitting(false);
-      setErrorMessage(err?.message || 'Unable to submit application at this time.');
+      setErrorMessage('Unable to submit your application at this time. Please try again.');
     }
   };
 
@@ -68,15 +126,19 @@ export const BecomePalModal: React.FC<BecomePalModalProps> = ({
     setName('');
     setEmail('');
     setPhone('');
+    setSsn('');
+    setPassword('');
+    setConfirmPassword('');
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1F3449]/70 backdrop-blur-xs animate-fade-in text-[#1F3449]">
-      <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl relative border-2 border-[#48A6A5]/30 overflow-hidden max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl relative border-2 border-[#48A6A5]/30 overflow-hidden max-h-[92vh] overflow-y-auto">
         <button
           onClick={handleResetAndClose}
           className="absolute top-5 right-5 p-2 rounded-full text-gray-400 hover:bg-gray-100 transition-colors"
+          aria-label="Close modal"
         >
           <X className="w-5 h-5" />
         </button>
@@ -86,55 +148,140 @@ export const BecomePalModal: React.FC<BecomePalModalProps> = ({
             <div className="space-y-1">
               <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#48A6A5] uppercase tracking-wider">
                 <UserCheck className="w-4 h-4" />
-                <span>STEP 1: PAL COMPANION APPLICATION</span>
+                <span>PAL COMPANION APPLICATION & VERIFICATION</span>
               </div>
               <h3 className="text-2xl font-black text-[#1F3449]">Be the Person Who Helps</h3>
               <p className="text-xs text-gray-600">
-                Join our network of compassionate non-clinical companions. When your application is approved by the hospital care team, you will receive a secure signup link.
+                Join our network of verified patient companions. All applicants undergo identity screening and credential verification by hospital administrators.
               </p>
             </div>
 
             {errorMessage && (
-              <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2">
+              <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2 animate-fade-in">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{errorMessage}</span>
+                <span className="font-medium">{errorMessage}</span>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#1F3449] mb-1">Full Legal Name</label>
+                <label className="block text-xs font-bold text-[#1F3449] mb-1">
+                  Full Legal Name <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g., Sarah Martinez"
+                  placeholder="e.g., Sarah Marie Martinez"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50"
+                  className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 font-medium"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#1F3449] mb-1">Email Address</label>
+                  <label className="block text-xs font-bold text-[#1F3449] mb-1">
+                    Email Address <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="email"
                     required
                     placeholder="sarah@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50"
+                    className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 font-medium"
                   />
-                  <p className="text-[10px] text-gray-500 mt-1">Used for admin approval and login account creation.</p>
+                  <p className="text-[10px] text-gray-500 mt-1">Used for verification email and Supabase login.</p>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#1F3449] mb-1">Phone Number</label>
+                  <label className="block text-xs font-bold text-[#1F3449] mb-1">
+                    Phone Number <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="tel"
                     required
                     placeholder="(555) 019-2834"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
+                    className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* SSN Field with Show/Hide Toggle & Secure Masking */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-[#1F3449]">
+                    Social Security Number (SSN) <span className="text-rose-500">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowSsn(!showSsn)}
+                    className="text-[11px] font-bold text-[#48A6A5] hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    {showSsn ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    <span>{showSsn ? 'Hide SSN' : 'Show SSN'}</span>
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showSsn ? 'text' : 'password'}
+                    required
+                    placeholder="XXX-XX-XXXX"
+                    value={ssn}
+                    onChange={handleSsnChange}
+                    maxLength={11}
+                    className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 font-mono tracking-wider"
+                  />
+                </div>
+                <p className="text-[10px] text-gray-500 mt-1">
+                  Required strictly for hospital background check and verification. Never displayed publicly or shared with patients.
+                </p>
+              </div>
+
+              {/* Password & Confirm Password with Show/Hide Toggles */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-[#1F3449]">
+                      Account Password <span className="text-rose-500">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-[10px] font-bold text-gray-500 hover:text-[#48A6A5] flex items-center gap-0.5 cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                    </button>
+                  </div>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    placeholder="Min 8 chars, letters & nums"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-[#1F3449]">
+                      Confirm Password <span className="text-rose-500">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="text-[10px] font-bold text-gray-500 hover:text-[#48A6A5] flex items-center gap-0.5 cursor-pointer"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                    </button>
+                  </div>
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    required
+                    placeholder="Re-enter password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50"
                   />
                 </div>
@@ -168,16 +315,16 @@ export const BecomePalModal: React.FC<BecomePalModalProps> = ({
                   rows={2}
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
-                  placeholder="Tell patients about your background..."
+                  placeholder="Tell patients and coordinators about your healthcare companion background..."
                   className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 resize-none"
                 />
               </div>
 
-              <div className="p-3 bg-[#48A6A5]/10 rounded-xl border border-[#48A6A5]/20 flex items-center gap-2 text-xs text-[#1F3449]">
-                <ShieldCheck className="w-4 h-4 text-[#48A6A5] shrink-0" />
-                <span className="text-[11px]">
-                  <strong>Security Note:</strong> Passwords are not collected during application. Login accounts are created only after admin approval.
-                </span>
+              <div className="p-3 bg-[#48A6A5]/10 rounded-xl border border-[#48A6A5]/20 flex items-start gap-2.5 text-xs text-[#1F3449]">
+                <ShieldCheck className="w-4 h-4 text-[#48A6A5] shrink-0 mt-0.5" />
+                <div className="text-[11px] leading-relaxed">
+                  <strong>Zero-Trust Credential Security:</strong> Passwords are never stored in database tables. Upon admin review and approval, your Supabase Auth account will be authorized to receive dispatch assignments.
+                </div>
               </div>
 
               <button
@@ -193,14 +340,14 @@ export const BecomePalModal: React.FC<BecomePalModalProps> = ({
                 ) : (
                   <>
                     <UserCheck className="w-4 h-4" />
-                    <span>Submit Pal Application</span>
+                    <span>Submit Pal Application & Screening</span>
                   </>
                 )}
               </button>
             </form>
           </div>
         ) : (
-          <div className="text-center space-y-4 py-4">
+          <div className="text-center space-y-4 py-4 animate-fade-in">
             <div className="w-16 h-16 bg-[#48A6A5] text-white rounded-full mx-auto flex items-center justify-center shadow-md">
               <CheckCircle2 className="w-8 h-8" />
             </div>
@@ -215,21 +362,21 @@ export const BecomePalModal: React.FC<BecomePalModalProps> = ({
                 <span className="font-mono text-gray-700">{submittedApp.email}</span>
               </div>
               <div className="flex justify-between items-center text-xs">
-                <span className="text-gray-500 font-bold uppercase">Current Status:</span>
+                <span className="text-gray-500 font-bold uppercase">Screening Status:</span>
                 <span className="bg-amber-100 text-amber-800 text-[10px] font-black uppercase px-2 py-0.5 rounded-full border border-amber-300">
-                  PENDING ADMIN REVIEW
+                  PENDING ADMIN APPROVAL
                 </span>
               </div>
             </div>
 
-            <p className="text-xs text-gray-600 max-w-md mx-auto">
-              Your application has been received. Once an administrator approves your profile, you will receive an invitation link to complete your account setup and activation.
+            <p className="text-xs text-gray-600 max-w-md mx-auto leading-relaxed">
+              Your application and identity credentials have been received into the screening queue. Once approved by the hospital care coordinator, you can proceed to the PAL Signup and email verification step.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
               <button
                 onClick={handleResetAndClose}
-                className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-[#1F3449] text-xs font-bold px-6 py-3 rounded-xl transition-all"
+                className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-[#1F3449] text-xs font-bold px-6 py-3 rounded-xl transition-all cursor-pointer"
               >
                 Close
               </button>
@@ -239,9 +386,9 @@ export const BecomePalModal: React.FC<BecomePalModalProps> = ({
                   handleResetAndClose();
                   window.location.hash = 'hospital';
                 }}
-                className="w-full sm:w-auto bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white text-xs font-bold px-6 py-3 rounded-xl transition-all shadow-md inline-block text-center"
+                className="w-full sm:w-auto bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white text-xs font-bold px-6 py-3 rounded-xl transition-all shadow-md inline-block text-center cursor-pointer"
               >
-                Go to Admin Approvals Tab →
+                Go to Hospital Approvals Tab →
               </a>
             </div>
           </div>

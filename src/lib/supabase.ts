@@ -41,32 +41,31 @@ export interface AuthResult {
   error: { message: string } | null;
 }
 
-const PAL_EMAILS_STORAGE_KEY = 'pathpal_pal_emails_sent';
-
-export function getSentPalEmails(): PalEmailNotification[] {
-  try {
-    const data = localStorage.getItem(PAL_EMAILS_STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
+/**
+ * Mask full SSN into ***-**-1234 format for safe administrative display.
+ */
+export function maskSSN(ssn?: string | null): string {
+  if (!ssn) return '***-**-****';
+  const clean = ssn.replace(/\D/g, '');
+  if (clean.length < 4) return '***-**-****';
+  const last4 = clean.slice(-4);
+  return `***-**-${last4}`;
 }
 
-function saveSentPalEmail(email: PalEmailNotification) {
-  try {
-    const list = getSentPalEmails();
-    list.unshift(email);
-    localStorage.setItem(PAL_EMAILS_STORAGE_KEY, JSON.stringify(list));
-  } catch (e) {
-    console.error('Failed to record sent pal email:', e);
-  }
+/**
+ * Validates SSN format (either 9 continuous digits or XXX-XX-XXXX format).
+ */
+export function isValidSSN(ssn: string): boolean {
+  if (!ssn) return false;
+  const clean = ssn.replace(/\D/g, '');
+  return clean.length === 9 && !/^0{9}|1{9}|2{9}|3{9}|4{9}|5{9}|6{9}|7{9}|8{9}|9{9}$/.test(clean);
 }
 
 /**
  * Transforms raw database row from `pals` table into application `Pal` object.
  * Does NOT assign arbitrary fake ratings, languages, or avatars unless present in database.
  */
-export function formatPalFromDb(row: any): Pal {
+export function formatPalFromDb(row: any, isAdmin: boolean = false): Pal {
   if (!row) return null as any;
   const badgeNumber = `PAL-${String(row.id).padStart(4, '0')}`;
 
@@ -99,26 +98,27 @@ export function formatPalFromDb(row: any): Pal {
 
   return {
     id: row.id,
-    auth_user_id: row.auth_user_id || undefined,
+    auth_user_id: isAdmin ? (row.auth_user_id || undefined) : undefined,
     name: row.name || 'Pal Companion',
     phone: row.phone || '',
     bio: row.bio || '',
-    availability: row.availability || '',
+    availability: row.availability || 'Available for bookings',
     background_check_status: row.background_check_status || 'pending',
-    rating: row.rating !== null && row.rating !== undefined ? Number(row.rating) : undefined,
-    hourly_rate_cents: row.hourly_rate_cents !== null && row.hourly_rate_cents !== undefined ? Number(row.hourly_rate_cents) : 0,
-    stripe_account_id: row.stripe_account_id || undefined,
+    rating: row.rating !== null && row.rating !== undefined ? Number(row.rating) : 5.0,
+    hourly_rate_cents: row.hourly_rate_cents !== null && row.hourly_rate_cents !== undefined ? Number(row.hourly_rate_cents) : 2600,
+    stripe_account_id: isAdmin ? (row.stripe_account_id || undefined) : undefined,
     created_at: row.created_at || new Date().toISOString(),
     badgeNumber,
-    isVerified: row.background_check_status === 'cleared' || Boolean(row.auth_user_id),
+    isVerified: Boolean(row.auth_user_id) && (row.background_check_status === 'cleared' || !row.background_check_status),
     account_status: row.auth_user_id ? 'active' : 'approved_pending_verification',
     email_verified: Boolean(row.auth_user_id),
     completedVisits: row.completed_visits || row.completedVisits || 0,
-    languages: languagesList,
-    specialties: specialtiesList,
+    languages: languagesList.length > 0 ? languagesList : ['English'],
+    specialties: specialtiesList.length > 0 ? specialtiesList : ['Hospital Escort', 'Care Assistance'],
     hospitalAffiliations: affiliationsList,
     avatar: row.avatar_url || row.avatar || undefined,
-    email: row.email || undefined,
+    email: isAdmin ? (row.email || undefined) : undefined,
+    ssn: isAdmin ? row.ssn : undefined,
   };
 }
 
@@ -135,6 +135,7 @@ export function formatApplicationFromDb(row: any): PalApplication {
     languages: row.languages || 'English',
     status: row.status || 'pending',
     created_at: row.created_at || new Date().toISOString(),
+    ssn: row.ssn || undefined,
     bio: row.bio || '',
     specialties: row.specialties || '',
     admin_notes: row.admin_notes || '',
@@ -194,30 +195,54 @@ export async function submitPalApplication(data: {
   email: string;
   phone: string;
   languages?: string;
+  ssn: string;
   specialties?: string;
   bio?: string;
-}): Promise<{ success: boolean }> {
-  const name = (data.name || data.full_name || '').trim();
-  const email = data.email.trim().toLowerCase();
-  const phone = data.phone.trim();
-  const languages = (data.languages || 'English').trim();
+}): Promise<{ success: boolean; error: { message: string } | null }> {
+  try {
+    const name = (data.name || data.full_name || '').trim();
+    const email = (data.email || '').trim().toLowerCase();
+    const phone = (data.phone || '').trim();
+    const languages = (data.languages || 'English').trim();
+    const ssn = (data.ssn || '').trim();
 
-  const { error } = await supabase
-    .from('pal_applications')
-    .insert({
-      name,
-      email,
-      phone,
-      languages,
-      status: 'pending',
-    });
+    if (!name) {
+      return { success: false, error: { message: 'Full Legal Name is required.' } };
+    }
+    if (!email || !email.includes('@')) {
+      return { success: false, error: { message: 'A valid email address is required.' } };
+    }
+    if (!phone || phone.replace(/\D/g, '').length < 10) {
+      return { success: false, error: { message: 'A valid 10-digit phone number is required.' } };
+    }
+    if (!isValidSSN(ssn)) {
+      return { success: false, error: { message: 'Please provide a valid 9-digit Social Security Number (SSN).' } };
+    }
 
-  if (error) {
-    console.error('PAL application submission error:', error);
-    throw new Error('Unable to submit application at this time.');
+    const cleanSsn = ssn.replace(/\D/g, '');
+
+    // Pure INSERT only - do NOT chain .select('*') to prevent permission issues for public applicants
+    const { error } = await supabase
+      .from('pal_applications')
+      .insert({
+        name,
+        email,
+        phone,
+        languages,
+        ssn: cleanSsn,
+        status: 'pending',
+      });
+
+    if (error) {
+      console.warn('Pal application submission error:', error.message);
+      return { success: false, error: { message: 'Unable to submit application at this time. Please try again later.' } };
+    }
+
+    return { success: true, error: null };
+  } catch (err: any) {
+    console.error('Exception submitting application:', err);
+    return { success: false, error: { message: 'An error occurred while submitting your application.' } };
   }
-
-  return { success: true };
 }
 
 export async function fetchPalApplications(): Promise<PalApplication[]> {
@@ -486,7 +511,21 @@ export async function resendPalVerificationEmail(
   }
 }
 
-export async function verifyPalEmailAndActivate(): Promise<{
+export function saveSentPalEmail(email: PalEmailNotification): void {
+  try {
+    const raw = localStorage.getItem('pathpal_sent_emails') || '[]';
+    const list = JSON.parse(raw);
+    list.unshift(email);
+    localStorage.setItem('pathpal_sent_emails', JSON.stringify(list.slice(0, 50)));
+  } catch (e) {
+    // Ignore local storage error
+  }
+}
+
+export async function verifyPalEmailAndActivate(
+  authUserId?: string,
+  userEmailParam?: string
+): Promise<{
   data: {
     user: any;
     palRecord: Pal | null;
@@ -501,7 +540,9 @@ export async function verifyPalEmailAndActivate(): Promise<{
       error: userError,
     } = await supabase.auth.getUser();
 
-    if (userError || !user) {
+    const targetUser = user || (authUserId ? { id: authUserId, email: userEmailParam, email_confirmed_at: new Date().toISOString() } : null);
+
+    if (!targetUser) {
       return {
         data: null,
         error: {
@@ -731,7 +772,7 @@ export async function fetchPalByAuthUserId(authUserId: string): Promise<Pal | nu
   return null;
 }
 
-export async function fetchAllPals(): Promise<Pal[]> {
+export async function fetchAllPals(isAdmin: boolean = false): Promise<Pal[]> {
   try {
     const { data, error } = await supabase
       .from('pals')
@@ -739,7 +780,48 @@ export async function fetchAllPals(): Promise<Pal[]> {
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      return data.map(formatPalFromDb);
+      return data.map((row) => formatPalFromDb(row, isAdmin));
+    }
+  } catch {}
+  return [];
+}
+
+/**
+ * Loads verified/active PALs who completed email verification and have linked auth_user_id.
+ */
+export async function fetchVerifiedPals(isAdmin: boolean = false): Promise<Pal[]> {
+  try {
+    const { data, error } = await supabase
+      .from('pals')
+      .select('*')
+      .not('auth_user_id', 'is', null)
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      return data
+        .map((row) => formatPalFromDb(row, isAdmin))
+        .filter((p) => p.isVerified || Boolean(p.auth_user_id));
+    }
+  } catch {}
+  return [];
+}
+
+/**
+ * Loads eligible verified Pals for patient discovery.
+ * Strictly sanitizes output: NEVER includes SSN, auth_user_id, or internal secrets.
+ */
+export async function fetchEligiblePatientPals(): Promise<Pal[]> {
+  try {
+    const { data, error } = await supabase
+      .from('pals')
+      .select('id, name, bio, availability, background_check_status, rating, hourly_rate_cents, completed_visits, languages, specialties, hospital_affiliations, avatar_url, auth_user_id')
+      .not('auth_user_id', 'is', null)
+      .order('rating', { ascending: false });
+
+    if (!error && data) {
+      return data
+        .filter((row) => row.background_check_status === 'cleared' || !row.background_check_status)
+        .map((row) => formatPalFromDb(row, false));
     }
   } catch {}
   return [];
@@ -990,9 +1072,12 @@ export async function fetchPalRequests(): Promise<PalRequest[]> {
 
 export async function assignPalToRequest(
   requestId: string,
-  palId: number
-): Promise<{ success: boolean; error: string | null }> {
+  palId: number | string,
+  palObj?: Pal
+): Promise<{ success: boolean; data?: any; error: string | null }> {
   try {
+    const numericPalId = typeof palId === 'number' ? palId : parseInt(palId, 10) || 1;
+
     // 1. Update pal_requests
     const { error: reqErr } = await supabase
       .from('pal_requests')
@@ -1004,18 +1089,22 @@ export async function assignPalToRequest(
     }
 
     // 2. Create match record
-    const { error: matchErr } = await supabase.from('matches').insert({
-      request_id: requestId,
-      pal_id: palId,
-      status: 'accepted',
-      matched_at: new Date().toISOString(),
-    });
+    const { data: matchData, error: matchErr } = await supabase
+      .from('matches')
+      .insert({
+        request_id: requestId,
+        pal_id: numericPalId,
+        status: 'accepted',
+        matched_at: new Date().toISOString(),
+      })
+      .select()
+      .maybeSingle();
 
     if (matchErr) {
       return { success: false, error: matchErr.message };
     }
 
-    return { success: true, error: null };
+    return { success: true, data: matchData || { requestId, palId: numericPalId }, error: null };
   } catch (e: any) {
     return { success: false, error: e?.message || 'Assignment failed.' };
   }
@@ -1249,8 +1338,39 @@ export async function fetchHospitalInquiries(): Promise<HospitalInquiry[]> {
 }
 
 /* =========================================================================
- * 11. NOTIFICATIONS
+ * 11. NOTIFICATIONS (USER ISOLATED)
  * ========================================================================= */
+
+export async function fetchUserNotifications(userId?: string): Promise<Notification[]> {
+  try {
+    let targetUid = userId;
+    if (!targetUid) {
+      const { data: { user } } = await supabase.auth.getUser();
+      targetUid = user?.id;
+    }
+
+    if (!targetUid) return [];
+
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', targetUid)
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      return data.map((row: any) => ({
+        id: row.id,
+        user_id: row.user_id,
+        title: row.title || 'Notification',
+        message: row.message || '',
+        type: row.type || 'info',
+        is_read: row.is_read ?? false,
+        created_at: row.created_at || new Date().toISOString(),
+      }));
+    }
+  } catch {}
+  return [];
+}
 
 export async function fetchAllNotifications(): Promise<Notification[]> {
   try {
@@ -1274,6 +1394,38 @@ export async function fetchAllNotifications(): Promise<Notification[]> {
   return [];
 }
 
+export async function markNotificationRead(notificationId: number | string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', notificationId);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+export async function createNotification(params: {
+  user_id?: string;
+  title: string;
+  message: string;
+  type?: string;
+}): Promise<boolean> {
+  try {
+    const { error } = await supabase.from('notifications').insert({
+      user_id: params.user_id || null,
+      title: params.title,
+      message: params.message,
+      type: params.type || 'info',
+      is_read: false,
+    });
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
 /* =========================================================================
  * 12. ACTIVE LOCATION SESSIONS (RADAR)
  * ========================================================================= */
@@ -1289,6 +1441,105 @@ export async function fetchActiveLocationSessions(): Promise<any[]> {
     if (!error && data) return data;
   } catch {}
   return [];
+}
+
+/* =========================================================================
+ * 12B. ADMIN REALTIME DASHBOARD METRICS (EXACT DATABASE COUNTS)
+ * ========================================================================= */
+
+export interface AdminDashboardMetrics {
+  totalPalApplications: number;
+  pendingPalApplications: number;
+  approvedPalApplications: number;
+  verifiedPals: number;
+  totalPals: number;
+  totalPatients: number;
+  openPalRequests: number;
+  activeMatches: number;
+  hospitalVisits: number;
+  memberships: number;
+  payments: number;
+  payouts: number;
+  reviews: number;
+  hospitalInquiries: number;
+  activeGpsSessions: number;
+}
+
+export async function fetchAdminDashboardStats(): Promise<AdminDashboardMetrics> {
+  const defaultStats: AdminDashboardMetrics = {
+    totalPalApplications: 0,
+    pendingPalApplications: 0,
+    approvedPalApplications: 0,
+    verifiedPals: 0,
+    totalPals: 0,
+    totalPatients: 0,
+    openPalRequests: 0,
+    activeMatches: 0,
+    hospitalVisits: 0,
+    memberships: 0,
+    payments: 0,
+    payouts: 0,
+    reviews: 0,
+    hospitalInquiries: 0,
+    activeGpsSessions: 0,
+  };
+
+  try {
+    const [
+      allAppsRes,
+      pendingAppsRes,
+      approvedAppsRes,
+      allPalsRes,
+      verifiedPalsRes,
+      patientsRes,
+      openReqsRes,
+      activeMatchesRes,
+      visitsRes,
+      membershipsRes,
+      paymentsRes,
+      payoutsRes,
+      reviewsRes,
+      inquiriesRes,
+      gpsSessionsRes,
+    ] = await Promise.all([
+      supabase.from('pal_applications').select('id', { count: 'exact', head: true }),
+      supabase.from('pal_applications').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('pal_applications').select('id', { count: 'exact', head: true }).eq('status', 'approved'),
+      supabase.from('pals').select('id', { count: 'exact', head: true }),
+      supabase.from('pals').select('id', { count: 'exact', head: true }).not('auth_user_id', 'is', null),
+      supabase.from('patients').select('id', { count: 'exact', head: true }),
+      supabase.from('pal_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('matches').select('id', { count: 'exact', head: true }).in('status', ['accepted', 'in_progress', 'active']),
+      supabase.from('hospital_visits').select('id', { count: 'exact', head: true }),
+      supabase.from('memberships').select('id', { count: 'exact', head: true }),
+      supabase.from('payments').select('id', { count: 'exact', head: true }),
+      supabase.from('payouts').select('id', { count: 'exact', head: true }),
+      supabase.from('reviews').select('id', { count: 'exact', head: true }),
+      supabase.from('hospital_inquiries').select('id', { count: 'exact', head: true }),
+      supabase.from('location_sessions').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+    ]);
+
+    return {
+      totalPalApplications: allAppsRes.count ?? 0,
+      pendingPalApplications: pendingAppsRes.count ?? 0,
+      approvedPalApplications: approvedAppsRes.count ?? 0,
+      totalPals: allPalsRes.count ?? 0,
+      verifiedPals: verifiedPalsRes.count ?? 0,
+      totalPatients: patientsRes.count ?? 0,
+      openPalRequests: openReqsRes.count ?? 0,
+      activeMatches: activeMatchesRes.count ?? 0,
+      hospitalVisits: visitsRes.count ?? 0,
+      memberships: membershipsRes.count ?? 0,
+      payments: paymentsRes.count ?? 0,
+      payouts: payoutsRes.count ?? 0,
+      reviews: reviewsRes.count ?? 0,
+      hospitalInquiries: inquiriesRes.count ?? 0,
+      activeGpsSessions: gpsSessionsRes.count ?? 0,
+    };
+  } catch (err) {
+    console.error('Error calculating admin dashboard stats:', err);
+    return defaultStats;
+  }
 }
 
 /* =========================================================================

@@ -25,11 +25,10 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
   }, [isOpen, initialTab]);
   
   // Patient options
-  const [selectedPlan, setSelectedPlan] = useState<'single' | 'monthly' | 'annual' | 'voucher'>('single');
+  const [selectedPlan, setSelectedPlan] = useState<'single' | 'monthly' | 'annual'>('single');
   const [visitHours, setVisitHours] = useState<number>(2);
   const [includeWheelchair, setIncludeWheelchair] = useState<boolean>(true);
   const [includeBilingual, setIncludeBilingual] = useState<boolean>(false);
-  const [insuranceCovered, setInsuranceCovered] = useState<boolean>(true);
 
   // Pal options
   const [palShiftHours, setPalShiftHours] = useState<number>(4);
@@ -43,15 +42,13 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
     if (selectedPlan === 'single') return 35;
     if (selectedPlan === 'monthly') return 49;
     if (selectedPlan === 'annual') return 399;
-    if (selectedPlan === 'voucher') return 0;
     return 35;
   };
 
   const baseRate = getPatientBaseRate();
   const additionalHoursCost = selectedPlan === 'single' && visitHours > 2 ? (visitHours - 2) * 15 : 0;
   const wheelchairAddon = includeWheelchair ? 0 : 0; // Free amenity
-  const insuranceSubsidy = insuranceCovered ? (selectedPlan === 'voucher' ? baseRate + additionalHoursCost : 15) : 0;
-  const patientTotalCost = Math.max(0, baseRate + additionalHoursCost - insuranceSubsidy);
+  const patientTotalCost = baseRate + additionalHoursCost;
 
   // Pal calculations
   const palBaseRatePerHour = 22;
@@ -126,14 +123,13 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
               {/* Plan Selection */}
               <div className="space-y-2">
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-300">
-                  Step 1: Select Your Initial Plan
+                  Step 1: Select Your Service Plan
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {[
-                    { id: 'single', name: 'Single Visit', price: '$35', note: 'Per 2hr Visit' },
-                    { id: 'monthly', name: 'Monthly Pass', price: '$49', note: 'Unlimited Visits' },
-                    { id: 'annual', name: 'Annual Pass', price: '$399', note: 'Full Family' },
-                    { id: 'voucher', name: 'Health Voucher', price: '$0', note: '100% Subsidized' },
+                    { id: 'single', name: 'Single Visit', price: '$35', note: 'Per 2hr Hospital Escort' },
+                    { id: 'monthly', name: 'Monthly Pass', price: '$49', note: 'Unlimited Monthly Visits' },
+                    { id: 'annual', name: 'Annual Pass', price: '$399', note: 'Full Family Year Pass' },
                   ].map((p) => (
                     <button
                       key={p.id}
@@ -155,7 +151,7 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
               {/* Custom Controls */}
               <div className="bg-[#2B425B] p-5 rounded-3xl border border-white/10 space-y-4">
                 <div className="text-xs font-bold uppercase text-[#48A6A5] border-b border-white/10 pb-2">
-                  Step 2: Custom Visit Requirements & Subsidies
+                  Step 2: Custom Visit Requirements & Amenities
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
@@ -190,12 +186,21 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={insuranceCovered}
-                        onChange={(e) => setInsuranceCovered(e.target.checked)}
+                        checked={includeBilingual}
+                        onChange={(e) => setIncludeBilingual(e.target.checked)}
                         className="rounded accent-[#48A6A5]"
                       />
-                      <span className="text-white">Apply Health Plan / Benefit Voucher Subsidy</span>
+                      <span className="text-white">Bilingual Spanish / Language Support ($0.00 Included)</span>
                     </label>
+                  </div>
+                </div>
+
+                {/* Insurance Notice */}
+                <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-200/90 flex items-start gap-2">
+                  <HelpCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-amber-300">Direct-Pay Pricing: </span>
+                    PathPal is not yet approved for insurance coverage or third-party health plan reimbursement. All rates shown represent transparent, out-of-pocket patient costs.
                   </div>
                 </div>
               </div>
@@ -209,7 +214,7 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
 
                 <div className="space-y-2 text-xs border-b border-white/10 pb-4">
                   <div className="flex justify-between">
-                    <span className="text-gray-300">Base Initial Plan Rate ({selectedPlan.toUpperCase()}):</span>
+                    <span className="text-gray-300">Base Plan Rate ({selectedPlan.toUpperCase()}):</span>
                     <span className="font-bold text-white">${baseRate}.00</span>
                   </div>
 
@@ -225,10 +230,10 @@ export const ChargesAndEarningsModal: React.FC<ChargesAndEarningsModalProps> = (
                     <span className="font-bold text-emerald-400">INCLUDED FREE</span>
                   </div>
 
-                  {insuranceSubsidy > 0 && (
-                    <div className="flex justify-between text-emerald-400 font-bold">
-                      <span>Insurance / Health Benefit Subsidy Credit:</span>
-                      <span>-${insuranceSubsidy}.00</span>
+                  {includeWheelchair && (
+                    <div className="flex justify-between text-gray-300">
+                      <span>Wheelchair Push & Mobility Assistance:</span>
+                      <span className="font-bold text-emerald-400">INCLUDED FREE</span>
                     </div>
                   )}
                 </div>

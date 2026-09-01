@@ -103,13 +103,13 @@ export const GpsAndFinancialSection: React.FC<GpsAndFinancialSectionProps> = ({
               </h3>
 
               <p className="text-xs text-gray-300 leading-relaxed">
-                Complete upfront transparency for both sides. Patients see exact plan charges, health insurance subsidies, and out-of-pocket costs. Pals see their hourly escort pay, CHW bonuses, and direct-deposit payouts.
+                Complete upfront transparency for both sides. Patients see exact plan rates and transparent out-of-pocket costs with zero hidden fees. Pals see their hourly escort pay, CHW bonuses, and direct-deposit payouts.
               </p>
 
               <div className="space-y-2 text-xs">
                 <div className="flex items-center gap-2 text-gray-300">
                   <CheckCircle2 className="w-4 h-4 text-companion-coral shrink-0" />
-                  <span>Patient breakdown: $35 single visit or $0 with approved health benefit voucher</span>
+                  <span>Patient pricing: $35 single visit or $49/mo unlimited monthly pass</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-300">
                   <CheckCircle2 className="w-4 h-4 text-companion-coral shrink-0" />

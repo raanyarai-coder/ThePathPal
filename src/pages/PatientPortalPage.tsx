@@ -1,10 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, ShieldCheck, MapPin, Clock, Calendar, Phone, CheckCircle2, AlertCircle, Calculator, Navigation, ShieldAlert, FileText, ChevronRight, UserCheck, Lock, Globe, Activity, Database, UserPlus } from 'lucide-react';
-import { SAMPLE_HOSPITALS, SAMPLE_PALS, INITIAL_REQUESTS } from '../data/mockData';
-import { PalRequest } from '../types';
+import {
+  Heart,
+  ShieldCheck,
+  MapPin,
+  Clock,
+  Calendar,
+  Phone,
+  CheckCircle2,
+  AlertCircle,
+  Calculator,
+  Navigation,
+  ShieldAlert,
+  FileText,
+  ChevronRight,
+  UserCheck,
+  Lock,
+  Globe,
+  Activity,
+  Database,
+  UserPlus,
+  Users,
+  Award,
+  Bell,
+  Star,
+  DollarSign,
+  HeartHandshake,
+  User,
+  RefreshCw,
+} from 'lucide-react';
+import { SAMPLE_HOSPITALS } from '../data/mockData';
+import { Pal, PalRequest, Match, HospitalVisit, Notification } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { createGoogleCalendarUrl, downloadIcsFile } from '../utils/calendarUtils';
-import { getCurrentPatientUser, createPalRequest, fetchPalRequests } from '../lib/supabase';
+import {
+  createPalRequest,
+  fetchPalRequests,
+  fetchEligiblePatientPals,
+  fetchAllMatches,
+  fetchAllHospitalVisits,
+  fetchUserNotifications,
+  markNotificationRead,
+} from '../lib/supabase';
 import { supabase } from '../lib/supabaseClient';
 
 interface PatientPortalPageProps {
@@ -18,20 +54,38 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
   onOpenChargesModal,
   onOpenSupabaseAuth,
 }) => {
-  const { t, language, setLanguage } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'request' | 'my_escorts' | 'financials'>('request');
-  const [requests, setRequests] = useState<PalRequest[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Supabase Auth state
+  const { t } = useLanguage();
+  const [activeTab, setActiveTab] = useState<
+    'available_pals' | 'request' | 'requests' | 'matches' | 'visits' | 'notifications' | 'financials' | 'profile'
+  >('available_pals');
+
+  // Supabase Data State
   const [authUser, setAuthUser] = useState<any>(null);
+  const [availablePals, setAvailablePals] = useState<Pal[]>([]);
+  const [requests, setRequests] = useState<PalRequest[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [visits, setVisits] = useState<HospitalVisit[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Patient Booking Form State
+  const [patientName, setPatientName] = useState('');
+  const [patientPhone, setPatientPhone] = useState('');
+  const [selectedHospitalId, setSelectedHospitalId] = useState(SAMPLE_HOSPITALS[0].id);
+  const [appointmentDate, setAppointmentDate] = useState('2026-08-05');
+  const [appointmentTime, setAppointmentTime] = useState('10:00 AM');
+  const [department, setDepartment] = useState('Cardiology Clinic');
+  const [meetingPoint, setMeetingPoint] = useState(SAMPLE_HOSPITALS[0].meetingPoints[0]);
+  const [languagePreference, setLanguagePreference] = useState('English');
+  const [selectedMobility, setSelectedMobility] = useState<string[]>(['Wheelchair Assistance', 'Arm Assistance']);
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+
+  const selectedHospital = SAMPLE_HOSPITALS.find((h) => h.id === selectedHospitalId) || SAMPLE_HOSPITALS[0];
 
   useEffect(() => {
-    fetchPalRequests().then((data) => {
-      if (data && data.length > 0) {
-        setRequests(data);
-      }
-    });
+    loadPatientData();
 
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
@@ -50,20 +104,29 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
 
     return () => subscription.unsubscribe();
   }, []);
-  
-  // Patient Form State
-  const [patientName, setPatientName] = useState('');
-  const [patientPhone, setPatientPhone] = useState('');
-  const [selectedHospitalId, setSelectedHospitalId] = useState(SAMPLE_HOSPITALS[0].id);
-  const [appointmentDate, setAppointmentDate] = useState('2026-08-05');
-  const [appointmentTime, setAppointmentTime] = useState('10:00 AM');
-  const [department, setDepartment] = useState('Cardiology Clinic');
-  const [meetingPoint, setMeetingPoint] = useState(SAMPLE_HOSPITALS[0].meetingPoints[0]);
-  const [languagePreference, setLanguagePreference] = useState('Spanish');
-  const [selectedMobility, setSelectedMobility] = useState<string[]>(['Wheelchair Assistance', 'Arm Assistance']);
-  const [formSubmitted, setFormSubmitted] = useState(false);
 
-  const selectedHospital = SAMPLE_HOSPITALS.find((h) => h.id === selectedHospitalId) || SAMPLE_HOSPITALS[0];
+  const loadPatientData = async () => {
+    setIsLoading(true);
+    try {
+      const [palsData, reqsData, matchesData, visitsData, notifsData] = await Promise.all([
+        fetchEligiblePatientPals(),
+        fetchPalRequests(),
+        fetchAllMatches(),
+        fetchAllHospitalVisits(),
+        fetchUserNotifications(),
+      ]);
+
+      setAvailablePals(palsData);
+      setRequests(reqsData);
+      setMatches(matchesData);
+      setVisits(visitsData);
+      setNotifications(notifsData);
+    } catch (err) {
+      console.error('Error loading patient portal data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleCreateRequest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,15 +144,15 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
       meetingPoint,
       languagePreference,
       mobilityNeeds: selectedMobility,
+      notes,
     });
     setIsSubmitting(false);
 
     if (res.data) {
       setRequests((prev) => [res.data!, ...prev]);
+      setBookingSuccess(true);
+      setActiveTab('requests');
     }
-
-    setFormSubmitted(true);
-    setActiveTab('my_escorts');
   };
 
   const toggleMobilityOption = (opt: string) => {
@@ -100,8 +163,15 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
     }
   };
 
+  const handleMarkNotifRead = async (id: number | string) => {
+    await markNotificationRead(id);
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+    );
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 animate-fade-in text-[#1F3449]">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-fade-in text-[#1F3449]">
       
       {/* Patient Portal Header Banner */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border-2 border-[#E85D75]/40 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
@@ -116,15 +186,23 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
             {authUser ? `Welcome, ${patientName || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Patient'}` : 'Welcome to Patient & Family Portal'}
           </h1>
           <p className="text-xs sm:text-sm text-gray-600 max-w-xl">
-            Book compassionate companion escorts for hospital appointments, track your assigned Pal live on campus, and view your care benefits.
+            Book compassionate companion escorts for hospital appointments, discover available accredited PALs, and track your visits in real time.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 relative z-10">
+          <button
+            onClick={loadPatientData}
+            className="bg-gray-100 hover:bg-gray-200 text-[#1F3449] font-bold text-xs uppercase px-4 py-3 rounded-xl border border-gray-300 flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
+
           {onOpenSupabaseAuth && (
             <button
               onClick={onOpenSupabaseAuth}
-              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs uppercase px-4 py-3 rounded-xl border border-emerald-300 flex items-center gap-2 shadow-sm transition-all"
+              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs uppercase px-4 py-3 rounded-xl border border-emerald-300 flex items-center gap-2 shadow-sm transition-all cursor-pointer"
             >
               <Database className="w-4 h-4 text-emerald-600" />
               <span>{authUser ? 'Supabase Account' : 'Patient Sign Up / Login'}</span>
@@ -133,7 +211,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
 
           <button
             onClick={onOpenGpsModal}
-            className="bg-gray-50 hover:bg-gray-100 text-[#48A6A5] font-bold text-xs uppercase px-4 py-3 rounded-xl border border-[#48A6A5]/30 flex items-center gap-2 shadow-sm"
+            className="bg-gray-50 hover:bg-gray-100 text-[#48A6A5] font-bold text-xs uppercase px-4 py-3 rounded-xl border border-[#48A6A5]/30 flex items-center gap-2 shadow-sm cursor-pointer"
           >
             <Navigation className="w-4 h-4 text-[#48A6A5]" />
             <span>Track Live GPS</span>
@@ -142,345 +220,651 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
       </div>
 
       {/* Patient Tabs Navigation */}
-      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white rounded-2xl border border-gray-200 text-xs font-bold shadow-sm">
+      <div className="flex flex-wrap items-center gap-1.5 p-2 bg-white rounded-2xl border border-gray-200 text-xs font-bold shadow-sm overflow-x-auto">
         <button
-          onClick={() => setActiveTab('request')}
-          className={`px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${
-            activeTab === 'request'
+          onClick={() => setActiveTab('available_pals')}
+          className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+            activeTab === 'available_pals'
               ? 'bg-[#E85D75] text-white shadow-md'
-              : 'text-gray-700 hover:text-[#1F3449] hover:bg-gray-100'
+              : 'text-gray-600 hover:bg-gray-100'
           }`}
         >
-          <Heart className="w-4 h-4 fill-current" />
-          <span>Request New Pal</span>
+          <Award className="w-4 h-4" />
+          <span>Available PALs ({availablePals.length})</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('my_escorts')}
-          className={`px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${
-            activeTab === 'my_escorts'
+          onClick={() => setActiveTab('request')}
+          className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+            activeTab === 'request'
               ? 'bg-[#E85D75] text-white shadow-md'
-              : 'text-gray-700 hover:text-[#1F3449] hover:bg-gray-100'
+              : 'text-gray-600 hover:bg-gray-100'
           }`}
         >
-          <Calendar className="w-4 h-4 text-[#48A6A5]" />
-          <span>My Scheduled Visits{requests.length > 0 ? ` (${requests.length})` : ''}</span>
+          <Heart className="w-4 h-4 fill-current" />
+          <span>Book Companion PAL</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('requests')}
+          className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+            activeTab === 'requests'
+              ? 'bg-[#E85D75] text-white shadow-md'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Calendar className="w-4 h-4" />
+          <span>My Requests ({requests.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('matches')}
+          className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+            activeTab === 'matches'
+              ? 'bg-[#E85D75] text-white shadow-md'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <HeartHandshake className="w-4 h-4" />
+          <span>Matches ({matches.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('visits')}
+          className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+            activeTab === 'visits'
+              ? 'bg-[#E85D75] text-white shadow-md'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Activity className="w-4 h-4" />
+          <span>Visits ({visits.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('notifications')}
+          className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+            activeTab === 'notifications'
+              ? 'bg-[#E85D75] text-white shadow-md'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Bell className="w-4 h-4" />
+          <span>Notifications ({notifications.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('financials')}
-          className={`px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
             activeTab === 'financials'
               ? 'bg-emerald-600 text-white shadow-md'
-              : 'text-gray-700 hover:text-[#1F3449] hover:bg-gray-100'
+              : 'text-gray-600 hover:bg-gray-100'
           }`}
         >
-          <Calculator className="w-4 h-4 text-emerald-300" />
-          <span>$0 Cost & Benefit Vouchers</span>
+          <Calculator className="w-4 h-4" />
+          <span>$0 Cost & Benefits</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('profile')}
+          className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+            activeTab === 'profile'
+              ? 'bg-[#E85D75] text-white shadow-md'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <User className="w-4 h-4" />
+          <span>Care Profile</span>
         </button>
       </div>
 
-      {/* TAB 1: REQUEST NEW COMPANION PAL */}
+      {/* =========================================================================
+       * TAB 1: AVAILABLE PALS (REAL SUPABASE VERIFIED PALS DISCOVERY)
+       * ========================================================================= */}
+      {activeTab === 'available_pals' && (
+        <div className="space-y-6">
+          <div className="border-b border-gray-200 pb-4">
+            <span className="text-xs font-black uppercase text-[#E85D75] tracking-wider">ACCREDITED COMPANIONS</span>
+            <h2 className="text-2xl font-black text-[#1F3449]">Available Hospital PALs</h2>
+            <p className="text-xs text-gray-600">
+              Only verified and active PALs who have completed background checks and hospital credentialing appear here.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {availablePals.map((pal) => (
+              <div
+                key={pal.id}
+                className="bg-white p-6 rounded-3xl border-2 border-gray-200 hover:border-[#48A6A5] transition-all shadow-sm hover:shadow-md space-y-4 relative"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-[#48A6A5]/10 text-[#48A6A5] font-black flex items-center justify-center text-base border border-[#48A6A5]/20">
+                      {pal.name.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-base text-[#1F3449]">{pal.name}</h3>
+                      <div className="flex items-center gap-1 text-amber-500 text-xs font-bold">
+                        <Star className="w-3.5 h-3.5 fill-amber-400" />
+                        <span>{pal.rating || '5.0'}</span>
+                        <span className="text-gray-400 font-normal">({pal.completedVisits || 0} visits)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase px-2.5 py-1 rounded-full border border-emerald-300 flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" />
+                    Verified
+                  </span>
+                </div>
+
+                <p className="text-xs text-gray-600 leading-relaxed line-clamp-3">
+                  {pal.bio || 'Compassionate healthcare companion ready to assist with hospital navigation, waiting support, and mobility assistance.'}
+                </p>
+
+                <div className="space-y-2 pt-2 border-t border-gray-100 text-xs">
+                  <div className="flex items-center justify-between text-gray-600">
+                    <span className="font-bold">Availability:</span>
+                    <span className="text-[#48A6A5] font-medium">{pal.availability || 'Weekdays & Weekends'}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-gray-600">
+                    <span className="font-bold">Languages:</span>
+                    <span className="font-medium text-gray-700">{pal.languages?.join(', ') || 'English'}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-gray-600">
+                    <span className="font-bold">Covered Rate:</span>
+                    <span className="font-bold text-emerald-700">$0 with Plan / ${(pal.hourly_rate_cents || 2600) / 100}/hr</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('request');
+                  }}
+                  className="w-full py-2.5 rounded-xl font-bold text-xs bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Heart className="w-3.5 h-3.5 fill-white" />
+                  <span>Request Companion</span>
+                </button>
+              </div>
+            ))}
+
+            {availablePals.length === 0 && (
+              <div className="col-span-full p-12 text-center text-gray-400 bg-white rounded-3xl border border-gray-200 space-y-2">
+                <Users className="w-10 h-10 mx-auto text-gray-400" />
+                <h3 className="font-bold text-[#1F3449]">No PALs Active for Discovery Yet</h3>
+                <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                  PAL applications that complete hospital admin approval and email verification will appear here automatically.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+       * TAB 2: REQUEST NEW PAL COMPANION
+       * ========================================================================= */}
       {activeTab === 'request' && (
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
           <div className="border-b border-gray-200 pb-4">
             <span className="text-xs font-black uppercase text-[#E85D75] tracking-wider">BOOK COMPANION PAL</span>
             <h2 className="text-2xl font-black text-[#1F3449]">Schedule a Hospital Companion Pal</h2>
             <p className="text-xs text-gray-600">
-              Fill out your visit details. We match you with an accredited, background-checked Community Health Worker or Pal.
+              Fill out your appointment details to be paired with an accredited PAL companion.
             </p>
           </div>
 
           <form onSubmit={handleCreateRequest} className="space-y-4 bg-gray-50 p-6 sm:p-8 rounded-2xl border border-gray-200 max-w-3xl">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">{t('patientName')}</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Patient Full Name</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. John Doe"
+                  placeholder="e.g. Maria Gonzalez"
                   value={patientName}
                   onChange={(e) => setPatientName(e.target.value)}
-                  className="w-full text-xs p-3 rounded-xl bg-white border border-gray-300 text-[#1F3449] focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
+                  className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">{t('phoneLabel')}</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Contact Phone Number</label>
                 <input
                   type="tel"
                   required
-                  placeholder="e.g. (555) 000-0000"
+                  placeholder="(555) 234-5678"
                   value={patientPhone}
                   onChange={(e) => setPatientPhone(e.target.value)}
-                  className="w-full text-xs p-3 rounded-xl bg-white border border-gray-300 text-[#1F3449] focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
+                  className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
                 />
               </div>
             </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">{t('hospitalLabel')}</label>
-                  <select
-                    value={selectedHospitalId}
-                    onChange={(e) => {
-                      setSelectedHospitalId(e.target.value);
-                      const h = SAMPLE_HOSPITALS.find((x) => x.id === e.target.value);
-                      if (h) setMeetingPoint(h.meetingPoints[0]);
-                    }}
-                    className="w-full text-xs p-3 rounded-xl bg-white border border-gray-300 text-[#1F3449] focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
-                  >
-                    {SAMPLE_HOSPITALS.map((h) => (
-                      <option key={h.id} value={h.id} className="bg-white text-[#1F3449]">
-                        {h.name} ({h.city}, {h.state})
-                      </option>
-                    ))}
-                  </select>
-                </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Clinic / Department</label>
-                  <select
-                    value={department}
-                    onChange={(e) => setDepartment(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl bg-white border border-gray-300 text-[#1F3449] focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
-                  >
-                    {selectedHospital.departments.map((d) => (
-                      <option key={d} value={d} className="bg-white text-[#1F3449]">
-                        {d}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Appointment Date</label>
-                  <input
-                    type="date"
-                    value={appointmentDate}
-                    onChange={(e) => setAppointmentDate(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl bg-white border border-gray-300 text-[#1F3449] focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Appointment Time</label>
-                  <input
-                    type="text"
-                    value={appointmentTime}
-                    onChange={(e) => setAppointmentTime(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl bg-white border border-gray-300 text-[#1F3449] focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Language</label>
-                  <select
-                    value={languagePreference}
-                    onChange={(e) => setLanguagePreference(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl bg-white border border-gray-300 text-[#1F3449] focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
-                  >
-                    <option value="English" className="bg-white text-[#1F3449]">English</option>
-                    <option value="Spanish" className="bg-white text-[#1F3449]">Spanish (Español)</option>
-                    <option value="Hindi" className="bg-white text-[#1F3449]">Hindi (हिन्दी)</option>
-                  </select>
-                </div>
-              </div>
-
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Meeting Point at Campus</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Partner Hospital</label>
                 <select
-                  value={meetingPoint}
-                  onChange={(e) => setMeetingPoint(e.target.value)}
-                  className="w-full text-xs p-3 rounded-xl bg-white border border-gray-300 text-[#1F3449] focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
+                  value={selectedHospitalId}
+                  onChange={(e) => {
+                    setSelectedHospitalId(e.target.value);
+                    const h = SAMPLE_HOSPITALS.find((x) => x.id === e.target.value);
+                    if (h && h.meetingPoints.length > 0) setMeetingPoint(h.meetingPoints[0]);
+                  }}
+                  className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white font-bold"
                 >
-                  {selectedHospital.meetingPoints.map((mp) => (
-                    <option key={mp} value={mp} className="bg-white text-[#1F3449]">
-                      📍 {mp}
+                  {SAMPLE_HOSPITALS.map((h) => (
+                    <option key={h.id} value={h.id}>
+                      {h.name} ({h.city})
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-2">Accommodations Needed</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                  {['Wheelchair Pal Assistance', 'Arm Assistance', 'Visual Aid', 'Anxiety Reassurance'].map((opt) => (
-                    <label key={opt} className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${selectedMobility.includes(opt) ? 'bg-[#E85D75]/15 border-[#E85D75] text-[#1F3449]' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'}`}>
-                      <input
-                        type="checkbox"
-                        checked={selectedMobility.includes(opt)}
-                        onChange={() => toggleMobilityOption(opt)}
-                        className="rounded text-[#E85D75] focus:ring-[#E85D75]"
-                      />
-                      <span className="font-bold">{opt}</span>
-                    </label>
-                  ))}
-                </div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Department / Clinic</label>
+                <input
+                  type="text"
+                  required
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                  placeholder="e.g. Cardiology Clinic, Oncology Pavilion"
+                  className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Appointment Date</label>
+                <input
+                  type="date"
+                  required
+                  value={appointmentDate}
+                  onChange={(e) => setAppointmentDate(e.target.value)}
+                  className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white"
+                />
               </div>
 
-              <button
-                type="submit"
-                className="w-full text-xs font-black uppercase text-white bg-[#E85D75] hover:bg-[#E85D75]/90 py-4 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 mt-4"
-              >
-                <Heart className="w-4 h-4 fill-white" />
-                <span>Submit Pal Request</span>
-              </button>
-            </form>
-          </div>
-      )}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Appointment Time</label>
+                <input
+                  type="text"
+                  required
+                  value={appointmentTime}
+                  onChange={(e) => setAppointmentTime(e.target.value)}
+                  placeholder="10:00 AM"
+                  className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white"
+                />
+              </div>
+            </div>
 
-      {/* TAB 2: MY SCHEDULED ESCORTS */}
-      {activeTab === 'my_escorts' && (
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
-          <div className="flex items-center justify-between border-b border-gray-200 pb-4">
             <div>
-              <span className="text-xs font-black uppercase text-[#48A6A5] tracking-wider">SCHEDULED VISITS</span>
-              <h2 className="text-2xl font-black text-[#1F3449]">Your Upcoming Companion Visits</h2>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Campus Meeting Location</label>
+              <input
+                type="text"
+                required
+                value={meetingPoint}
+                onChange={(e) => setMeetingPoint(e.target.value)}
+                placeholder="e.g. Main Entrance Valet Desk"
+                className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white"
+              />
             </div>
-            <span className="text-xs font-bold bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200">
-              {requests.length} Active Pal {requests.length === 1 ? 'Visit' : 'Visits'}
-            </span>
-          </div>
 
-          {requests.length === 0 ? (
-            <div className="bg-gray-50 border border-dashed border-gray-300 rounded-3xl p-10 sm:p-12 text-center space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-[#48A6A5]/10 text-[#48A6A5] flex items-center justify-center mx-auto">
-                <Calendar className="w-8 h-8" />
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Mobility & Assistance Needs</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {[
+                  'Wheelchair Assistance',
+                  'Arm Assistance',
+                  'Visual Guide',
+                  'Hearing Support',
+                  'Bilingual Translation',
+                  'Cognitive / Anxiety Support',
+                ].map((opt) => (
+                  <button
+                    type="button"
+                    key={opt}
+                    onClick={() => toggleMobilityOption(opt)}
+                    className={`p-2.5 rounded-xl border text-[11px] font-bold transition-all text-left cursor-pointer ${
+                      selectedMobility.includes(opt)
+                        ? 'bg-[#E85D75]/10 border-[#E85D75] text-[#E85D75]'
+                        : 'bg-white border-gray-200 text-gray-700'
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
               </div>
-              <div className="space-y-1 max-w-md mx-auto">
-                <h3 className="text-lg font-black text-[#1F3449]">No Scheduled Visits</h3>
-                <p className="text-xs text-gray-600">
-                  You do not have any upcoming companion visits scheduled. Submit a request to pair with a verified Pal for your next hospital visit.
-                </p>
-              </div>
-              <button
-                onClick={() => setActiveTab('request')}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#E85D75] text-white font-bold text-xs uppercase tracking-wider hover:bg-[#E85D75]/90 transition-all shadow-md"
-              >
-                <Heart className="w-4 h-4 fill-white" />
-                <span>Request a Companion Pal</span>
-              </button>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {requests.map((req) => (
-                <div key={req.id} className="bg-gray-50 p-6 rounded-2xl border border-gray-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono font-bold text-[#48A6A5] bg-[#48A6A5]/10 px-2.5 py-0.5 rounded border border-[#48A6A5]/30">
-                        {req.id}
-                      </span>
-                      <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded">
-                        MATCHED & CONFIRMED
-                      </span>
-                    </div>
 
-                    <h3 className="text-xl font-black text-[#1F3449]">{req.hospitalName}</h3>
-                    <div className="flex flex-wrap items-center gap-4 text-xs text-gray-700 font-medium">
-                      <span className="flex items-center gap-1.5 text-[#E85D75] font-bold">
-                        <Clock className="w-4 h-4" /> {req.appointmentDate} at {req.appointmentTime}
-                      </span>
-                      <span className="flex items-center gap-1.5 text-[#48A6A5]">
-                        <MapPin className="w-4 h-4" /> Meeting: {req.meetingPoint}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-3 pt-2">
-                      <div className="w-10 h-10 rounded-full bg-[#E85D75] text-white font-black flex items-center justify-center text-sm shadow-sm">
-                        {req.assignedPal?.name.charAt(0) || 'P'}
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-[#1F3449]">Assigned Pal: {req.assignedPal?.name || 'Verified Companion Pal'}</div>
-                        <div className="text-[11px] text-gray-500">Badge #{req.assignedPal?.badgeNumber || 'PAL-ACTIVE'} • CPR & CHW Certified</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-center gap-3 self-stretch md:self-center">
-                    <button
-                      onClick={() => {
-                        const gCalUrl = createGoogleCalendarUrl({
-                          title: `PathPal Companion Visit: ${req.hospitalName}`,
-                          description: `Scheduled PathPal companion visit at ${req.hospitalName} (${req.department}). Assigned Pal: ${req.assignedPal?.name || 'Verified Companion Pal'}. Meeting Point: ${req.meetingPoint}.`,
-                          location: `${req.hospitalName}, ${req.meetingPoint}`,
-                          startTime: new Date(`${req.appointmentDate}T10:00:00`),
-                          endTime: new Date(`${req.appointmentDate}T12:00:00`),
-                          reminderMinutesBefore: [1440, 120, 30]
-                        });
-                        window.open(gCalUrl, '_blank', 'noopener,noreferrer');
-                      }}
-                      className="w-full sm:w-auto px-4 py-3 rounded-xl bg-white hover:bg-gray-100 text-[#48A6A5] border border-[#48A6A5]/40 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-sm"
-                      title="Add appointment to Google Calendar"
-                    >
-                      <Calendar className="w-4 h-4 text-[#48A6A5]" />
-                      <span>Sync Calendar</span>
-                    </button>
-                    <button
-                      onClick={onOpenGpsModal}
-                      className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#48A6A5] text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md hover:bg-[#48A6A5]/90 transition-all"
-                    >
-                      <Navigation className="w-4 h-4" />
-                      <span>Track Pal Live GPS</span>
-                    </button>
-                    <a
-                      href="tel:18007284725"
-                      className="w-full sm:w-auto px-5 py-3 rounded-xl bg-white hover:bg-gray-100 text-[#1F3449] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 border border-gray-300 shadow-sm"
-                    >
-                      <Phone className="w-4 h-4" />
-                      <span>Call Pal</span>
-                    </a>
-                  </div>
-                </div>
-              ))}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Additional Care Notes</label>
+              <textarea
+                rows={2}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Any special instructions for your companion..."
+                className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white resize-none"
+              />
             </div>
-          )}
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full py-4 rounded-xl font-bold text-xs uppercase text-white bg-[#E85D75] hover:bg-[#E85D75]/90 transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {isSubmitting ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Submitting Request...</span>
+                </>
+              ) : (
+                <>
+                  <Heart className="w-4 h-4 fill-white" />
+                  <span>Submit Hospital PAL Request</span>
+                </>
+              )}
+            </button>
+          </form>
         </div>
       )}
 
-      {/* TAB 4: FINANCIALS & VOUCHERS */}
+      {/* =========================================================================
+       * TAB 3: MY REQUESTS
+       * ========================================================================= */}
+      {activeTab === 'requests' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-black text-[#1F3449]">My Companion Requests</h2>
+            <button
+              onClick={() => setActiveTab('request')}
+              className="text-xs font-bold text-[#E85D75] hover:underline cursor-pointer"
+            >
+              + Book Another Visit
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {requests.map((req) => (
+              <div key={req.id} className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
+                  <div>
+                    <div className="text-xs text-gray-400 uppercase font-bold">Request ID: {req.id}</div>
+                    <h3 className="font-bold text-base text-[#1F3449]">{req.hospitalName} - {req.department}</h3>
+                  </div>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-black uppercase ${
+                      req.status === 'completed'
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        : req.status === 'matched'
+                        ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                        : 'bg-amber-100 text-amber-800 border border-amber-300'
+                    }`}
+                  >
+                    {req.status}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-gray-600">
+                  <div>
+                    <span className="text-gray-400 font-bold block">Appointment:</span>
+                    <span className="font-bold text-[#1F3449]">{req.appointmentDate} at {req.appointmentTime}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 font-bold block">Meeting Point:</span>
+                    <span>{req.meetingPoint}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 font-bold block">Assigned PAL:</span>
+                    {req.assignedPal ? (
+                      <span className="font-bold text-[#48A6A5]">{req.assignedPal.name}</span>
+                    ) : (
+                      <span className="text-amber-600 font-medium">Matching with active PAL...</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 pt-2">
+                  <a
+                    href={createGoogleCalendarUrl({
+                      title: `Path Pal Escort at ${req.hospitalName}`,
+                      description: `Hospital companion visit for ${req.patientName}. Meeting at: ${req.meetingPoint}`,
+                      location: `${req.hospitalName}, ${req.meetingPoint}`,
+                      startTime: new Date(`${req.appointmentDate}T10:00:00`),
+                      endTime: new Date(`${req.appointmentDate}T12:00:00`),
+                    })}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] font-bold bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"
+                  >
+                    Add to Google Calendar
+                  </a>
+                  <button
+                    onClick={() =>
+                      downloadIcsFile({
+                        title: `Path Pal Escort at ${req.hospitalName}`,
+                        description: `Hospital companion visit for ${req.patientName}. Meeting at: ${req.meetingPoint}`,
+                        location: `${req.hospitalName}, ${req.meetingPoint}`,
+                        startTime: new Date(`${req.appointmentDate}T10:00:00`),
+                        endTime: new Date(`${req.appointmentDate}T12:00:00`),
+                      })
+                    }
+                    className="text-[11px] font-bold bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
+                  >
+                    Download .iCal File
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {requests.length === 0 && (
+              <div className="p-12 text-center text-gray-400 bg-white rounded-3xl border border-gray-200 space-y-2">
+                <Calendar className="w-8 h-8 mx-auto" />
+                <p>No companion requests submitted yet.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+       * TAB 4: MATCHES
+       * ========================================================================= */}
+      {activeTab === 'matches' && (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-xl font-black text-[#1F3449]">PAL Escort Matches</h2>
+            <p className="text-xs text-gray-500">Confirmed companion matches for your care journeys.</p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 font-bold uppercase tracking-wider">
+                <tr>
+                  <th className="p-4">Match ID</th>
+                  <th className="p-4">Request Ref</th>
+                  <th className="p-4">PAL ID</th>
+                  <th className="p-4">Status</th>
+                  <th className="p-4">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 text-gray-700 font-medium">
+                {matches.map((m) => (
+                  <tr key={m.id} className="hover:bg-gray-50">
+                    <td className="p-4 font-mono font-bold text-[#1F3449]">#{m.id}</td>
+                    <td className="p-4 font-mono text-gray-500">{m.request_id}</td>
+                    <td className="p-4 font-mono text-[#48A6A5]">PAL-{m.pal_id}</td>
+                    <td className="p-4">
+                      <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">
+                        {m.status}
+                      </span>
+                    </td>
+                    <td className="p-4 text-gray-500">
+                      {m.matched_at ? new Date(m.matched_at).toLocaleDateString() : 'N/A'}
+                    </td>
+                  </tr>
+                ))}
+                {matches.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="p-8 text-center text-gray-400">
+                      No active matches recorded yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+       * TAB 5: VISITS
+       * ========================================================================= */}
+      {activeTab === 'visits' && (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-xl font-black text-[#1F3449]">Hospital Visits</h2>
+            <p className="text-xs text-gray-500">History and upcoming visits recorded in the care network.</p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 font-bold uppercase tracking-wider">
+                <tr>
+                  <th className="p-4">Visit ID</th>
+                  <th className="p-4">Hospital & Department</th>
+                  <th className="p-4">Status</th>
+                  <th className="p-4">Scheduled Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 text-gray-700 font-medium">
+                {visits.map((v) => (
+                  <tr key={v.id} className="hover:bg-gray-50">
+                    <td className="p-4 font-mono font-bold text-[#1F3449]">#{v.id}</td>
+                    <td className="p-4">
+                      <div className="font-bold">{v.hospital_name || 'Hospital'}</div>
+                      <div className="text-gray-500 text-[11px]">{v.department || 'Outpatient'}</div>
+                    </td>
+                    <td className="p-4">
+                      <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">
+                        {v.status}
+                      </span>
+                    </td>
+                    <td className="p-4 text-gray-500">
+                      {v.scheduled_at ? new Date(v.scheduled_at).toLocaleDateString() : 'N/A'}
+                    </td>
+                  </tr>
+                ))}
+                {visits.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-8 text-center text-gray-400">
+                      No visits recorded yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+       * TAB 6: NOTIFICATIONS (USER-SPECIFIC)
+       * ========================================================================= */}
+      {activeTab === 'notifications' && (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-xl font-black text-[#1F3449]">Care Alerts & Notifications</h2>
+            <p className="text-xs text-gray-500">Live dispatch updates, match confirmations, and visit reminders.</p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm divide-y divide-gray-100">
+            {notifications.map((n) => (
+              <div key={n.id} className="p-4 flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`font-bold text-xs ${n.is_read ? 'text-gray-500' : 'text-[#1F3449]'}`}>
+                      {n.title}
+                    </span>
+                    {!n.is_read && (
+                      <span className="bg-rose-500 text-white text-[9px] font-black uppercase px-1.5 py-0.2 rounded-full">
+                        New
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-600">{n.message}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[11px] text-gray-400">{new Date(n.created_at).toLocaleDateString()}</span>
+                  {!n.is_read && (
+                    <button
+                      onClick={() => handleMarkNotifRead(n.id)}
+                      className="text-[11px] text-[#48A6A5] font-bold hover:underline cursor-pointer"
+                    >
+                      Mark read
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {notifications.length === 0 && (
+              <div className="p-8 text-center text-gray-400">No notifications in your feed.</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+       * TAB 7: $0 COST & FINANCIALS
+       * ========================================================================= */}
       {activeTab === 'financials' && (
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-emerald-500/40 space-y-6 shadow-lg">
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
           <div className="border-b border-gray-200 pb-4">
-            <span className="text-xs font-black uppercase text-emerald-600 tracking-wider">ZERO HIDDEN FEES</span>
-            <h2 className="text-2xl font-black text-[#1F3449]">$0 Out-Of-Pocket Benefit Voucher Coverage</h2>
+            <span className="text-xs font-black uppercase text-emerald-700 tracking-wider">CARE BENEFITS</span>
+            <h2 className="text-2xl font-black text-[#1F3449]">$0 Out-of-Pocket Hospital Escorts</h2>
             <p className="text-xs text-gray-600">
-              PathPal is covered under health benefit vouchers and hospital community assistance programs for eligible patients.
+              Path Pal services are covered through partner hospital community health initiatives, Medicare Advantage, and Medicaid transportation benefits.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-200 space-y-2">
-              <span className="text-[10px] font-bold uppercase text-emerald-700">BENEFIT VOUCHER PROGRAM</span>
-              <h3 className="text-xl font-black text-[#1F3449]">100% Covered</h3>
-              <p className="text-xs text-gray-600">
-                Covers non-clinical navigation, appointment accompaniment, and language translation support.
-              </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2">
+              <div className="text-emerald-800 font-bold text-sm">Hospital Covered</div>
+              <div className="text-2xl font-black text-emerald-700">$0.00 Copay</div>
+              <p className="text-xs text-emerald-800">Directly subsidized at participating care partner health centers.</p>
             </div>
-
-            <div className="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-200 space-y-2">
-              <span className="text-[10px] font-bold uppercase text-emerald-700">STATE HEALTH PLAN BENEFIT</span>
-              <h3 className="text-xl font-black text-[#1F3449]">$0 Patient Copay</h3>
-              <p className="text-xs text-gray-600">
-                Direct community health worker reimbursement ensures eligible patients pay zero dollars out of pocket.
-              </p>
+            <div className="p-5 rounded-2xl bg-blue-50 border border-blue-200 space-y-2">
+              <div className="text-blue-800 font-bold text-sm">Benefit Vouchers</div>
+              <div className="text-2xl font-black text-blue-700">100% Eligible</div>
+              <p className="text-xs text-blue-800">Automated claims verification for mobility and translation coverage.</p>
             </div>
-
-            <div className="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-200 space-y-2">
-              <span className="text-[10px] font-bold uppercase text-emerald-700">HOSPITAL COMMUNITY BENEFIT</span>
-              <h3 className="text-xl font-black text-[#1F3449]">CHNA Sponsored</h3>
-              <p className="text-xs text-gray-600">
-                Hospitals sponsor escort credits to reduce no-shows and improve patient HCAHPS care ratings.
-              </p>
+            <div className="p-5 rounded-2xl bg-purple-50 border border-purple-200 space-y-2">
+              <div className="text-purple-800 font-bold text-sm">Family Sharing</div>
+              <div className="text-2xl font-black text-purple-700">Unlimited</div>
+              <p className="text-xs text-purple-800">Family members can track campus arrivals and companion progress.</p>
             </div>
           </div>
+        </div>
+      )}
 
-          <div className="text-center pt-2">
-            <button
-              onClick={() => onOpenChargesModal('patient_charges')}
-              className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider shadow-md flex items-center justify-center gap-2 mx-auto"
-            >
-              <Calculator className="w-4 h-4" />
-              <span>Launch Patient Charges & Subsidy Calculator</span>
-            </button>
+      {/* =========================================================================
+       * TAB 8: CARE PROFILE
+       * ========================================================================= */}
+      {activeTab === 'profile' && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
+          <div className="border-b border-gray-200 pb-4">
+            <span className="text-xs font-black uppercase text-[#E85D75] tracking-wider">PATIENT PROFILE</span>
+            <h2 className="text-2xl font-black text-[#1F3449]">Patient Care Preferences</h2>
+          </div>
+
+          <div className="space-y-4 max-w-lg text-xs">
+            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-2">
+              <div><strong>Name:</strong> {patientName || 'Registered Patient'}</div>
+              <div><strong>Email:</strong> {authUser?.email || 'N/A'}</div>
+              <div><strong>Auth Status:</strong> {authUser ? 'Supabase Authenticated' : 'Anonymous / Guest'}</div>
+            </div>
           </div>
         </div>
       )}

@@ -53,7 +53,7 @@ export const CareBotChat: React.FC = () => {
     }
 
     if (q.includes('cost') || q.includes('price') || q.includes('insurance') || q.includes('free') || q.includes('pay') || q.includes('voucher')) {
-      return 'Single visits are $35 / escort, and monthly memberships are $49/mo. Most importantly, eligible health plan members receive PathPal at $0 cost via insurance benefit vouchers!';
+      return 'Single visits are $35 / escort (2 hours included), and monthly memberships are $49/mo. Please note: PathPal is direct-pay and not yet approved for insurance coverage or health plan reimbursement.';
     }
 
     if (q.includes('safe') || q.includes('check') || q.includes('vet') || q.includes('background') || q.includes('hipaa')) {

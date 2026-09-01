@@ -56,10 +56,10 @@ export const RegulatoryAndImpact: React.FC = () => {
           </div>
 
           <div className="bg-white p-6 rounded-3xl border-l-4 border-companion-coral border-gray-100 shadow-xs hover:shadow-md transition-shadow">
-            <div className="text-xs font-bold text-companion-coral uppercase tracking-wider mb-2">HEALTH PLAN BENEFITS</div>
-            <h3 className="text-lg font-bold text-pathpal-navy mb-2">Health plan benefits</h3>
+            <div className="text-xs font-bold text-companion-coral uppercase tracking-wider mb-2">FUTURE BENEFIT INTEGRATION</div>
+            <h3 className="text-lg font-bold text-pathpal-navy mb-2">Health Plan Pilots</h3>
             <p className="text-xs text-pathpal-navy/75 font-medium leading-relaxed">
-              Health plans cover non-medical hospital navigation and accompaniment for eligible members.
+              PathPal is actively evaluating pilot partnerships with health plans as future coverage and reimbursement approvals progress.
             </p>
           </div>
 

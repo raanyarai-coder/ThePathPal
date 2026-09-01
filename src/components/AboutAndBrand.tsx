@@ -56,8 +56,8 @@ export const AboutAndBrand: React.FC<AboutAndBrandProps> = ({
     },
     {
       icon: FileCheck,
-      title: "100% Subsidized Care",
-      desc: "Partnered with health plans and sponsor programs, providing $0 out-of-pocket costs for qualified patients.",
+      title: "Transparent Flat Rates",
+      desc: "Affordable, predictable out-of-pocket pricing starting at $35 with zero hidden fees or surge multipliers.",
       color: "text-[#F1B84C] bg-[#F1B84C]/10 border-[#F1B84C]/30"
     }
   ];
