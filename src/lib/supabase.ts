@@ -154,30 +154,58 @@ export function formatPalRequestFromDb(row: any, assignedPal?: Pal): PalRequest 
   } else if (typeof row.mobility_needs === 'string' && row.mobility_needs.trim()) {
     mobilityNeeds = row.mobility_needs.split(',').map((s: string) => s.trim()).filter(Boolean);
   } else if (row.notes && row.notes.includes('Mobility:')) {
-    const match = row.notes.match(/Mobility:\s*([^;]+)/);
+    const match = row.notes.match(/Mobility:\s*([^|;]+)/);
     if (match && match[1]) {
       mobilityNeeds = match[1].split(',').map((s: string) => s.trim()).filter(Boolean);
     }
   }
 
+  let hospName = row.hospital_name;
+  if (!hospName && row.notes && row.notes.includes('Hospital:')) {
+    const match = row.notes.match(/Hospital:\s*([^|;]+)/);
+    if (match && match[1]) hospName = match[1].trim();
+  }
+
+  let patPhone = row.patient_phone;
+  if (!patPhone && row.notes && row.notes.includes('Phone:')) {
+    const match = row.notes.match(/Phone:\s*([^|;]+)/);
+    if (match && match[1]) patPhone = match[1].trim();
+  }
+
+  let langPref = row.language_preference;
+  if (!langPref && row.notes && row.notes.includes('Language:')) {
+    const match = row.notes.match(/Language:\s*([^|;]+)/);
+    if (match && match[1]) langPref = match[1].trim();
+  }
+
   let appDate = row.scheduled_at ? row.scheduled_at.split('T')[0] : new Date().toISOString().split('T')[0];
-  let appTime = row.scheduled_at && row.scheduled_at.includes('T')
-    ? row.scheduled_at.split('T')[1].substring(0, 5)
-    : '10:00 AM';
+  let appTime = '10:00 AM';
+  if (row.scheduled_at && row.scheduled_at.includes('T')) {
+    const timePart = row.scheduled_at.split('T')[1].substring(0, 5);
+    const [hStr, mStr] = timePart.split(':');
+    let h = parseInt(hStr, 10);
+    const m = mStr || '00';
+    if (!isNaN(h)) {
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12;
+      if (h === 0) h = 12;
+      appTime = `${h}:${m} ${ampm}`;
+    }
+  }
 
   return {
-    id: row.id,
+    id: String(row.id),
     patient_id: row.patient_id || undefined,
     patientName: row.patient_name || (row.patient ? row.patient.name : 'Patient'),
-    patientPhone: row.patient_phone || (row.patient ? row.patient.phone : ''),
+    patientPhone: patPhone || (row.patient ? row.patient.phone : ''),
     hospitalId: row.hospital_id || 'hosp-01',
-    hospitalName: row.hospital_name || 'Hospital Campus',
+    hospitalName: hospName || 'PathPal Partner Medical Center',
     appointmentDate: appDate,
     appointmentTime: appTime,
     department: row.department || 'General Clinic',
     meetingPoint: row.meeting_point || 'Main Lobby Entrance',
     mobilityNeeds: mobilityNeeds.length > 0 ? mobilityNeeds : ['Escort Assistance'],
-    languagePreference: row.language_preference || 'English',
+    languagePreference: langPref || 'English',
     notes: row.notes || '',
     status: row.status || 'pending',
     assignedPal,
@@ -529,61 +557,112 @@ export async function verifyPalEmailAndActivate(
   data: {
     user: any;
     palRecord: Pal | null;
+    application?: PalApplication | null;
     emailNotification?: PalEmailNotification;
   } | null;
-  error: { message: string } | null;
+  error: { message: string; code?: string } | null;
 }> {
   try {
-    // 1. Retrieve current authenticated user
+    // 1. Detect if the user is authenticated via session
     const {
       data: { user },
       error: userError,
     } = await supabase.auth.getUser();
 
-    const targetUser = user || (authUserId ? { id: authUserId, email: userEmailParam, email_confirmed_at: new Date().toISOString() } : null);
+    const targetUser = user || (authUserId ? { id: authUserId, email: userEmailParam, email_confirmed_at: new Date().toISOString(), user_metadata: {} } : null);
 
     if (!targetUser) {
       return {
         data: null,
         error: {
+          code: 'NO_SESSION',
           message: 'No active authenticated session found. Please click the verification link in your confirmation email or log in.',
         },
       };
     }
 
-    // 2. Check if email confirmation exists
-    if (!user.email_confirmed_at) {
+    // Check if email confirmation exists
+    if (!targetUser.email_confirmed_at) {
       return {
         data: {
-          user,
+          user: targetUser,
           palRecord: null,
         },
         error: {
+          code: 'UNCONFIRMED_EMAIL',
           message: 'Your email address has not been confirmed yet. Please check your inbox and click the verification link.',
         },
       };
     }
 
-    const userEmail = (user.email || '').trim().toLowerCase();
-    const userFullName = user.user_metadata?.full_name || '';
-    const userPhone = user.user_metadata?.phone || '';
+    const userEmail = (targetUser.email || '').trim().toLowerCase();
+    const userFullName = (targetUser.user_metadata as any)?.full_name || '';
+    const userPhone = (targetUser.user_metadata as any)?.phone || '';
 
-    // 3. Check if pal record is already linked by auth_user_id (Primary relationship)
+    // 2. Verify the email against the approved pal_applications table
+    let approvedApplication: PalApplication | null = null;
+    const { data: appData, error: appErr } = await supabase
+      .from('pal_applications')
+      .select('*')
+      .ilike('email', userEmail)
+      .order('created_at', { ascending: false });
+
+    if (!appErr && appData && appData.length > 0) {
+      const approvedRow = appData.find((a: any) => a.status === 'approved');
+      if (approvedRow) {
+        approvedApplication = formatApplicationFromDb(approvedRow);
+      } else {
+        const pendingRow = appData.find((a: any) => a.status === 'pending');
+        if (pendingRow) {
+          return {
+            data: null,
+            error: {
+              code: 'APPLICATION_PENDING',
+              message: 'Your Pal application is currently pending administrator review. Once approved, your account will be activated.',
+            },
+          };
+        }
+      }
+    }
+
+    // 3. Update the pals table record by setting auth_user_id and email_verified=true
     let palRecord: any = null;
+
+    // Check if already linked by auth_user_id
     const { data: existingLinkedPal } = await supabase
       .from('pals')
       .select('*')
-      .eq('auth_user_id', user.id)
+      .eq('auth_user_id', targetUser.id)
       .maybeSingle();
 
     if (existingLinkedPal) {
-      palRecord = existingLinkedPal;
-    } else {
-      // 4. Locate unlinked PAL record created during admin approval
-      let unlinkedPal: any = null;
+      const { data: updatedPal } = await supabase
+        .from('pals')
+        .update({
+          email_verified: true,
+          auth_user_id: targetUser.id,
+        })
+        .eq('id', existingLinkedPal.id)
+        .select()
+        .maybeSingle();
 
-      // Try finding by name & phone from user metadata
-      if (userFullName && userPhone) {
+      palRecord = updatedPal || existingLinkedPal;
+    } else {
+      // Look for pal matching applicant details or unlinked pal
+      let targetPalId: any = null;
+
+      if (approvedApplication) {
+        const { data: matchByApp } = await supabase
+          .from('pals')
+          .select('*')
+          .or(`phone.eq.${approvedApplication.phone},name.eq.${approvedApplication.name}`)
+          .maybeSingle();
+        if (matchByApp) {
+          targetPalId = matchByApp.id;
+        }
+      }
+
+      if (!targetPalId && userFullName && userPhone) {
         const { data: matchByNamePhone } = await supabase
           .from('pals')
           .select('*')
@@ -591,12 +670,11 @@ export async function verifyPalEmailAndActivate(
           .eq('phone', userPhone)
           .maybeSingle();
         if (matchByNamePhone) {
-          unlinkedPal = matchByNamePhone;
+          targetPalId = matchByNamePhone.id;
         }
       }
 
-      // Try matching by name where auth_user_id is not set
-      if (!unlinkedPal && userFullName) {
+      if (!targetPalId && userFullName) {
         const { data: matchByName } = await supabase
           .from('pals')
           .select('*')
@@ -604,39 +682,41 @@ export async function verifyPalEmailAndActivate(
           .is('auth_user_id', null)
           .maybeSingle();
         if (matchByName) {
-          unlinkedPal = matchByName;
+          targetPalId = matchByName.id;
         }
       }
 
-      // If an unlinked record was found, link it to user.id
-      if (unlinkedPal) {
-        const { data: linkedPal, error: linkErr } = await supabase
+      if (targetPalId) {
+        const { data: updatedPal, error: updateErr } = await supabase
           .from('pals')
           .update({
-            auth_user_id: user.id,
+            auth_user_id: targetUser.id,
+            email_verified: true,
           })
-          .eq('id', unlinkedPal.id)
+          .eq('id', targetPalId)
           .select()
           .single();
 
-        if (!linkErr && linkedPal) {
-          palRecord = linkedPal;
-        } else {
-          palRecord = unlinkedPal;
+        if (!updateErr && updatedPal) {
+          palRecord = updatedPal;
         }
       } else {
-        // Fallback: create the activated Pal record for the verified user
-        const displayName = userFullName || userEmail.split('@')[0] || 'Pal Companion';
+        // Insert new activated Pal record for the verified user
+        const displayName = approvedApplication?.name || userFullName || userEmail.split('@')[0] || 'Pal Companion';
+        const displayPhone = approvedApplication?.phone || userPhone || '';
+        const displayBio = approvedApplication?.bio || 'Hospital Escort and Patient Companion Pal.';
+
         const { data: createdPal, error: createErr } = await supabase
           .from('pals')
           .insert([
             {
-              auth_user_id: user.id,
+              auth_user_id: targetUser.id,
               name: displayName,
-              phone: userPhone,
-              bio: 'Hospital Escort and Patient Companion Pal.',
+              phone: displayPhone,
+              bio: displayBio,
               availability: 'Flexible (Weekdays & Weekends)',
               background_check_status: 'cleared',
+              email_verified: true,
               rating: 5.0,
               hourly_rate_cents: 2600,
             },
@@ -654,6 +734,7 @@ export async function verifyPalEmailAndActivate(
       return {
         data: null,
         error: {
+          code: 'SYNC_FAILED',
           message: 'Your Pal profile could not be synchronized. Please log in to complete activation.',
         },
       };
@@ -663,9 +744,9 @@ export async function verifyPalEmailAndActivate(
 
     const emailNotification: PalEmailNotification = {
       id: `email-${Date.now()}`,
-      recipient_email: user.email || '',
+      recipient_email: targetUser.email || '',
       recipient_name: finalPal.name,
-      subject: 'Your Pal Account Is Ready',
+      subject: 'Account ready: Your Pal Profile Is Active',
       message:
         'Your email has been verified and your Pal profile is linked. You can now log in to access the Pal Portal.',
       sent_at: new Date().toISOString(),
@@ -676,8 +757,9 @@ export async function verifyPalEmailAndActivate(
 
     return {
       data: {
-        user,
+        user: targetUser,
         palRecord: finalPal,
+        application: approvedApplication,
         emailNotification,
       },
       error: null,
@@ -972,63 +1054,207 @@ export async function createPalRequest(requestData: {
   languagePreference?: string;
 }): Promise<{ data: PalRequest | null; error: { message: string } | null }> {
   try {
-    const patient_name = requestData.patient_name || requestData.patientName || 'Patient';
-    const department = requestData.department || 'Main Outpatient';
-    const meeting_point = requestData.meeting_point || requestData.meetingPoint || 'Main Lobby Entrance';
-    const scheduled_at =
-      requestData.scheduled_at ||
-      (requestData.appointmentDate && requestData.appointmentTime
-        ? `${requestData.appointmentDate}T${requestData.appointmentTime}`
-        : new Date().toISOString());
+    // 1. Authenticate user check
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-    const notesExtra = [
-      requestData.notes,
-      requestData.hospitalName ? `Hospital: ${requestData.hospitalName}` : '',
-      requestData.patientPhone ? `Phone: ${requestData.patientPhone}` : '',
-      requestData.languagePreference ? `Language: ${requestData.languagePreference}` : '',
-      requestData.mobilityNeeds?.length ? `Mobility: ${requestData.mobilityNeeds.join(', ')}` : '',
-    ]
-      .filter(Boolean)
-      .join(' | ');
+    if (authError) {
+      console.error('[PAL Request] Auth error:', authError);
+    }
 
-    const { data, error } = await supabase
+    if (!user) {
+      return {
+        data: null,
+        error: { message: 'Please log in to book a PAL.' },
+      };
+    }
+
+    // 2. Determine actual patient database record (patients.id is integer, auth_user_id is UUID)
+    let patientDbId: number | null = requestData.patient_id || null;
+
+    if (!patientDbId) {
+      const { data: patientRecord, error: patLookupErr } = await supabase
+        .from('patients')
+        .select('id, name, phone, email')
+        .eq('auth_user_id', user.id)
+        .maybeSingle();
+
+      if (patLookupErr) {
+        console.error('[PAL Request] Error querying patient record:', patLookupErr);
+      }
+
+      if (patientRecord?.id) {
+        patientDbId = patientRecord.id;
+      } else {
+        // If not found in patients table, insert record using user auth profile
+        const pName = (
+          requestData.patient_name ||
+          requestData.patientName ||
+          (user.user_metadata as any)?.full_name ||
+          user.email?.split('@')[0] ||
+          'Patient'
+        ).trim();
+        const pPhone = (
+          requestData.patientPhone ||
+          (user.user_metadata as any)?.phone ||
+          ''
+        ).trim();
+
+        const { data: newPat, error: createPatErr } = await supabase
+          .from('patients')
+          .insert({
+            auth_user_id: user.id,
+            name: pName,
+            phone: pPhone,
+            email: user.email || '',
+          })
+          .select('id')
+          .maybeSingle();
+
+        if (createPatErr) {
+          console.error('[PAL Request] Error creating patient row in public.patients:', createPatErr);
+        }
+        if (newPat?.id) {
+          patientDbId = newPat.id;
+        }
+      }
+    }
+
+    // 3. Format Date & Time safely into valid ISO timestamp
+    let scheduled_at = requestData.scheduled_at;
+    if (!scheduled_at) {
+      if (requestData.appointmentDate && requestData.appointmentTime) {
+        let hours = 10;
+        let minutes = 0;
+        const timeMatch = requestData.appointmentTime.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+        if (timeMatch) {
+          hours = parseInt(timeMatch[1], 10);
+          minutes = parseInt(timeMatch[2], 10);
+          const ampm = (timeMatch[3] || '').toUpperCase();
+          if (ampm === 'PM' && hours < 12) hours += 12;
+          if (ampm === 'AM' && hours === 12) hours = 0;
+        }
+        const pad = (n: number) => String(n).padStart(2, '0');
+        scheduled_at = `${requestData.appointmentDate}T${pad(hours)}:${pad(minutes)}:00.000Z`;
+      } else {
+        scheduled_at = new Date().toISOString();
+      }
+    }
+
+    const patient_name = (
+      requestData.patient_name ||
+      requestData.patientName ||
+      'Patient'
+    ).trim();
+    const department = (requestData.department || 'General Outpatient Clinic').trim();
+    const meeting_point = (
+      requestData.meeting_point ||
+      requestData.meetingPoint ||
+      'Main Lobby Entrance'
+    ).trim();
+
+    const notesParts: string[] = [];
+    if (requestData.notes?.trim()) notesParts.push(requestData.notes.trim());
+    if (requestData.hospitalName?.trim()) notesParts.push(`Hospital: ${requestData.hospitalName.trim()}`);
+    if (requestData.patientPhone?.trim()) notesParts.push(`Phone: ${requestData.patientPhone.trim()}`);
+    if (requestData.languagePreference?.trim()) notesParts.push(`Language: ${requestData.languagePreference.trim()}`);
+    if (requestData.mobilityNeeds?.length) notesParts.push(`Mobility: ${requestData.mobilityNeeds.join(', ')}`);
+
+    const notesExtra = notesParts.join(' | ');
+
+    // 4. Build insert payload for public.pal_requests
+    const payload: Record<string, any> = {
+      patient_id: patientDbId,
+      patient_name,
+      department,
+      meeting_point,
+      scheduled_at,
+      notes: notesExtra,
+      status: requestData.status || 'pending',
+    };
+
+    // 5. Insert into Supabase public.pal_requests
+    let insertedRow: any = null;
+    const { data: insertData, error: insertError } = await supabase
       .from('pal_requests')
-      .insert({
-        patient_id: requestData.patient_id || null,
-        patient_name,
-        department,
-        meeting_point,
-        scheduled_at,
-        notes: notesExtra,
-        status: requestData.status || 'pending',
-      })
+      .insert(payload)
       .select()
       .maybeSingle();
 
-    if (error) {
-      return { data: null, error: { message: 'Could not create companion request: ' + error.message } };
+    if (insertError) {
+      console.error('[PAL Request] Supabase insert error:', insertError);
+
+      // If SELECT was blocked by RLS policy, try plain insert
+      if (
+        insertError.code === '42501' ||
+        insertError.message?.toLowerCase().includes('permission') ||
+        insertError.message?.toLowerCase().includes('select')
+      ) {
+        console.warn('[PAL Request] SELECT after insert failed; trying standard insert without select');
+        const plainRes = await supabase.from('pal_requests').insert(payload);
+        if (plainRes.error) {
+          console.error('[PAL Request] Plain insert error:', plainRes.error);
+          return {
+            data: null,
+            error: {
+              message: plainRes.error.message || 'Unable to submit your PAL request right now. Please try again.',
+            },
+          };
+        }
+        insertedRow = {
+          id: `REQ-${Date.now()}`,
+          ...payload,
+          created_at: new Date().toISOString(),
+        };
+      } else {
+        return {
+          data: null,
+          error: {
+            message: insertError.message || 'Unable to submit your PAL request right now. Please try again.',
+          },
+        };
+      }
+    } else {
+      insertedRow = insertData;
+    }
+
+    // 6. Send notification to authenticated user
+    if (user?.id) {
+      createNotification({
+        user_id: user.id,
+        title: 'Companion PAL Request Submitted',
+        message: `Your PAL escort request for ${requestData.hospitalName || 'the medical campus'} (${department}) on ${requestData.appointmentDate || 'scheduled date'} has been submitted and is pending PAL assignment.`,
+        type: 'success',
+      }).catch((err) => {
+        console.warn('[PAL Request] User notification log:', err);
+      });
     }
 
     const formatted: PalRequest = {
-      id: String(data?.id || `REQ-${Date.now()}`),
-      patientName: data?.patient_name || patient_name,
+      id: String(insertedRow?.id || `REQ-${Date.now()}`),
+      patient_id: patientDbId || undefined,
+      patientName: insertedRow?.patient_name || patient_name,
       patientPhone: requestData.patientPhone || '',
       hospitalId: requestData.hospitalId || 'hosp-1',
       hospitalName: requestData.hospitalName || 'PathPal Partner Medical Center',
       appointmentDate: requestData.appointmentDate || new Date().toISOString().split('T')[0],
       appointmentTime: requestData.appointmentTime || '10:00 AM',
-      department: data?.department || department,
-      meetingPoint: data?.meeting_point || meeting_point,
+      department: insertedRow?.department || department,
+      meetingPoint: insertedRow?.meeting_point || meeting_point,
       mobilityNeeds: requestData.mobilityNeeds || ['Companion Escort'],
       languagePreference: requestData.languagePreference || 'English',
-      status: (data?.status as any) || 'pending',
+      notes: notesExtra,
+      status: (insertedRow?.status as any) || 'pending',
       assignedPal: undefined,
-      createdAt: data?.created_at || new Date().toISOString(),
+      createdAt: insertedRow?.created_at || new Date().toISOString(),
     };
 
     return { data: formatted, error: null };
   } catch (err: any) {
-    return { data: null, error: { message: err?.message || 'Failed to create request.' } };
+    console.error('[PAL Request] Exception in createPalRequest:', err);
+    return { data: null, error: { message: err?.message || 'Failed to create companion request.' } };
   }
 }
 

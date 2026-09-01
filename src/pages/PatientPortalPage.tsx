@@ -80,14 +80,19 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
   const [selectedMobility, setSelectedMobility] = useState<string[]>(['Wheelchair Assistance', 'Arm Assistance']);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [lastSubmittedRequest, setLastSubmittedRequest] = useState<PalRequest | null>(null);
 
   const selectedHospital = SAMPLE_HOSPITALS.find((h) => h.id === selectedHospitalId) || SAMPLE_HOSPITALS[0];
 
   useEffect(() => {
     loadPatientData();
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(({ data: { user }, error }) => {
+      if (error) {
+        console.error('[PAL Request] Auth error on init:', error);
+      }
       if (user) {
         setAuthUser(user);
         if (user.email) setPatientName(user.user_metadata?.full_name || user.email.split('@')[0]);
@@ -130,28 +135,60 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
 
   const handleCreateRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!patientName || !patientPhone) return;
+    setFormError(null);
+
+    // 1. Authenticated Patient check
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError) {
+      console.error('[PAL Request] Auth error:', authError);
+    }
+
+    if (!user) {
+      setFormError('Please log in to book a PAL.');
+      return;
+    }
+
+    if (!patientName.trim()) {
+      setFormError('Please provide patient full legal name.');
+      return;
+    }
+    if (!patientPhone.trim()) {
+      setFormError('Please provide a contact phone number.');
+      return;
+    }
 
     setIsSubmitting(true);
     const res = await createPalRequest({
-      patientName,
-      patientPhone,
+      patientName: patientName.trim(),
+      patientPhone: patientPhone.trim(),
       hospitalId: selectedHospital.id,
       hospitalName: selectedHospital.name,
       appointmentDate,
       appointmentTime,
-      department,
-      meetingPoint,
+      department: department.trim(),
+      meetingPoint: meetingPoint.trim(),
       languagePreference,
       mobilityNeeds: selectedMobility,
-      notes,
+      notes: notes.trim(),
     });
     setIsSubmitting(false);
 
+    if (res.error) {
+      console.error('[PAL Request] Supabase insert error:', res.error);
+      setFormError(res.error.message || 'Unable to submit your PAL request right now. Please try again.');
+      return;
+    }
+
     if (res.data) {
-      setRequests((prev) => [res.data!, ...prev]);
+      setLastSubmittedRequest(res.data);
       setBookingSuccess(true);
-      setActiveTab('requests');
+      setRequests((prev) => [res.data!, ...prev.filter((r) => r.id !== res.data!.id)]);
+      // Refresh patient data from Supabase
+      loadPatientData();
     }
   };
 
@@ -198,16 +235,6 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </button>
-
-          {onOpenSupabaseAuth && (
-            <button
-              onClick={onOpenSupabaseAuth}
-              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs uppercase px-4 py-3 rounded-xl border border-emerald-300 flex items-center gap-2 shadow-sm transition-all cursor-pointer"
-            >
-              <Database className="w-4 h-4 text-emerald-600" />
-              <span>{authUser ? 'Supabase Account' : 'Patient Sign Up / Login'}</span>
-            </button>
-          )}
 
           <button
             onClick={onOpenGpsModal}
@@ -407,166 +434,293 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
        * ========================================================================= */}
       {activeTab === 'request' && (
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-lg space-y-6">
-          <div className="border-b border-gray-200 pb-4">
-            <span className="text-xs font-black uppercase text-[#E85D75] tracking-wider">BOOK COMPANION PAL</span>
-            <h2 className="text-2xl font-black text-[#1F3449]">Schedule a Hospital Companion Pal</h2>
-            <p className="text-xs text-gray-600">
-              Fill out your appointment details to be paired with an accredited PAL companion.
-            </p>
+          <div className="border-b border-gray-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <span className="text-xs font-black uppercase text-[#E85D75] tracking-wider">BOOK COMPANION PAL</span>
+              <h2 className="text-2xl font-black text-[#1F3449]">Schedule a Hospital Companion Pal</h2>
+              <p className="text-xs text-gray-600">
+                Fill out your appointment details to be paired with an accredited PAL companion.
+              </p>
+            </div>
+            {bookingSuccess && (
+              <button
+                onClick={() => {
+                  setBookingSuccess(false);
+                  setFormError(null);
+                }}
+                className="px-4 py-2 text-xs font-bold rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 self-start cursor-pointer"
+              >
+                + Book Another Visit
+              </button>
+            )}
           </div>
 
-          <form onSubmit={handleCreateRequest} className="space-y-4 bg-gray-50 p-6 sm:p-8 rounded-2xl border border-gray-200 max-w-3xl">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Patient Full Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Maria Gonzalez"
-                  value={patientName}
-                  onChange={(e) => setPatientName(e.target.value)}
-                  className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
-                />
+          {/* User Auth Reminder Banner if not signed in */}
+          {!authUser && (
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+                <div>
+                  <div className="text-xs font-bold text-amber-900">Patient Authentication Required</div>
+                  <div className="text-[11px] text-amber-700">Please sign in or create an account to book your hospital companion.</div>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Contact Phone Number</label>
-                <input
-                  type="tel"
-                  required
-                  placeholder="(555) 234-5678"
-                  value={patientPhone}
-                  onChange={(e) => setPatientPhone(e.target.value)}
-                  className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Partner Hospital</label>
-                <select
-                  value={selectedHospitalId}
-                  onChange={(e) => {
-                    setSelectedHospitalId(e.target.value);
-                    const h = SAMPLE_HOSPITALS.find((x) => x.id === e.target.value);
-                    if (h && h.meetingPoints.length > 0) setMeetingPoint(h.meetingPoints[0]);
-                  }}
-                  className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white font-bold"
+              {onOpenSupabaseAuth && (
+                <button
+                  type="button"
+                  onClick={onOpenSupabaseAuth}
+                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider cursor-pointer shrink-0"
                 >
-                  {SAMPLE_HOSPITALS.map((h) => (
-                    <option key={h.id} value={h.id}>
-                      {h.name} ({h.city})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Department / Clinic</label>
-                <input
-                  type="text"
-                  required
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  placeholder="e.g. Cardiology Clinic, Oncology Pavilion"
-                  className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Appointment Date</label>
-                <input
-                  type="date"
-                  required
-                  value={appointmentDate}
-                  onChange={(e) => setAppointmentDate(e.target.value)}
-                  className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Appointment Time</label>
-                <input
-                  type="text"
-                  required
-                  value={appointmentTime}
-                  onChange={(e) => setAppointmentTime(e.target.value)}
-                  placeholder="10:00 AM"
-                  className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Campus Meeting Location</label>
-              <input
-                type="text"
-                required
-                value={meetingPoint}
-                onChange={(e) => setMeetingPoint(e.target.value)}
-                placeholder="e.g. Main Entrance Valet Desk"
-                className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Mobility & Assistance Needs</label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {[
-                  'Wheelchair Assistance',
-                  'Arm Assistance',
-                  'Visual Guide',
-                  'Hearing Support',
-                  'Bilingual Translation',
-                  'Cognitive / Anxiety Support',
-                ].map((opt) => (
-                  <button
-                    type="button"
-                    key={opt}
-                    onClick={() => toggleMobilityOption(opt)}
-                    className={`p-2.5 rounded-xl border text-[11px] font-bold transition-all text-left cursor-pointer ${
-                      selectedMobility.includes(opt)
-                        ? 'bg-[#E85D75]/10 border-[#E85D75] text-[#E85D75]'
-                        : 'bg-white border-gray-200 text-gray-700'
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Additional Care Notes</label>
-              <textarea
-                rows={2}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Any special instructions for your companion..."
-                className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white resize-none"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-4 rounded-xl font-bold text-xs uppercase text-white bg-[#E85D75] hover:bg-[#E85D75]/90 transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Submitting Request...</span>
-                </>
-              ) : (
-                <>
-                  <Heart className="w-4 h-4 fill-white" />
-                  <span>Submit Hospital PAL Request</span>
-                </>
+                  Log In / Sign Up
+                </button>
               )}
-            </button>
-          </form>
+            </div>
+          )}
+
+          {/* Submission Error Banner */}
+          {formError && (
+            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+                <div>
+                  <div className="text-xs font-bold text-rose-900">Booking Submission Error</div>
+                  <div className="text-[11px] text-rose-700">{formError}</div>
+                </div>
+              </div>
+              {formError.includes('log in') && onOpenSupabaseAuth && (
+                <button
+                  type="button"
+                  onClick={onOpenSupabaseAuth}
+                  className="px-4 py-2 rounded-xl bg-[#E85D75] hover:bg-[#E85D75]/90 text-white font-bold text-xs uppercase tracking-wider cursor-pointer shrink-0"
+                >
+                  Log In Now
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Success Confirmation Card */}
+          {bookingSuccess && lastSubmittedRequest ? (
+            <div className="bg-emerald-50/70 border-2 border-emerald-300 p-6 sm:p-8 rounded-2xl space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-md">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-emerald-950">Companion PAL Request Submitted!</h3>
+                  <p className="text-xs text-emerald-800">
+                    Your request has been successfully recorded in the hospital dispatch network.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-xl border border-emerald-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                <div>
+                  <span className="text-gray-400 font-bold block text-[10px] uppercase">Request ID</span>
+                  <span className="font-mono font-bold text-gray-800">{lastSubmittedRequest.id}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400 font-bold block text-[10px] uppercase">Status</span>
+                  <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-800 border border-amber-300">
+                    {lastSubmittedRequest.status}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-400 font-bold block text-[10px] uppercase">Hospital Campus</span>
+                  <span className="font-bold text-[#1F3449]">{lastSubmittedRequest.hospitalName}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400 font-bold block text-[10px] uppercase">Department / Clinic</span>
+                  <span className="font-bold text-gray-800">{lastSubmittedRequest.department}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400 font-bold block text-[10px] uppercase">Appointment</span>
+                  <span className="font-bold text-gray-800">
+                    {lastSubmittedRequest.appointmentDate} at {lastSubmittedRequest.appointmentTime}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-400 font-bold block text-[10px] uppercase">Meeting Point</span>
+                  <span className="font-medium text-gray-800">{lastSubmittedRequest.meetingPoint}</span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('requests')}
+                  className="px-5 py-3 rounded-xl font-bold text-xs text-white bg-[#1F3449] hover:bg-[#1F3449]/90 transition-all shadow-md cursor-pointer flex items-center gap-2"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>View in My Requests ({requests.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBookingSuccess(false);
+                    setFormError(null);
+                  }}
+                  className="px-5 py-3 rounded-xl font-bold text-xs text-[#E85D75] bg-white border border-[#E85D75]/30 hover:bg-rose-50 transition-all cursor-pointer flex items-center gap-2"
+                >
+                  <Heart className="w-4 h-4" />
+                  <span>Schedule Another Companion</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleCreateRequest} className="space-y-4 bg-gray-50 p-6 sm:p-8 rounded-2xl border border-gray-200 max-w-3xl">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Patient Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Maria Gonzalez"
+                    value={patientName}
+                    onChange={(e) => setPatientName(e.target.value)}
+                    className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Contact Phone Number</label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="(555) 234-5678"
+                    value={patientPhone}
+                    onChange={(e) => setPatientPhone(e.target.value)}
+                    className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Partner Hospital</label>
+                  <select
+                    value={selectedHospitalId}
+                    onChange={(e) => {
+                      setSelectedHospitalId(e.target.value);
+                      const h = SAMPLE_HOSPITALS.find((x) => x.id === e.target.value);
+                      if (h && h.meetingPoints.length > 0) setMeetingPoint(h.meetingPoints[0]);
+                    }}
+                    className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white font-bold"
+                  >
+                    {SAMPLE_HOSPITALS.map((h) => (
+                      <option key={h.id} value={h.id}>
+                        {h.name} ({h.city})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Department / Clinic</label>
+                  <input
+                    type="text"
+                    required
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    placeholder="e.g. Cardiology Clinic, Oncology Pavilion"
+                    className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Appointment Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={appointmentDate}
+                    onChange={(e) => setAppointmentDate(e.target.value)}
+                    className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Appointment Time</label>
+                  <input
+                    type="text"
+                    required
+                    value={appointmentTime}
+                    onChange={(e) => setAppointmentTime(e.target.value)}
+                    placeholder="10:00 AM"
+                    className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Campus Meeting Location</label>
+                <input
+                  type="text"
+                  required
+                  value={meetingPoint}
+                  onChange={(e) => setMeetingPoint(e.target.value)}
+                  placeholder="e.g. Main Entrance Valet Desk"
+                  className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Mobility & Assistance Needs</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {[
+                    'Wheelchair Assistance',
+                    'Arm Assistance',
+                    'Visual Guide',
+                    'Hearing Support',
+                    'Bilingual Translation',
+                    'Cognitive / Anxiety Support',
+                  ].map((opt) => (
+                    <button
+                      type="button"
+                      key={opt}
+                      onClick={() => toggleMobilityOption(opt)}
+                      className={`p-2.5 rounded-xl border text-[11px] font-bold transition-all text-left cursor-pointer ${
+                        selectedMobility.includes(opt)
+                          ? 'bg-[#E85D75]/10 border-[#E85D75] text-[#E85D75]'
+                          : 'bg-white border-gray-200 text-gray-700'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Additional Care Notes</label>
+                <textarea
+                  rows={2}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Any special instructions for your companion..."
+                  className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white resize-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-4 rounded-xl font-bold text-xs uppercase text-white bg-[#E85D75] hover:bg-[#E85D75]/90 transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Submitting Request to Dispatch...</span>
+                  </>
+                ) : (
+                  <>
+                    <Heart className="w-4 h-4 fill-white" />
+                    <span>Submit Hospital PAL Request</span>
+                  </>
+                )}
+              </button>
+            </form>
+          )}
         </div>
       )}
 
@@ -863,7 +1017,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
             <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-2">
               <div><strong>Name:</strong> {patientName || 'Registered Patient'}</div>
               <div><strong>Email:</strong> {authUser?.email || 'N/A'}</div>
-              <div><strong>Auth Status:</strong> {authUser ? 'Supabase Authenticated' : 'Anonymous / Guest'}</div>
+              <div><strong>Auth Status:</strong> {authUser ? 'Signed In (Verified)' : 'Guest / Booking Mode'}</div>
             </div>
           </div>
         </div>

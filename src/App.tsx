@@ -250,6 +250,7 @@ export default function App() {
         <RequestPalModal
           isOpen={requestModalOpen}
           onClose={() => setRequestModalOpen(false)}
+          onOpenAuth={() => setSupabaseAuthModalOpen(true)}
         />
         <BecomePalModal
           isOpen={becomePalModalOpen}

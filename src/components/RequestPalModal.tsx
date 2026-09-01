@@ -1,56 +1,120 @@
-import React, { useState } from 'react';
-import { X, Heart, CheckCircle2, MapPin, Calendar, Clock, User, AlertCircle, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Heart, CheckCircle2, AlertCircle, RefreshCw, Calendar, Clock, MapPin, Building2, User, Phone } from 'lucide-react';
 import { SAMPLE_HOSPITALS } from '../data/mockData';
-import { createPalRequest } from '../lib/supabase';
+import { createPalRequest, supabase } from '../lib/supabase';
+import { PalRequest } from '../types';
 
 interface RequestPalModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenAuth?: () => void;
 }
 
-export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClose }) => {
+export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClose, onOpenAuth }) => {
   const [patientName, setPatientName] = useState('');
   const [phone, setPhone] = useState('');
   const [hospitalId, setHospitalId] = useState(SAMPLE_HOSPITALS[0].id);
-  const [date, setDate] = useState('2026-08-05');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [time, setTime] = useState('10:00 AM');
   const [language, setLanguage] = useState('English');
   const [department, setDepartment] = useState('Outpatient Clinic');
   const [meetingPoint, setMeetingPoint] = useState('Main Entrance');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
+  const [submittedRequest, setSubmittedRequest] = useState<PalRequest | null>(null);
+  const [isAuthUser, setIsAuthUser] = useState<boolean | null>(null);
+
+  // Load authenticated patient profile when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setErrorMessage(null);
+    setSubmittedRequest(null);
+
+    supabase.auth.getUser().then(async ({ data: { user }, error }) => {
+      if (error) {
+        console.error('[PAL Request Modal] Auth error:', error);
+      }
+      if (user) {
+        setIsAuthUser(true);
+        // Look up patient database record
+        const { data: pat } = await supabase
+          .from('patients')
+          .select('name, phone')
+          .eq('auth_user_id', user.id)
+          .maybeSingle();
+
+        if (pat?.name) setPatientName(pat.name);
+        else if (user.user_metadata?.full_name) setPatientName(user.user_metadata.full_name);
+        else if (user.email) setPatientName(user.email.split('@')[0]);
+
+        if (pat?.phone) setPhone(pat.phone);
+        else if (user.user_metadata?.phone) setPhone(user.user_metadata.phone);
+      } else {
+        setIsAuthUser(false);
+      }
+    });
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setErrorMessage(null);
+
+    // 1. Authenticated User Check
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError) {
+      console.error('[PAL Request Modal] Auth check error:', authError);
+    }
+
+    if (!user) {
+      setErrorMessage('Please log in to book a PAL.');
+      return;
+    }
+
+    if (!patientName.trim()) {
+      setErrorMessage('Please enter the patient full name.');
+      return;
+    }
+
+    if (!phone.trim()) {
+      setErrorMessage('Please enter a valid contact phone number.');
+      return;
+    }
+
+    setIsSubmitting(true);
 
     const hospitalObj = SAMPLE_HOSPITALS.find((h) => h.id === hospitalId) || SAMPLE_HOSPITALS[0];
 
     const res = await createPalRequest({
-      patientName,
-      patientPhone: phone,
+      patientName: patientName.trim(),
+      patientPhone: phone.trim(),
       hospitalId: hospitalObj.id,
       hospitalName: hospitalObj.name,
       appointmentDate: date,
       appointmentTime: time,
-      department,
-      meetingPoint,
+      department: department.trim() || 'General Outpatient Clinic',
+      meetingPoint: meetingPoint.trim() || 'Main Entrance Gate',
       languagePreference: language,
-      mobilityNeeds: ['General Companion Escort'],
+      mobilityNeeds: ['General Companion Escort', 'Hospital Wayfinding Navigation'],
     });
 
     setIsSubmitting(false);
 
     if (res.error) {
-      setErrorMessage(res.error.message);
+      console.error('[PAL Request Modal] Submission error:', res.error);
+      setErrorMessage(res.error.message || 'Unable to submit your PAL request right now. Please try again.');
       return;
     }
 
-    setSubmitted(true);
+    if (res.data) {
+      setSubmittedRequest(res.data);
+    }
   };
 
   return (
@@ -58,12 +122,12 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
       <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl relative border border-soft-rose overflow-hidden max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-full text-gray-400 hover:bg-gray-100 transition-colors"
+          className="absolute top-5 right-5 p-2 rounded-full text-gray-400 hover:bg-gray-100 transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
 
-        {!submitted ? (
+        {!submittedRequest ? (
           <div className="space-y-6">
             <div className="space-y-1">
               <div className="inline-flex items-center gap-1.5 text-xs font-bold text-companion-coral uppercase tracking-wider">
@@ -76,10 +140,31 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
               </p>
             </div>
 
+            {isAuthUser === false && (
+              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Please sign in before booking a companion.</span>
+                </div>
+                {onOpenAuth && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenAuth();
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] cursor-pointer shrink-0"
+                  >
+                    Log In
+                  </button>
+                )}
+              </div>
+            )}
+
             {errorMessage && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{errorMessage}</span>
+              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                <span className="font-medium">{errorMessage}</span>
               </div>
             )}
 
@@ -115,11 +200,11 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
                   <select
                     value={hospitalId}
                     onChange={(e) => setHospitalId(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
+                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white font-medium"
                   >
                     {SAMPLE_HOSPITALS.map((h) => (
                       <option key={h.id} value={h.id}>
-                        {h.name}
+                        {h.name} ({h.city})
                       </option>
                     ))}
                   </select>
@@ -135,6 +220,7 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
                     <option value="Spanish">Spanish</option>
                     <option value="Mandarin">Mandarin</option>
                     <option value="Cantonese">Cantonese</option>
+                    <option value="Tagalog">Tagalog</option>
                   </select>
                 </div>
               </div>
@@ -187,12 +273,12 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full text-sm font-bold text-white bg-[#E85D75] hover:bg-[#E85D75]/90 py-3.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 mt-2 cursor-pointer disabled:opacity-50"
+                className="w-full text-xs uppercase font-bold text-white bg-[#E85D75] hover:bg-[#E85D75]/90 py-3.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 mt-2 cursor-pointer disabled:opacity-50 tracking-wider"
               >
                 {isSubmitting ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Dispatching Pal Request...</span>
+                    <span>Dispatching to Public.Pal_Requests...</span>
                   </>
                 ) : (
                   <>
@@ -204,26 +290,60 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
             </form>
           </div>
         ) : (
-          <div className="text-center space-y-4 py-6">
-            <div className="w-16 h-16 bg-[#48A6A5] text-white rounded-full mx-auto flex items-center justify-center shadow-md">
-              <CheckCircle2 className="w-8 h-8" />
+          <div className="space-y-5 py-4">
+            <div className="text-center space-y-2">
+              <div className="w-14 h-14 bg-emerald-500 text-white rounded-full mx-auto flex items-center justify-center shadow-md">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-black text-pathpal-navy">Companion Request Submitted!</h3>
+              <p className="text-xs text-pathpal-navy/80 max-w-sm mx-auto">
+                Your request has been securely persisted to the dispatch system and is awaiting companion matching.
+              </p>
             </div>
-            <h3 className="text-2xl font-black text-pathpal-navy">Companion Request Received!</h3>
-            <p className="text-xs text-pathpal-navy/80 max-w-sm mx-auto">
-              We have dispatched your request to available certified Pals. You will receive an SMS confirmation with your Pal's photo & badge details.
-            </p>
-            <button
-              onClick={() => {
-                setSubmitted(false);
-                onClose();
-              }}
-              className="bg-pathpal-navy text-white text-xs font-bold px-6 py-3 rounded-xl cursor-pointer"
-            >
-              Done
-            </button>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 space-y-2.5 text-xs">
+              <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                <span className="text-gray-500 font-bold uppercase text-[10px]">Request ID</span>
+                <span className="font-mono font-bold text-gray-800">{submittedRequest.id}</span>
+              </div>
+              <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                <span className="text-gray-500 font-bold uppercase text-[10px]">Status</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-800 border border-amber-300">
+                  {submittedRequest.status}
+                </span>
+              </div>
+              <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                <span className="text-gray-500 font-bold uppercase text-[10px]">Hospital</span>
+                <span className="font-bold text-[#1F3449]">{submittedRequest.hospitalName}</span>
+              </div>
+              <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                <span className="text-gray-500 font-bold uppercase text-[10px]">Appointment</span>
+                <span className="font-medium text-gray-800">
+                  {submittedRequest.appointmentDate} at {submittedRequest.appointmentTime}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500 font-bold uppercase text-[10px]">Meeting Point</span>
+                <span className="font-medium text-gray-800">{submittedRequest.meetingPoint}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSubmittedRequest(null);
+                  onClose();
+                }}
+                className="w-full bg-[#1F3449] text-white text-xs font-bold py-3 rounded-xl hover:bg-[#1F3449]/90 transition-all cursor-pointer shadow-md"
+              >
+                Close & Return
+              </button>
+            </div>
           </div>
         )}
       </div>
     </div>
   );
 };
+
