@@ -39,12 +39,22 @@ export const DEFAULT_OSM_STYLE: StyleSpecification = {
 };
 
 /**
- * Resolves the active map style (custom vector URL or default OSM raster spec).
+ * Resolves the active map style (custom vector URL, MapTiler vector style, or default OSM raster spec).
+ * Priority:
+ * 1. VITE_MAP_STYLE_URL (custom override)
+ * 2. VITE_MAPTILER_API_KEY (MapTiler Streets v4 vector style)
+ * 3. DEFAULT_OSM_STYLE (OpenStreetMap raster tiles fallback)
  */
 export function getMapStyle(): string | StyleSpecification {
-  const envStyleUrl = import.meta.env.VITE_MAP_STYLE_URL;
-  if (envStyleUrl && typeof envStyleUrl === 'string' && envStyleUrl.trim()) {
-    return envStyleUrl.trim();
+  const customStyle = import.meta.env.VITE_MAP_STYLE_URL;
+  if (customStyle && typeof customStyle === 'string' && customStyle.trim()) {
+    return customStyle.trim();
   }
+
+  const mapTilerKey = import.meta.env.VITE_MAPTILER_API_KEY;
+  if (mapTilerKey && typeof mapTilerKey === 'string' && mapTilerKey.trim()) {
+    return `https://api.maptiler.com/maps/streets-v4/style.json?key=${mapTilerKey.trim()}`;
+  }
+
   return DEFAULT_OSM_STYLE;
 }

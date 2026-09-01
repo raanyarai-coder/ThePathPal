@@ -89,15 +89,13 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
   useEffect(() => {
     loadPatientData();
 
-    supabase.auth.getUser().then(({ data: { user }, error }) => {
-      if (error) {
-        console.error('[PAL Request] Auth error on init:', error);
-      }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const user = session?.user ?? null;
       if (user) {
         setAuthUser(user);
         if (user.email) setPatientName(user.user_metadata?.full_name || user.email.split('@')[0]);
       }
-    });
+    }).catch(() => {});
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const user = session?.user ?? null;
@@ -139,13 +137,10 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
 
     // 1. Authenticated Patient check
     const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    if (authError) {
-      console.error('[PAL Request] Auth error:', authError);
-    }
+    const user = session?.user ?? null;
 
     if (!user) {
       setFormError('Please log in to book a PAL.');

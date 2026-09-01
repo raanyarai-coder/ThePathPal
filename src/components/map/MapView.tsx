@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { getMapStyle } from './mapConfig';
+import { getMapStyle, DEFAULT_OSM_STYLE } from './mapConfig';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
 interface MapViewProps {
@@ -57,10 +57,19 @@ export const MapView: React.FC<MapViewProps> = ({
         }
       });
 
+      let hasAttemptedFallback = false;
       map.on('error', (e) => {
-        // Only trigger critical UI error if the style or tiles fail completely
-        if (e.error && !isLoaded) {
-          console.warn('[MapLibre] Map load event note:', e.error.message || e);
+        // If vector style fails (e.g., origin restriction or invalid key), seamlessly fallback to OSM tiles
+        if (!hasAttemptedFallback && map && e?.error) {
+          hasAttemptedFallback = true;
+          console.warn('[MapLibre] Applying default OSM style fallback.');
+          try {
+            map.setStyle(DEFAULT_OSM_STYLE);
+          } catch {
+            // silent catch
+          }
+        } else if (e?.error && !isLoaded) {
+          console.warn('[MapLibre] Map load event note:', e.error.message || 'Render note');
         }
       });
     } catch (err: any) {

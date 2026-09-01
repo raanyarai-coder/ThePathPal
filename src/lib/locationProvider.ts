@@ -220,15 +220,23 @@ class OsmLocationProvider implements LocationProvider {
       // 2. Query OSM Geocoding Provider
       let fetchedLocations: HospitalLocation[] = [];
 
+      const searchTerms = trimmed.toLowerCase().includes('hospital') || trimmed.toLowerCase().includes('clinic') || trimmed.toLowerCase().includes('medical')
+        ? trimmed
+        : `${trimmed} hospital`;
+
       if (this.customApiUrl) {
-        // Custom OSM provider endpoint
-        const endpoint = `${this.customApiUrl}?q=${encodeURIComponent(
-          `${trimmed} hospital`
-        )}&format=json&addressdetails=1&limit=6`;
+        // Custom OSM provider endpoint (ensure proper endpoint format)
+        const baseUrl = this.customApiUrl.replace(/\/+$/, '');
+        const searchEndpoint = baseUrl.endsWith('/search') ? baseUrl : `${baseUrl}/search`;
+        const endpoint = `${searchEndpoint}?format=json&q=${encodeURIComponent(
+          searchTerms
+        )}&addressdetails=1&limit=8&extratags=1`;
+
         const res = await fetch(endpoint, {
           signal,
           headers: {
             Accept: 'application/json',
+            'User-Agent': 'PathPal-Hospital-Navigation/1.0',
           },
         });
         if (res.ok) {
@@ -237,10 +245,6 @@ class OsmLocationProvider implements LocationProvider {
         }
       } else {
         // Query OpenStreetMap Nominatim with healthcare / hospital filter
-        const searchTerms = trimmed.toLowerCase().includes('hospital') || trimmed.toLowerCase().includes('clinic') || trimmed.toLowerCase().includes('medical')
-          ? trimmed
-          : `${trimmed} hospital`;
-
         const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
           searchTerms
         )}&addressdetails=1&limit=8&extratags=1`;
@@ -259,9 +263,9 @@ class OsmLocationProvider implements LocationProvider {
         }
       }
 
-      // Merge results avoiding duplicate coordinates
-      const combined = [...localMatches];
-      for (const loc of fetchedLocations) {
+      // Prioritize live search results first, then fill with unique local matches
+      const combined = [...fetchedLocations];
+      for (const loc of localMatches) {
         const isDuplicate = combined.some(
           (c) =>
             Math.abs(c.latitude - loc.latitude) < 0.001 &&

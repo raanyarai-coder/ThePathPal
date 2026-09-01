@@ -43,10 +43,8 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
     setHospitalError(null);
     setSubmittedRequest(null);
 
-    supabase.auth.getUser().then(async ({ data: { user }, error }) => {
-      if (error) {
-        console.error('[PAL Request Modal] Auth error:', error);
-      }
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const user = session?.user ?? null;
       if (user) {
         setIsAuthUser(true);
         // Look up patient database record
@@ -65,6 +63,8 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
       } else {
         setIsAuthUser(false);
       }
+    }).catch(() => {
+      setIsAuthUser(false);
     });
   }, [isOpen]);
 
@@ -77,13 +77,10 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
 
     // 1. Authenticated User Check
     const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    if (authError) {
-      console.error('[PAL Request Modal] Auth check error:', authError);
-    }
+    const user = session?.user ?? null;
 
     if (!user) {
       setErrorMessage('Please log in to book a PAL.');

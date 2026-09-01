@@ -85,8 +85,8 @@ export const PalVerifyPage: React.FC<PalVerifyPageProps> = ({
         error: sessionError,
       } = await supabase.auth.getSession();
 
-      if (sessionError) {
-        console.error('Session retrieval error:', sessionError);
+      if (sessionError && !sessionError.message?.includes('missing')) {
+        console.warn('Session retrieval warning:', sessionError);
       }
 
       const user = session?.user;
