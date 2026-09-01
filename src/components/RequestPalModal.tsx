@@ -29,7 +29,7 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
   const [time, setTime] = useState('10:00 AM');
   const [language, setLanguage] = useState('English');
   const [department, setDepartment] = useState('Outpatient Clinic');
-  const [meetingPoint, setMeetingPoint] = useState('Main Entrance - Lobby Welcome Desk');
+  const [meetingLocation, setMeetingLocation] = useState('Main Entrance - Lobby Welcome Desk');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submittedRequest, setSubmittedRequest] = useState<PalRequest | null>(null);
@@ -119,7 +119,8 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
       appointmentDate: date,
       appointmentTime: time,
       department: department.trim() || 'General Outpatient Clinic',
-      meetingPoint: meetingPoint.trim() || 'Main Entrance Gate',
+      meetingLocation: meetingLocation.trim() || 'Main Entrance Gate',
+      meeting_location: meetingLocation.trim() || 'Main Entrance Gate',
       languagePreference: language,
       mobilityNeeds: ['General Companion Escort', 'Hospital Wayfinding Navigation'],
     });
@@ -271,11 +272,11 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-pathpal-navy">Campus Meeting Point / Gate</label>
+                <label className="block text-xs font-bold text-pathpal-navy">Campus Meeting Location</label>
                 <input
                   type="text"
-                  value={meetingPoint}
-                  onChange={(e) => setMeetingPoint(e.target.value)}
+                  value={meetingLocation}
+                  onChange={(e) => setMeetingLocation(e.target.value)}
                   placeholder="e.g. Main Entrance - Near Information Desk"
                   className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white font-medium"
                 />
@@ -362,8 +363,8 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-500 font-bold uppercase text-[10px]">Meeting Point</span>
-                <span className="font-medium text-gray-800">{submittedRequest.meetingPoint}</span>
+                <span className="text-gray-500 font-bold uppercase text-[10px]">Campus Meeting Location</span>
+                <span className="font-medium text-gray-800">{submittedRequest.meetingLocation || submittedRequest.meetingPoint}</span>
               </div>
             </div>
 

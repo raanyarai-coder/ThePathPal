@@ -65,12 +65,18 @@ export interface PalRequest {
   appointmentDate: string;
   appointmentTime: string;
   department: string;
-  meetingPoint: string;
+  meetingLocation?: string;
+  meetingPoint?: string;
+  meeting_location?: string;
   mobilityNeeds: string[];
+  assistanceNeeds?: string;
+  assistance_needs?: string;
   languagePreference: string;
+  language?: string;
   notes?: string;
   status: 'pending' | 'matched' | 'in_progress' | 'completed' | 'cancelled';
   assignedPal?: Pal;
+  assigned_pal_id?: string;
   createdAt: string;
 }
 

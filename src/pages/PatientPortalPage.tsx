@@ -75,7 +75,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
   const [appointmentDate, setAppointmentDate] = useState('2026-08-05');
   const [appointmentTime, setAppointmentTime] = useState('10:00 AM');
   const [department, setDepartment] = useState('Cardiology Clinic');
-  const [meetingPoint, setMeetingPoint] = useState(SAMPLE_HOSPITALS[0].meetingPoints[0]);
+  const [meetingLocation, setMeetingLocation] = useState(SAMPLE_HOSPITALS[0].meetingPoints[0]);
   const [languagePreference, setLanguagePreference] = useState('English');
   const [selectedMobility, setSelectedMobility] = useState<string[]>(['Wheelchair Assistance', 'Arm Assistance']);
   const [notes, setNotes] = useState('');
@@ -170,7 +170,8 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
       appointmentDate,
       appointmentTime,
       department: department.trim(),
-      meetingPoint: meetingPoint.trim(),
+      meetingLocation: meetingLocation.trim(),
+      meeting_location: meetingLocation.trim(),
       languagePreference,
       mobilityNeeds: selectedMobility,
       notes: notes.trim(),
@@ -540,8 +541,8 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-400 font-bold block text-[10px] uppercase">Meeting Point</span>
-                  <span className="font-medium text-gray-800">{lastSubmittedRequest.meetingPoint}</span>
+                  <span className="text-gray-400 font-bold block text-[10px] uppercase">Campus Meeting Location</span>
+                  <span className="font-medium text-gray-800">{lastSubmittedRequest.meetingLocation || lastSubmittedRequest.meetingPoint}</span>
                 </div>
               </div>
 
@@ -597,12 +598,12 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Partner Hospital</label>
-                  <select
+                    <select
                     value={selectedHospitalId}
                     onChange={(e) => {
                       setSelectedHospitalId(e.target.value);
                       const h = SAMPLE_HOSPITALS.find((x) => x.id === e.target.value);
-                      if (h && h.meetingPoints.length > 0) setMeetingPoint(h.meetingPoints[0]);
+                      if (h && h.meetingPoints.length > 0) setMeetingLocation(h.meetingPoints[0]);
                     }}
                     className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white font-bold"
                   >
@@ -657,8 +658,8 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                 <input
                   type="text"
                   required
-                  value={meetingPoint}
-                  onChange={(e) => setMeetingPoint(e.target.value)}
+                  value={meetingLocation}
+                  onChange={(e) => setMeetingLocation(e.target.value)}
                   placeholder="e.g. Main Entrance Valet Desk"
                   className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white"
                 />
@@ -766,8 +767,8 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                     <span className="font-bold text-[#1F3449]">{req.appointmentDate} at {req.appointmentTime}</span>
                   </div>
                   <div>
-                    <span className="text-gray-400 font-bold block">Meeting Point:</span>
-                    <span>{req.meetingPoint}</span>
+                    <span className="text-gray-400 font-bold block">Meeting Location:</span>
+                    <span>{req.meetingLocation || req.meetingPoint}</span>
                   </div>
                   <div>
                     <span className="text-gray-400 font-bold block">Assigned PAL:</span>
@@ -783,8 +784,8 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                   <a
                     href={createGoogleCalendarUrl({
                       title: `Path Pal Escort at ${req.hospitalName}`,
-                      description: `Hospital companion visit for ${req.patientName}. Meeting at: ${req.meetingPoint}`,
-                      location: `${req.hospitalName}, ${req.meetingPoint}`,
+                      description: `Hospital companion visit for ${req.patientName}. Meeting at: ${req.meetingLocation || req.meetingPoint}`,
+                      location: `${req.hospitalName}, ${req.meetingLocation || req.meetingPoint}`,
                       startTime: new Date(`${req.appointmentDate}T10:00:00`),
                       endTime: new Date(`${req.appointmentDate}T12:00:00`),
                     })}
@@ -798,8 +799,8 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                     onClick={() =>
                       downloadIcsFile({
                         title: `Path Pal Escort at ${req.hospitalName}`,
-                        description: `Hospital companion visit for ${req.patientName}. Meeting at: ${req.meetingPoint}`,
-                        location: `${req.hospitalName}, ${req.meetingPoint}`,
+                        description: `Hospital companion visit for ${req.patientName}. Meeting at: ${req.meetingLocation || req.meetingPoint}`,
+                        location: `${req.hospitalName}, ${req.meetingLocation || req.meetingPoint}`,
                         startTime: new Date(`${req.appointmentDate}T10:00:00`),
                         endTime: new Date(`${req.appointmentDate}T12:00:00`),
                       })

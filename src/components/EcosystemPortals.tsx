@@ -40,6 +40,8 @@ export const EcosystemPortals: React.FC = () => {
       appointmentDate,
       appointmentTime,
       department,
+      meetingLocation: meetingPoint,
+      meeting_location: meetingPoint,
       meetingPoint,
       mobilityNeeds: selectedMobility,
       languagePreference,

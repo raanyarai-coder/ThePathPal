@@ -581,7 +581,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
                   <div className="space-y-1.5 text-xs text-gray-600 bg-gray-50 p-3 rounded-xl">
                     <div><strong>Patient:</strong> {req.patientName}</div>
                     <div><strong>Date & Time:</strong> {req.appointmentDate} at {req.appointmentTime}</div>
-                    <div><strong>Meeting Point:</strong> {req.meetingPoint}</div>
+                    <div><strong>Meeting Location:</strong> {req.meetingLocation || req.meetingPoint}</div>
                     {req.mobilityNeeds && req.mobilityNeeds.length > 0 && (
                       <div className="flex flex-wrap gap-1 pt-1">
                         {req.mobilityNeeds.map((m) => (
@@ -645,7 +645,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                   <div><strong>Date:</strong> {req.appointmentDate} at {req.appointmentTime}</div>
-                  <div><strong>Meet:</strong> {req.meetingPoint}</div>
+                  <div><strong>Meet Location:</strong> {req.meetingLocation || req.meetingPoint}</div>
                   <div><strong>Language:</strong> {req.languagePreference || 'English'}</div>
                 </div>
 
@@ -835,7 +835,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
                 <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200 text-xs space-y-1">
                   <div className="font-bold text-[#1F3449]">Active Escort Target</div>
                   <div className="text-gray-700">{myAssignments[0].hospitalName}</div>
-                  <div className="text-gray-500 text-[11px]">Meeting: {myAssignments[0].meetingPoint}</div>
+                  <div className="text-gray-500 text-[11px]">Meeting Location: {myAssignments[0].meetingLocation || myAssignments[0].meetingPoint}</div>
                   <div className="text-blue-700 font-medium text-[11px] pt-1">
                     Patient: {myAssignments[0].patientName} ({myAssignments[0].patientPhone})
                   </div>

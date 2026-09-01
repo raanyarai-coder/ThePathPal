@@ -1065,7 +1065,7 @@ export const HospitalPortalPage: React.FC = () => {
                   <th className="p-4">Patient Name</th>
                   <th className="p-4">Hospital & Clinic</th>
                   <th className="p-4">Appointment</th>
-                  <th className="p-4">Meeting Point</th>
+                  <th className="p-4">Meeting Location</th>
                   <th className="p-4">Status</th>
                   <th className="p-4">Assigned PAL</th>
                 </tr>
@@ -1085,7 +1085,7 @@ export const HospitalPortalPage: React.FC = () => {
                       <div>{req.appointmentDate}</div>
                       <div className="text-gray-500 text-[11px]">{req.appointmentTime}</div>
                     </td>
-                    <td className="p-4 text-gray-600">{req.meetingPoint}</td>
+                    <td className="p-4 text-gray-600">{req.meetingLocation || req.meetingPoint}</td>
                     <td className="p-4">
                       <span
                         className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${

@@ -151,6 +151,8 @@ export function formatPalRequestFromDb(row: any, assignedPal?: Pal): PalRequest 
   let mobilityNeeds: string[] = [];
   if (Array.isArray(row.mobility_needs)) {
     mobilityNeeds = row.mobility_needs;
+  } else if (typeof row.assistance_needs === 'string' && row.assistance_needs.trim()) {
+    mobilityNeeds = row.assistance_needs.split(',').map((s: string) => s.trim()).filter(Boolean);
   } else if (typeof row.mobility_needs === 'string' && row.mobility_needs.trim()) {
     mobilityNeeds = row.mobility_needs.split(',').map((s: string) => s.trim()).filter(Boolean);
   } else if (row.notes && row.notes.includes('Mobility:')) {
@@ -196,15 +198,15 @@ export function formatPalRequestFromDb(row: any, assignedPal?: Pal): PalRequest 
     if (match && match[1]) patPhone = match[1].trim();
   }
 
-  let langPref = row.language_preference;
+  let langPref = row.language || row.language_preference;
   if (!langPref && row.notes && row.notes.includes('Language:')) {
     const match = row.notes.match(/Language:\s*([^|;]+)/);
     if (match && match[1]) langPref = match[1].trim();
   }
 
-  let appDate = row.scheduled_at ? row.scheduled_at.split('T')[0] : new Date().toISOString().split('T')[0];
-  let appTime = '10:00 AM';
-  if (row.scheduled_at && row.scheduled_at.includes('T')) {
+  let appDate = row.appointment_date || (row.scheduled_at ? row.scheduled_at.split('T')[0] : new Date().toISOString().split('T')[0]);
+  let appTime = row.appointment_time || '10:00 AM';
+  if (!row.appointment_time && row.scheduled_at && row.scheduled_at.includes('T')) {
     const timePart = row.scheduled_at.split('T')[1].substring(0, 5);
     const [hStr, mStr] = timePart.split(':');
     let h = parseInt(hStr, 10);
@@ -216,6 +218,9 @@ export function formatPalRequestFromDb(row: any, assignedPal?: Pal): PalRequest 
       appTime = `${h}:${m} ${ampm}`;
     }
   }
+
+  const meetingLocationVal = row.meeting_location || row.meeting_point || 'Main Campus Entrance';
+  const assistanceNeedsVal = row.assistance_needs || (mobilityNeeds.length > 0 ? mobilityNeeds.join(', ') : 'Escort Assistance');
 
   return {
     id: String(row.id),
@@ -231,12 +236,18 @@ export function formatPalRequestFromDb(row: any, assignedPal?: Pal): PalRequest 
     appointmentDate: appDate,
     appointmentTime: appTime,
     department: row.department || 'General Clinic',
-    meetingPoint: row.meeting_point || 'Main Lobby Entrance',
+    meetingLocation: meetingLocationVal,
+    meetingPoint: meetingLocationVal,
+    meeting_location: meetingLocationVal,
     mobilityNeeds: mobilityNeeds.length > 0 ? mobilityNeeds : ['Escort Assistance'],
+    assistanceNeeds: assistanceNeedsVal,
+    assistance_needs: assistanceNeedsVal,
     languagePreference: langPref || 'English',
+    language: langPref || 'English',
     notes: row.notes || '',
     status: row.status || 'pending',
     assignedPal,
+    assigned_pal_id: row.assigned_pal_id || undefined,
     createdAt: row.created_at || new Date().toISOString(),
   };
 }
@@ -1067,23 +1078,37 @@ export async function createPalRequest(requestData: {
   patient_id?: number;
   patient_name?: string;
   patientName?: string;
+  patient_phone?: string;
   patientPhone?: string;
+  hospital_id?: string;
   hospitalId?: string;
+  hospital_name?: string;
   hospitalName?: string;
+  hospital_address?: string;
   hospitalAddress?: string;
+  hospital_latitude?: number;
   hospitalLatitude?: number;
+  hospital_longitude?: number;
   hospitalLongitude?: number;
   hospitalPlaceId?: string;
   department?: string;
+  appointment_date?: string;
+  appointmentDate?: string;
+  appointment_time?: string;
+  appointmentTime?: string;
+  meeting_location?: string;
+  meetingLocation?: string;
   meeting_point?: string;
   meetingPoint?: string;
-  scheduled_at?: string;
-  appointmentDate?: string;
-  appointmentTime?: string;
-  notes?: string;
-  status?: string;
+  assistance_needs?: string;
+  assistanceNeeds?: string;
   mobilityNeeds?: string[];
+  notes?: string;
+  language?: string;
   languagePreference?: string;
+  language_preference?: string;
+  status?: string;
+  scheduled_at?: string;
 }): Promise<{ data: PalRequest | null; error: { message: string } | null }> {
   try {
     // 1. Authenticate user check
@@ -1103,116 +1128,128 @@ export async function createPalRequest(requestData: {
       };
     }
 
-    // 2. Determine actual patient database record (patients.id is integer, auth_user_id is UUID)
-    let patientDbId: number | null = requestData.patient_id || null;
-
-    if (!patientDbId) {
-      const { data: patientRecord, error: patLookupErr } = await supabase
-        .from('patients')
-        .select('id, name, phone, email')
-        .eq('auth_user_id', user.id)
-        .maybeSingle();
-
-      if (patLookupErr) {
-        console.error('[PAL Request] Error querying patient record:', patLookupErr);
-      }
-
-      if (patientRecord?.id) {
-        patientDbId = patientRecord.id;
-      } else {
-        // If not found in patients table, insert record using user auth profile
-        const pName = (
-          requestData.patient_name ||
-          requestData.patientName ||
-          (user.user_metadata as any)?.full_name ||
-          user.email?.split('@')[0] ||
-          'Patient'
-        ).trim();
-        const pPhone = (
-          requestData.patientPhone ||
-          (user.user_metadata as any)?.phone ||
-          ''
-        ).trim();
-
-        const { data: newPat, error: createPatErr } = await supabase
-          .from('patients')
-          .insert({
-            auth_user_id: user.id,
-            name: pName,
-            phone: pPhone,
-            email: user.email || '',
-          })
-          .select('id')
-          .maybeSingle();
-
-        if (createPatErr) {
-          console.error('[PAL Request] Error creating patient row in public.patients:', createPatErr);
-        }
-        if (newPat?.id) {
-          patientDbId = newPat.id;
-        }
-      }
-    }
-
-    // 3. Format Date & Time safely into valid ISO timestamp
-    let scheduled_at = requestData.scheduled_at;
-    if (!scheduled_at) {
-      if (requestData.appointmentDate && requestData.appointmentTime) {
-        let hours = 10;
-        let minutes = 0;
-        const timeMatch = requestData.appointmentTime.match(/(\d+):(\d+)\s*(AM|PM)?/i);
-        if (timeMatch) {
-          hours = parseInt(timeMatch[1], 10);
-          minutes = parseInt(timeMatch[2], 10);
-          const ampm = (timeMatch[3] || '').toUpperCase();
-          if (ampm === 'PM' && hours < 12) hours += 12;
-          if (ampm === 'AM' && hours === 12) hours = 0;
-        }
-        const pad = (n: number) => String(n).padStart(2, '0');
-        scheduled_at = `${requestData.appointmentDate}T${pad(hours)}:${pad(minutes)}:00.000Z`;
-      } else {
-        scheduled_at = new Date().toISOString();
-      }
-    }
-
+    // 2. Prepare verified schema properties
     const patient_name = (
       requestData.patient_name ||
       requestData.patientName ||
+      (user.user_metadata as any)?.full_name ||
+      user.email?.split('@')[0] ||
       'Patient'
     ).trim();
-    const department = (requestData.department || 'General Outpatient Clinic').trim();
-    const meeting_point = (
-      requestData.meeting_point ||
-      requestData.meetingPoint ||
-      'Main Lobby Entrance'
+
+    const patient_phone = (
+      requestData.patient_phone ||
+      requestData.patientPhone ||
+      (user.user_metadata as any)?.phone ||
+      ''
     ).trim();
 
-    const notesParts: string[] = [];
-    if (requestData.notes?.trim()) notesParts.push(requestData.notes.trim());
-    if (requestData.hospitalName?.trim()) notesParts.push(`Hospital: ${requestData.hospitalName.trim()}`);
-    if (requestData.hospitalAddress?.trim()) notesParts.push(`Address: ${requestData.hospitalAddress.trim()}`);
-    if (typeof requestData.hospitalLatitude === 'number') notesParts.push(`Lat: ${requestData.hospitalLatitude}`);
-    if (typeof requestData.hospitalLongitude === 'number') notesParts.push(`Lng: ${requestData.hospitalLongitude}`);
-    if (requestData.hospitalPlaceId?.trim()) notesParts.push(`PlaceId: ${requestData.hospitalPlaceId.trim()}`);
-    if (requestData.patientPhone?.trim()) notesParts.push(`Phone: ${requestData.patientPhone.trim()}`);
-    if (requestData.languagePreference?.trim()) notesParts.push(`Language: ${requestData.languagePreference.trim()}`);
-    if (requestData.mobilityNeeds?.length) notesParts.push(`Mobility: ${requestData.mobilityNeeds.join(', ')}`);
+    const hospital_id = (
+      requestData.hospital_id ||
+      requestData.hospitalId ||
+      'hosp-01'
+    ).trim();
 
-    const notesExtra = notesParts.join(' | ');
+    const hospital_name = (
+      requestData.hospital_name ||
+      requestData.hospitalName ||
+      'Medical Center'
+    ).trim();
 
-    // 4. Build insert payload for public.pal_requests
-    const payload: Record<string, any> = {
-      patient_id: patientDbId,
+    const hospital_address = (
+      requestData.hospital_address ||
+      requestData.hospitalAddress ||
+      ''
+    ).trim() || null;
+
+    const hospital_latitude = (
+      typeof requestData.hospital_latitude === 'number'
+        ? requestData.hospital_latitude
+        : typeof requestData.hospitalLatitude === 'number'
+        ? requestData.hospitalLatitude
+        : null
+    );
+
+    const hospital_longitude = (
+      typeof requestData.hospital_longitude === 'number'
+        ? requestData.hospital_longitude
+        : typeof requestData.hospitalLongitude === 'number'
+        ? requestData.hospitalLongitude
+        : null
+    );
+
+    const department = (
+      requestData.department ||
+      'General Outpatient Clinic'
+    ).trim();
+
+    const appointment_date = (
+      requestData.appointment_date ||
+      requestData.appointmentDate ||
+      new Date().toISOString().split('T')[0]
+    ).trim();
+
+    const appointment_time = (
+      requestData.appointment_time ||
+      requestData.appointmentTime ||
+      '10:00 AM'
+    ).trim();
+
+    const meeting_location = (
+      requestData.meeting_location ||
+      requestData.meetingLocation ||
+      requestData.meeting_point ||
+      requestData.meetingPoint ||
+      'Main Campus Entrance'
+    ).trim();
+
+    let assistance_needs = (
+      requestData.assistance_needs ||
+      requestData.assistanceNeeds ||
+      ''
+    ).trim();
+
+    if (!assistance_needs && requestData.mobilityNeeds?.length) {
+      assistance_needs = requestData.mobilityNeeds.join(', ');
+    }
+    if (!assistance_needs && requestData.notes?.trim()) {
+      assistance_needs = requestData.notes.trim();
+    }
+    if (!assistance_needs) {
+      assistance_needs = 'Companion Escort Assistance';
+    }
+
+    const language = (
+      requestData.language ||
+      requestData.languagePreference ||
+      requestData.language_preference ||
+      'English'
+    ).trim();
+
+    const status = (
+      requestData.status ||
+      'pending'
+    ).trim();
+
+    // 3. Build INSERT payload containing ONLY the verified columns of public.pal_requests
+    const payload = {
       patient_name,
+      patient_phone,
+      hospital_id,
+      hospital_name,
+      hospital_address,
+      hospital_latitude,
+      hospital_longitude,
       department,
-      meeting_point,
-      scheduled_at,
-      notes: notesExtra,
-      status: requestData.status || 'pending',
+      appointment_date,
+      appointment_time,
+      meeting_location,
+      assistance_needs,
+      language,
+      status,
     };
 
-    // 5. Insert into Supabase public.pal_requests
-    let insertedRow: any = null;
+    // 4. Insert into Supabase public.pal_requests
     const { data: insertData, error: insertError } = await supabase
       .from('pal_requests')
       .insert(payload)
@@ -1220,81 +1257,37 @@ export async function createPalRequest(requestData: {
       .maybeSingle();
 
     if (insertError) {
-      console.error('[PAL Request] Supabase insert error:', insertError);
-
-      // If SELECT was blocked by RLS policy, try plain insert
-      if (
-        insertError.code === '42501' ||
-        insertError.message?.toLowerCase().includes('permission') ||
-        insertError.message?.toLowerCase().includes('select')
-      ) {
-        console.warn('[PAL Request] SELECT after insert failed; trying standard insert without select');
-        const plainRes = await supabase.from('pal_requests').insert(payload);
-        if (plainRes.error) {
-          console.error('[PAL Request] Plain insert error:', plainRes.error);
-          return {
-            data: null,
-            error: {
-              message: plainRes.error.message || 'Unable to submit your PAL request right now. Please try again.',
-            },
-          };
-        }
-        insertedRow = {
-          id: `REQ-${Date.now()}`,
-          ...payload,
-          created_at: new Date().toISOString(),
-        };
-      } else {
-        return {
-          data: null,
-          error: {
-            message: insertError.message || 'Unable to submit your PAL request right now. Please try again.',
-          },
-        };
-      }
-    } else {
-      insertedRow = insertData;
+      console.error('[PAL Request] Insert error:', insertError);
+      return {
+        data: null,
+        error: {
+          message: 'Unable to submit your PAL request right now. Please try again.',
+        },
+      };
     }
 
-    // 6. Send notification to authenticated user
+    // 5. Send notification to authenticated user
     if (user?.id) {
       createNotification({
         user_id: user.id,
         title: 'Companion PAL Request Submitted',
-        message: `Your PAL escort request for ${requestData.hospitalName || 'the medical campus'} (${department}) on ${requestData.appointmentDate || 'scheduled date'} has been submitted and is pending PAL assignment.`,
+        message: `Your PAL escort request for ${hospital_name} (${department}) on ${appointment_date} has been submitted and is pending PAL assignment.`,
         type: 'success',
       }).catch((err) => {
         console.warn('[PAL Request] User notification log:', err);
       });
     }
 
-    const formatted: PalRequest = {
-      id: String(insertedRow?.id || `REQ-${Date.now()}`),
-      patient_id: patientDbId || undefined,
-      patientName: insertedRow?.patient_name || patient_name,
-      patientPhone: requestData.patientPhone || '',
-      hospitalId: requestData.hospitalId || 'hosp-1',
-      hospitalName: requestData.hospitalName || 'PathPal Partner Medical Center',
-      hospitalAddress: requestData.hospitalAddress || undefined,
-      hospitalLatitude: typeof requestData.hospitalLatitude === 'number' ? requestData.hospitalLatitude : 40.7421,
-      hospitalLongitude: typeof requestData.hospitalLongitude === 'number' ? requestData.hospitalLongitude : -73.9741,
-      hospitalPlaceId: requestData.hospitalPlaceId || undefined,
-      appointmentDate: requestData.appointmentDate || new Date().toISOString().split('T')[0],
-      appointmentTime: requestData.appointmentTime || '10:00 AM',
-      department: insertedRow?.department || department,
-      meetingPoint: insertedRow?.meeting_point || meeting_point,
-      mobilityNeeds: requestData.mobilityNeeds || ['Companion Escort'],
-      languagePreference: requestData.languagePreference || 'English',
-      notes: notesExtra,
-      status: (insertedRow?.status as any) || 'pending',
-      assignedPal: undefined,
-      createdAt: insertedRow?.created_at || new Date().toISOString(),
-    };
+    const formatted: PalRequest = formatPalRequestFromDb(insertData || {
+      id: `REQ-${Date.now()}`,
+      ...payload,
+      created_at: new Date().toISOString(),
+    });
 
     return { data: formatted, error: null };
   } catch (err: any) {
-    console.error('[PAL Request] Exception in createPalRequest:', err);
-    return { data: null, error: { message: err?.message || 'Failed to create companion request.' } };
+    console.error('[PAL Request] Insert error:', err);
+    return { data: null, error: { message: 'Unable to submit your PAL request right now. Please try again.' } };
   }
 }
 
