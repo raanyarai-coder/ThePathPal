@@ -71,11 +71,12 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
   // Patient Booking Form State
   const [patientName, setPatientName] = useState('');
   const [patientPhone, setPatientPhone] = useState('');
+  const [hospitalName, setHospitalName] = useState('NYU Langone Health – Tisch Hospital');
   const [selectedHospitalId, setSelectedHospitalId] = useState(SAMPLE_HOSPITALS[0].id);
-  const [appointmentDate, setAppointmentDate] = useState('2026-08-05');
+  const [appointmentDate, setAppointmentDate] = useState('2026-09-08');
   const [appointmentTime, setAppointmentTime] = useState('10:00 AM');
-  const [department, setDepartment] = useState('Cardiology Clinic');
-  const [meetingLocation, setMeetingLocation] = useState(SAMPLE_HOSPITALS[0].meetingPoints[0]);
+  const [department, setDepartment] = useState('Outpatient Clinic');
+  const [meetingLocation, setMeetingLocation] = useState('Main Entrance – Lobby Welcome Desk');
   const [languagePreference, setLanguagePreference] = useState('English');
   const [selectedMobility, setSelectedMobility] = useState<string[]>(['Wheelchair Assistance', 'Arm Assistance']);
   const [notes, setNotes] = useState('');
@@ -105,7 +106,29 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Realtime listeners for pal_requests and matches
+    const patientRequestsChannel = supabase
+      .channel('patient_requests_realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'pal_requests' },
+        () => {
+          loadPatientData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'matches' },
+        () => {
+          loadPatientData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+      supabase.removeChannel(patientRequestsChannel);
+    };
   }, []);
 
   const loadPatientData = async () => {
@@ -157,11 +180,12 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
     }
 
     setIsSubmitting(true);
+    const finalHospitalName = hospitalName.trim() || selectedHospital.name;
     const res = await createPalRequest({
       patientName: patientName.trim(),
       patientPhone: patientPhone.trim(),
-      hospitalId: selectedHospital.id,
-      hospitalName: selectedHospital.name,
+      hospitalId: selectedHospital.id || 'hosp-custom',
+      hospitalName: finalHospitalName,
       appointmentDate,
       appointmentTime,
       department: department.trim(),
@@ -592,22 +616,53 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Partner Hospital</label>
-                    <select
-                    value={selectedHospitalId}
-                    onChange={(e) => {
-                      setSelectedHospitalId(e.target.value);
-                      const h = SAMPLE_HOSPITALS.find((x) => x.id === e.target.value);
-                      if (h && h.meetingPoints.length > 0) setMeetingLocation(h.meetingPoints[0]);
-                    }}
-                    className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white font-bold"
-                  >
-                    {SAMPLE_HOSPITALS.map((h) => (
-                      <option key={h.id} value={h.id}>
-                        {h.name} ({h.city})
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-gray-700">Hospital / Medical Center</label>
+                    <span className="text-[10px] text-gray-400 font-semibold">Request Pal Template</span>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={hospitalName}
+                    onChange={(e) => setHospitalName(e.target.value)}
+                    placeholder="e.g. NYU Langone Health – Tisch Hospital"
+                    className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white font-medium focus:ring-2 focus:ring-[#E85D75] focus:outline-none"
+                  />
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHospitalName('NYU Langone Health – Tisch Hospital');
+                        setDepartment('Outpatient Clinic');
+                        setMeetingLocation('Main Entrance – Lobby Welcome Desk');
+                      }}
+                      className="text-[10px] bg-gray-100 hover:bg-[#E85D75]/10 hover:text-[#E85D75] text-gray-600 px-2 py-0.5 rounded-md font-semibold transition-colors cursor-pointer"
+                    >
+                      NYU Langone
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHospitalName('St. Jude Regional Health Center');
+                        setDepartment('Cardiology Clinic');
+                        setMeetingLocation('Main Entrance Valet Desk');
+                      }}
+                      className="text-[10px] bg-gray-100 hover:bg-[#E85D75]/10 hover:text-[#E85D75] text-gray-600 px-2 py-0.5 rounded-md font-semibold transition-colors cursor-pointer"
+                    >
+                      St. Jude
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHospitalName('Valley Care Regional Hospital');
+                        setDepartment('Orthopedic Center');
+                        setMeetingLocation('North Tower Lobby Information Desk');
+                      }}
+                      className="text-[10px] bg-gray-100 hover:bg-[#E85D75]/10 hover:text-[#E85D75] text-gray-600 px-2 py-0.5 rounded-md font-semibold transition-colors cursor-pointer"
+                    >
+                      Valley Care
+                    </button>
+                  </div>
                 </div>
 
                 <div>
@@ -617,7 +672,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                     required
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
-                    placeholder="e.g. Cardiology Clinic, Oncology Pavilion"
+                    placeholder="e.g. Outpatient Clinic, Cardiology"
                     className="w-full text-xs p-3 rounded-xl border border-gray-300 bg-white"
                   />
                 </div>

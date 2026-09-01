@@ -96,6 +96,8 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoadingData, setIsLoadingData] = useState<boolean>(false);
   const [selectedPalPatientSummary, setSelectedPalPatientSummary] = useState<PalRequest | null>(null);
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Live GPS Broadcast State
   const [activeGpsSessionId, setActiveGpsSessionId] = useState<string | null>(null);
@@ -115,8 +117,22 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
       }
     });
 
+    // Realtime subscription for pal_requests
+    const requestsChannel = supabase
+      .channel('pal_portal_requests_realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'pal_requests' },
+        (payload) => {
+          console.log('[PAL Portal Realtime] Request change detected:', payload.eventType);
+          loadPortalCollections();
+        }
+      )
+      .subscribe();
+
     return () => {
       authListener?.subscription?.unsubscribe();
+      supabase.removeChannel(requestsChannel);
     };
   }, []);
 
@@ -224,18 +240,52 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
     setPalInfo(null);
   };
 
-  const handleAcceptAssignment = async (reqId: string) => {
-    if (!palInfo) return;
+  const handleAcceptAssignment = async (reqId: string, reqObj?: PalRequest) => {
+    if (!palInfo) {
+      setActionFeedback({
+        type: 'error',
+        message: 'PAL profile not loaded. Please re-authenticate.',
+      });
+      return;
+    }
+
+    setAcceptingId(reqId);
+    setActionFeedback(null);
+
     try {
       const res = await assignPalToRequest(reqId, palInfo.id, palInfo);
-      if (res.data) {
-        setRequests((prev) =>
-          prev.map((r) => (r.id === reqId ? { ...r, status: 'matched', assignedPal: palInfo } : r))
-        );
-        setActiveTab('my_active');
+
+      if (!res.success || !res.data) {
+        setActionFeedback({
+          type: 'error',
+          message: res.error || 'This request has already been accepted by another PAL or is no longer pending.',
+        });
+        await loadPortalCollections();
+        return;
       }
+
+      // Successful acceptance
+      const acceptedReq = res.data;
+      setRequests((prev) =>
+        prev.map((r) => (r.id === reqId ? acceptedReq : r))
+      );
+
+      setActionFeedback({
+        type: 'success',
+        message: `Assignment successfully accepted for ${acceptedReq.patientName || reqObj?.patientName || 'patient'} at ${acceptedReq.hospitalName || 'hospital'}!`,
+      });
+
+      // Navigate to My Confirmed Escorts tab
+      setActiveTab('my_active');
     } catch (err: any) {
-      alert(err?.message || 'Error accepting assignment');
+      console.error('Accept assignment exception:', err);
+      setActionFeedback({
+        type: 'error',
+        message: err?.message || 'An unexpected error occurred while accepting assignment.',
+      });
+      await loadPortalCollections();
+    } finally {
+      setAcceptingId(null);
     }
   };
 
@@ -387,7 +437,13 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
     badgeNumber: 'PAL-ACTIVE',
   };
 
-  const myAssignments = requests.filter((r) => r.assignedPal?.id === activePal.id);
+  const myAssignments = requests.filter((r) => {
+    if (r.status === 'pending') return false;
+    if (r.assignedPal?.id === activePal.id) return true;
+    if (r.assignedPal?.auth_user_id && authUser?.id && r.assignedPal.auth_user_id === authUser.id) return true;
+    if (r.assigned_pal_id && authUser?.id && r.assigned_pal_id === authUser.id) return true;
+    return false;
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-fade-in text-[#1F3449]">
@@ -559,12 +615,43 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
             </p>
           </div>
 
+          {actionFeedback && (
+            <div
+              className={`p-4 rounded-2xl border flex items-start justify-between gap-3 animate-fade-in ${
+                actionFeedback.type === 'success'
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                  : 'bg-rose-50 border-rose-300 text-rose-900'
+              }`}
+            >
+              <div className="flex items-start gap-2.5 text-xs">
+                {actionFeedback.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                )}
+                <div>
+                  <div className="font-bold">
+                    {actionFeedback.type === 'success' ? 'Assignment Accepted' : 'Unable to Claim Assignment'}
+                  </div>
+                  <div className="text-[11px] mt-0.5">{actionFeedback.message}</div>
+                </div>
+              </div>
+              <button
+                onClick={() => setActionFeedback(null)}
+                className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {requests
               .filter((r) => r.status === 'pending')
               .map((req) => (
                 <div
                   key={req.id}
+                  id={`pal-req-card-${req.id}`}
                   className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm hover:border-[#48A6A5] transition-all space-y-4"
                 >
                   <div className="flex items-start justify-between">
@@ -601,10 +688,22 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
                       View AI Briefing
                     </button>
                     <button
-                      onClick={() => handleAcceptAssignment(req.id)}
-                      className="bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs transition-all cursor-pointer"
+                      id={`accept-btn-${req.id}`}
+                      disabled={acceptingId === req.id}
+                      onClick={() => handleAcceptAssignment(req.id, req)}
+                      className="bg-[#48A6A5] hover:bg-[#48A6A5]/90 disabled:opacity-60 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
                     >
-                      Accept Assignment
+                      {acceptingId === req.id ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Accepting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Accept Assignment</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>

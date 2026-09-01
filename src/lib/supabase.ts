@@ -1337,13 +1337,20 @@ export async function fetchPalRequests(): Promise<PalRequest[]> {
 
     if (!data) return [];
 
-    // Also fetch all matches to pair assigned Pals
+    // Fetch matches and pals to pair assigned Pals
     const { data: matchesData } = await supabase.from('matches').select('*');
     const { data: palsData } = await supabase.from('pals').select('*');
 
-    const palsMap = new Map<number, Pal>();
+    const palsMapById = new Map<number, Pal>();
+    const palsMapByAuthId = new Map<string, Pal>();
     if (palsData) {
-      palsData.forEach((p: any) => palsMap.set(p.id, formatPalFromDb(p)));
+      palsData.forEach((p: any) => {
+        const formatted = formatPalFromDb(p);
+        palsMapById.set(p.id, formatted);
+        if (p.auth_user_id) {
+          palsMapByAuthId.set(p.auth_user_id, formatted);
+        }
+      });
     }
 
     const matchesMap = new Map<string, any>();
@@ -1353,10 +1360,14 @@ export async function fetchPalRequests(): Promise<PalRequest[]> {
 
     return data.map((r: any) => {
       const match = matchesMap.get(r.id);
-      const pal = match ? palsMap.get(match.pal_id) : undefined;
+      let pal = match ? palsMapById.get(match.pal_id) : undefined;
+      if (!pal && r.assigned_pal_id) {
+        pal = palsMapByAuthId.get(r.assigned_pal_id);
+      }
       return formatPalRequestFromDb(r, pal);
     });
-  } catch {
+  } catch (err) {
+    console.error('fetchPalRequests exception:', err);
     return [];
   }
 }
@@ -1365,61 +1376,155 @@ export async function assignPalToRequest(
   requestId: string,
   palId: number | string,
   palObj?: Pal
-): Promise<{ success: boolean; data?: any; error: string | null }> {
+): Promise<{ success: boolean; data?: PalRequest; error: string | null }> {
   try {
-    const numericPalId = typeof palId === 'number' ? palId : parseInt(palId, 10) || 1;
+    // 1. Confirm the PAL is authenticated
+    const {
+      data: { session },
+      error: sessionErr,
+    } = await supabase.auth.getSession();
 
-    // Determine the PAL auth UUID for pal_requests.assigned_pal_id if available
-    let palAuthUuid: string | null = null;
-    if (palObj?.auth_user_id && palObj.auth_user_id.includes('-')) {
-      palAuthUuid = palObj.auth_user_id;
-    } else if (typeof palId === 'string' && palId.includes('-')) {
-      palAuthUuid = palId;
-    } else {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.id && session.user.id.includes('-')) {
-        palAuthUuid = session.user.id;
-      }
+    if (sessionErr || !session?.user) {
+      return {
+        success: false,
+        error: 'You must be signed in as an authorized PAL to accept assignments.',
+      };
     }
 
-    // 1. Update pal_requests
-    const updatePayload: Record<string, any> = { status: 'matched' };
-    if (palAuthUuid) {
-      updatePayload.assigned_pal_id = palAuthUuid;
+    const palAuthUuid = session.user.id;
+    let numericPalId = typeof palId === 'number' ? palId : parseInt(String(palId), 10) || 1;
+    let palName = palObj?.name || session.user.user_metadata?.full_name || 'Assigned PAL Companion';
+
+    // Verify PAL record in pals table
+    const { data: palRecord } = await supabase
+      .from('pals')
+      .select('*')
+      .eq('auth_user_id', palAuthUuid)
+      .maybeSingle();
+
+    if (palRecord) {
+      numericPalId = palRecord.id;
+      palName = palRecord.name || palName;
     }
 
-    const { error: reqErr } = await supabase
+    // 2. Fetch the target request first to check status and patient details
+    const { data: targetReq, error: fetchErr } = await supabase
       .from('pal_requests')
-      .update(updatePayload)
-      .eq('id', requestId);
+      .select('*')
+      .eq('id', requestId)
+      .maybeSingle();
 
-    if (reqErr) {
-      console.error('[PAL Request] Assign update failed:', reqErr);
-      return { success: false, error: reqErr.message };
+    if (fetchErr) {
+      console.error('[PAL Request] Fetch error:', fetchErr);
+      return {
+        success: false,
+        error: `Could not retrieve request details: ${fetchErr.message}`,
+      };
     }
 
-    // 2. Create match record in public.matches (request_id, pal_id, status, matched_at)
-    const { error: matchErr } = await supabase
-      .from('matches')
-      .insert({
-        request_id: requestId,
-        pal_id: numericPalId,
-        status: 'accepted',
-        matched_at: new Date().toISOString(),
+    if (!targetReq) {
+      return {
+        success: false,
+        error: 'The requested appointment could not be found.',
+      };
+    }
+
+    if (targetReq.status !== 'pending' || targetReq.assigned_pal_id) {
+      return {
+        success: false,
+        error: 'This request has already been accepted by another PAL.',
+      };
+    }
+
+    // 3. ATOMIC CLAIM: Update pal_requests only where status is pending and assigned_pal_id is null
+    const { data: updatedRows, error: updateErr } = await supabase
+      .from('pal_requests')
+      .update({
+        status: 'matched',
+        assigned_pal_id: palAuthUuid,
+      })
+      .eq('id', requestId)
+      .eq('status', 'pending')
+      .select();
+
+    if (updateErr) {
+      console.error('[PAL Request] Atomic claim error details:', {
+        code: updateErr.code,
+        message: updateErr.message,
+        details: updateErr.details,
+        hint: updateErr.hint,
       });
-
-    if (matchErr) {
-      console.warn('[PAL Request] Match record insert note:', matchErr.message);
+      return {
+        success: false,
+        error: updateErr.message || 'Permission denied or error updating assignment.',
+      };
     }
+
+    if (!updatedRows || updatedRows.length === 0) {
+      return {
+        success: false,
+        error: 'This request has already been accepted by another PAL.',
+      };
+    }
+
+    const claimedRow = updatedRows[0];
+
+    // 4. CREATE MATCH RECORD in public.matches (request_id, pal_id, status, matched_at)
+    try {
+      const { data: existingMatch } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('request_id', requestId)
+        .maybeSingle();
+
+      if (!existingMatch) {
+        const { error: matchInsertErr } = await supabase.from('matches').insert({
+          request_id: requestId,
+          pal_id: numericPalId,
+          status: 'accepted',
+          matched_at: new Date().toISOString(),
+        });
+
+        if (matchInsertErr) {
+          console.warn('[PAL Match] Match record creation log:', matchInsertErr.message);
+        }
+      }
+    } catch (matchEx) {
+      console.warn('[PAL Match] Match creation exception:', matchEx);
+    }
+
+    // 5. NOTIFY PATIENT
+    if (claimedRow.patient_id) {
+      createNotification({
+        user_id: claimedRow.patient_id,
+        title: 'PAL Escort Matched!',
+        message: `${palName} has accepted your escort request for ${claimedRow.hospital_name || 'Hospital'} on ${claimedRow.appointment_date || ''} at ${claimedRow.appointment_time || ''}.`,
+        type: 'success',
+      }).catch((e) => console.warn('[Notification] Patient notify failed:', e));
+    }
+
+    // 6. NOTIFY ACCEPTING PAL
+    createNotification({
+      user_id: palAuthUuid,
+      title: 'Assignment Confirmed',
+      message: `You accepted a PAL assignment for ${claimedRow.patient_name || 'Patient'} at ${claimedRow.hospital_name || 'Hospital Campus'} (${claimedRow.department || 'Clinic'}).`,
+      type: 'success',
+    }).catch((e) => console.warn('[Notification] PAL notify failed:', e));
+
+    const activePalFormatted = palRecord ? formatPalFromDb(palRecord) : palObj;
+    const formattedResult = formatPalRequestFromDb(claimedRow, activePalFormatted);
 
     return {
       success: true,
-      data: { id: `MATCH-${Date.now()}`, request_id: requestId, pal_id: numericPalId, status: 'accepted' },
+      data: formattedResult,
       error: null,
     };
   } catch (e: any) {
     console.error('[PAL Request] Assignment exception:', e);
-    return { success: false, error: e?.message || 'Assignment failed.' };
+    return {
+      success: false,
+      error: e?.message || 'An unexpected error occurred while accepting the assignment.',
+    };
   }
 }
 
