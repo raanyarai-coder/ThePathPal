@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, Heart, CheckCircle2, AlertCircle, RefreshCw, Calendar, Clock, MapPin, Building2, User, Phone } from 'lucide-react';
-import { SAMPLE_HOSPITALS } from '../data/mockData';
 import { createPalRequest, supabase } from '../lib/supabase';
-import { PalRequest } from '../types';
+import { PalRequest, HospitalLocation } from '../types';
+import { HospitalSearch } from './map/HospitalSearch';
+import { HospitalMap } from './map/HospitalMap';
 
 interface RequestPalModalProps {
   isOpen: boolean;
@@ -13,12 +14,22 @@ interface RequestPalModalProps {
 export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClose, onOpenAuth }) => {
   const [patientName, setPatientName] = useState('');
   const [phone, setPhone] = useState('');
-  const [hospitalId, setHospitalId] = useState(SAMPLE_HOSPITALS[0].id);
+  const [selectedHospital, setSelectedHospital] = useState<HospitalLocation | null>({
+    name: 'NYU Langone Health - Tisch Hospital',
+    address: '550 1st Avenue, New York, NY 10016',
+    city: 'New York',
+    state: 'NY',
+    latitude: 40.7421,
+    longitude: -73.9741,
+    providerPlaceId: 'osm-node-nyu-langone',
+    category: 'Hospital / Academic Medical Center',
+  });
+  const [hospitalError, setHospitalError] = useState<string | null>(null);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [time, setTime] = useState('10:00 AM');
   const [language, setLanguage] = useState('English');
   const [department, setDepartment] = useState('Outpatient Clinic');
-  const [meetingPoint, setMeetingPoint] = useState('Main Entrance');
+  const [meetingPoint, setMeetingPoint] = useState('Main Entrance - Lobby Welcome Desk');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submittedRequest, setSubmittedRequest] = useState<PalRequest | null>(null);
@@ -29,6 +40,7 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
     if (!isOpen) return;
 
     setErrorMessage(null);
+    setHospitalError(null);
     setSubmittedRequest(null);
 
     supabase.auth.getUser().then(async ({ data: { user }, error }) => {
@@ -61,6 +73,7 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setHospitalError(null);
 
     // 1. Authenticated User Check
     const {
@@ -87,15 +100,22 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
       return;
     }
 
-    setIsSubmitting(true);
+    if (!selectedHospital) {
+      setHospitalError('Please select a hospital from the search results.');
+      return;
+    }
 
-    const hospitalObj = SAMPLE_HOSPITALS.find((h) => h.id === hospitalId) || SAMPLE_HOSPITALS[0];
+    setIsSubmitting(true);
 
     const res = await createPalRequest({
       patientName: patientName.trim(),
       patientPhone: phone.trim(),
-      hospitalId: hospitalObj.id,
-      hospitalName: hospitalObj.name,
+      hospitalId: selectedHospital.providerPlaceId || 'hosp-selected',
+      hospitalName: selectedHospital.name,
+      hospitalAddress: selectedHospital.address,
+      hospitalLatitude: selectedHospital.latitude,
+      hospitalLongitude: selectedHospital.longitude,
+      hospitalPlaceId: selectedHospital.providerPlaceId,
       appointmentDate: date,
       appointmentTime: time,
       department: department.trim() || 'General Outpatient Clinic',
@@ -136,7 +156,7 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
               </div>
               <h3 className="text-2xl font-black text-pathpal-navy">Request a PathPal Companion</h3>
               <p className="text-xs text-pathpal-navy/70">
-                We will pair you with a trained, verified Pal to meet you right at the hospital entrance.
+                Search your partner hospital and we will pair you with a verified Pal to meet you at the campus entrance.
               </p>
             </div>
 
@@ -178,7 +198,7 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
                     placeholder="e.g., Eleanor Vance"
                     value={patientName}
                     onChange={(e) => setPatientName(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none"
+                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none font-medium"
                   />
                 </div>
                 <div>
@@ -189,40 +209,38 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
                     placeholder="(555) 234-5678"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none"
+                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none font-medium"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-pathpal-navy mb-1">Hospital Location</label>
-                  <select
-                    value={hospitalId}
-                    onChange={(e) => setHospitalId(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white font-medium"
-                  >
-                    {SAMPLE_HOSPITALS.map((h) => (
-                      <option key={h.id} value={h.id}>
-                        {h.name} ({h.city})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-pathpal-navy mb-1">Language</label>
-                  <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
-                  >
-                    <option value="English">English</option>
-                    <option value="Spanish">Spanish</option>
-                    <option value="Mandarin">Mandarin</option>
-                    <option value="Cantonese">Cantonese</option>
-                    <option value="Tagalog">Tagalog</option>
-                  </select>
-                </div>
+              {/* Hospital Search & Map Preview */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-pathpal-navy">
+                  Partner Hospital Search & Coordinates
+                </label>
+                <HospitalSearch
+                  selectedHospital={selectedHospital}
+                  onSelectHospital={(h) => {
+                    setSelectedHospital(h);
+                    setHospitalError(null);
+                  }}
+                  onClear={() => setSelectedHospital(null)}
+                  error={hospitalError}
+                />
+
+                {selectedHospital && (
+                  <div className="mt-2">
+                    <HospitalMap
+                      latitude={selectedHospital.latitude}
+                      longitude={selectedHospital.longitude}
+                      hospitalName={selectedHospital.name}
+                      hospitalAddress={selectedHospital.address}
+                      height="h-44"
+                      showCard={false}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -233,19 +251,34 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
                     placeholder="e.g. Cardiology Clinic"
-                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
+                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white font-medium"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-pathpal-navy mb-1">Meeting Point / Gate</label>
-                  <input
-                    type="text"
-                    value={meetingPoint}
-                    onChange={(e) => setMeetingPoint(e.target.value)}
-                    placeholder="e.g. Main Entrance Gate 2"
-                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
-                  />
+                  <label className="block text-xs font-bold text-pathpal-navy mb-1">Language Preference</label>
+                  <select
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white font-medium"
+                  >
+                    <option value="English">English</option>
+                    <option value="Spanish">Spanish</option>
+                    <option value="Mandarin">Mandarin</option>
+                    <option value="Cantonese">Cantonese</option>
+                    <option value="Tagalog">Tagalog</option>
+                  </select>
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-pathpal-navy">Campus Meeting Point / Gate</label>
+                <input
+                  type="text"
+                  value={meetingPoint}
+                  onChange={(e) => setMeetingPoint(e.target.value)}
+                  placeholder="e.g. Main Entrance - Near Information Desk"
+                  className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white font-medium"
+                />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -255,7 +288,7 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
+                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white font-medium"
                   />
                 </div>
                 <div>
@@ -265,7 +298,7 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
                     value={time}
                     onChange={(e) => setTime(e.target.value)}
                     placeholder="10:00 AM"
-                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white"
+                    className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-companion-coral focus:outline-none bg-white font-medium"
                   />
                 </div>
               </div>
@@ -316,6 +349,12 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
                 <span className="text-gray-500 font-bold uppercase text-[10px]">Hospital</span>
                 <span className="font-bold text-[#1F3449]">{submittedRequest.hospitalName}</span>
               </div>
+              {submittedRequest.hospitalAddress && (
+                <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                  <span className="text-gray-500 font-bold uppercase text-[10px]">Address</span>
+                  <span className="font-medium text-gray-800 truncate max-w-xs">{submittedRequest.hospitalAddress}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between pb-2 border-b border-gray-200">
                 <span className="text-gray-500 font-bold uppercase text-[10px]">Appointment</span>
                 <span className="font-medium text-gray-800">

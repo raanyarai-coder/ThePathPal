@@ -47,9 +47,10 @@ import {
   stopPalLiveTracking,
   LocationCoordinates,
 } from '../lib/locationService';
-import { Pal, PalRequest, HospitalVisit, Notification } from '../types';
+import { Pal, PalRequest, HospitalVisit, Notification, LiveGpsPoint } from '../types';
 import { MedicalSummaryWidget } from '../components/MedicalSummaryWidget';
 import { EtaCalculatorWidget } from '../components/EtaCalculatorWidget';
+import { LiveLocationMap } from '../components/map/LiveLocationMap';
 import { createGoogleCalendarUrl } from '../utils/calendarUtils';
 
 interface PalPortalPageProps {
@@ -755,48 +756,90 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
             <span className="text-xs font-black uppercase text-rose-600 tracking-wider">LIVE TELEMETRY</span>
             <h2 className="text-2xl font-black text-[#1F3449]">Real-Time GPS Location Broadcast</h2>
             <p className="text-xs text-gray-600">
-              Streams your current campus coordinates directly to public.location_sessions and location_points for patient tracking.
+              Streams your current campus coordinates directly to public.location_sessions and location_points for patient tracking and hospital reception.
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl bg-gray-50 border border-gray-200 space-y-4 max-w-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-bold text-sm text-[#1F3449]">GPS Streaming Status</div>
-                <div className="text-xs text-gray-500">
-                  {isStreamingGps ? `Active Session #${activeGpsSessionId}` : 'Not currently streaming'}
-                </div>
-              </div>
-              <div
-                className={`w-4 h-4 rounded-full ${
-                  isStreamingGps ? 'bg-emerald-500 animate-ping' : 'bg-gray-300'
-                }`}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Live Interactive Map */}
+            <div className="lg:col-span-2">
+              <LiveLocationMap
+                hospital={{
+                  name: myAssignments[0]?.hospitalName || 'NYU Langone Health - Tisch Hospital',
+                  address: myAssignments[0]?.hospitalAddress || '550 1st Avenue, New York, NY 10016',
+                  latitude: myAssignments[0]?.hospitalLatitude || 40.7421,
+                  longitude: myAssignments[0]?.hospitalLongitude || -73.9741,
+                }}
+                palLocation={
+                  gpsCoords
+                    ? {
+                        latitude: gpsCoords.lat,
+                        longitude: gpsCoords.lng,
+                        accuracyMeters: 5,
+                        recordedAt: new Date().toISOString(),
+                      }
+                    : null
+                }
+                palName={activePal.name}
+                patientName={myAssignments[0]?.patientName}
+                height="h-80 sm:h-96"
               />
             </div>
 
-            {gpsCoords && (
-              <div className="text-xs font-mono bg-white p-3 rounded-xl border border-gray-200 text-gray-700">
-                Lat: {gpsCoords.lat.toFixed(6)}, Lng: {gpsCoords.lng.toFixed(6)}
-              </div>
-            )}
+            {/* GPS Controls and Telemetry Status */}
+            <div className="space-y-4">
+              <div className="p-5 rounded-2xl bg-gray-50 border border-gray-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-sm text-[#1F3449]">GPS Streaming Status</div>
+                    <div className="text-xs text-gray-500">
+                      {isStreamingGps ? `Active Session #${activeGpsSessionId}` : 'Not currently streaming'}
+                    </div>
+                  </div>
+                  <div
+                    className={`w-3.5 h-3.5 rounded-full ${
+                      isStreamingGps ? 'bg-emerald-500 animate-ping' : 'bg-gray-300'
+                    }`}
+                  />
+                </div>
 
-            <div className="flex items-center gap-3 pt-2">
-              {!isStreamingGps ? (
-                <button
-                  onClick={handleStartGps}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase px-5 py-3 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-2"
-                >
-                  <Navigation className="w-4 h-4" />
-                  <span>Start Live Broadcast</span>
-                </button>
-              ) : (
-                <button
-                  onClick={handleStopGps}
-                  className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs uppercase px-5 py-3 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-2"
-                >
-                  <X className="w-4 h-4" />
-                  <span>Stop Broadcast</span>
-                </button>
+                {gpsCoords && (
+                  <div className="text-xs font-mono bg-white p-3 rounded-xl border border-gray-200 text-gray-700">
+                    <div><strong>Lat:</strong> {gpsCoords.lat.toFixed(6)}</div>
+                    <div><strong>Lng:</strong> {gpsCoords.lng.toFixed(6)}</div>
+                  </div>
+                )}
+
+                <div className="pt-1">
+                  {!isStreamingGps ? (
+                    <button
+                      onClick={handleStartGps}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase py-3 rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <Navigation className="w-4 h-4" />
+                      <span>Start Live GPS Broadcast</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleStopGps}
+                      className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs uppercase py-3 rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <X className="w-4 h-4" />
+                      <span>Stop Broadcast</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {myAssignments[0] && (
+                <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200 text-xs space-y-1">
+                  <div className="font-bold text-[#1F3449]">Active Escort Target</div>
+                  <div className="text-gray-700">{myAssignments[0].hospitalName}</div>
+                  <div className="text-gray-500 text-[11px]">Meeting: {myAssignments[0].meetingPoint}</div>
+                  <div className="text-blue-700 font-medium text-[11px] pt-1">
+                    Patient: {myAssignments[0].patientName} ({myAssignments[0].patientPhone})
+                  </div>
+                </div>
               )}
             </div>
           </div>

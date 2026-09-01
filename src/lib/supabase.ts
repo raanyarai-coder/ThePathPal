@@ -166,6 +166,30 @@ export function formatPalRequestFromDb(row: any, assignedPal?: Pal): PalRequest 
     if (match && match[1]) hospName = match[1].trim();
   }
 
+  let hospAddress = row.hospital_address;
+  if (!hospAddress && row.notes && row.notes.includes('Address:')) {
+    const match = row.notes.match(/Address:\s*([^|;]+)/);
+    if (match && match[1]) hospAddress = match[1].trim();
+  }
+
+  let hospLat = typeof row.hospital_latitude === 'number' ? row.hospital_latitude : undefined;
+  if (hospLat === undefined && row.notes && row.notes.includes('Lat:')) {
+    const match = row.notes.match(/Lat:\s*([-\d.]+)/);
+    if (match && match[1]) hospLat = parseFloat(match[1]);
+  }
+
+  let hospLng = typeof row.hospital_longitude === 'number' ? row.hospital_longitude : undefined;
+  if (hospLng === undefined && row.notes && row.notes.includes('Lng:')) {
+    const match = row.notes.match(/Lng:\s*([-\d.]+)/);
+    if (match && match[1]) hospLng = parseFloat(match[1]);
+  }
+
+  let hospPlaceId = row.hospital_place_id;
+  if (!hospPlaceId && row.notes && row.notes.includes('PlaceId:')) {
+    const match = row.notes.match(/PlaceId:\s*([^|;]+)/);
+    if (match && match[1]) hospPlaceId = match[1].trim();
+  }
+
   let patPhone = row.patient_phone;
   if (!patPhone && row.notes && row.notes.includes('Phone:')) {
     const match = row.notes.match(/Phone:\s*([^|;]+)/);
@@ -200,6 +224,10 @@ export function formatPalRequestFromDb(row: any, assignedPal?: Pal): PalRequest 
     patientPhone: patPhone || (row.patient ? row.patient.phone : ''),
     hospitalId: row.hospital_id || 'hosp-01',
     hospitalName: hospName || 'PathPal Partner Medical Center',
+    hospitalAddress: hospAddress || undefined,
+    hospitalLatitude: hospLat || 40.7421,
+    hospitalLongitude: hospLng || -73.9741,
+    hospitalPlaceId: hospPlaceId || undefined,
     appointmentDate: appDate,
     appointmentTime: appTime,
     department: row.department || 'General Clinic',
@@ -1042,6 +1070,10 @@ export async function createPalRequest(requestData: {
   patientPhone?: string;
   hospitalId?: string;
   hospitalName?: string;
+  hospitalAddress?: string;
+  hospitalLatitude?: number;
+  hospitalLongitude?: number;
+  hospitalPlaceId?: string;
   department?: string;
   meeting_point?: string;
   meetingPoint?: string;
@@ -1158,6 +1190,10 @@ export async function createPalRequest(requestData: {
     const notesParts: string[] = [];
     if (requestData.notes?.trim()) notesParts.push(requestData.notes.trim());
     if (requestData.hospitalName?.trim()) notesParts.push(`Hospital: ${requestData.hospitalName.trim()}`);
+    if (requestData.hospitalAddress?.trim()) notesParts.push(`Address: ${requestData.hospitalAddress.trim()}`);
+    if (typeof requestData.hospitalLatitude === 'number') notesParts.push(`Lat: ${requestData.hospitalLatitude}`);
+    if (typeof requestData.hospitalLongitude === 'number') notesParts.push(`Lng: ${requestData.hospitalLongitude}`);
+    if (requestData.hospitalPlaceId?.trim()) notesParts.push(`PlaceId: ${requestData.hospitalPlaceId.trim()}`);
     if (requestData.patientPhone?.trim()) notesParts.push(`Phone: ${requestData.patientPhone.trim()}`);
     if (requestData.languagePreference?.trim()) notesParts.push(`Language: ${requestData.languagePreference.trim()}`);
     if (requestData.mobilityNeeds?.length) notesParts.push(`Mobility: ${requestData.mobilityNeeds.join(', ')}`);
@@ -1239,6 +1275,10 @@ export async function createPalRequest(requestData: {
       patientPhone: requestData.patientPhone || '',
       hospitalId: requestData.hospitalId || 'hosp-1',
       hospitalName: requestData.hospitalName || 'PathPal Partner Medical Center',
+      hospitalAddress: requestData.hospitalAddress || undefined,
+      hospitalLatitude: typeof requestData.hospitalLatitude === 'number' ? requestData.hospitalLatitude : 40.7421,
+      hospitalLongitude: typeof requestData.hospitalLongitude === 'number' ? requestData.hospitalLongitude : -73.9741,
+      hospitalPlaceId: requestData.hospitalPlaceId || undefined,
       appointmentDate: requestData.appointmentDate || new Date().toISOString().split('T')[0],
       appointmentTime: requestData.appointmentTime || '10:00 AM',
       department: insertedRow?.department || department,

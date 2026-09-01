@@ -116,13 +116,17 @@ export async function startPalLiveTracking(params: {
         .maybeSingle();
 
       if (sessionErr) {
-        console.warn('Location session creation note:', sessionErr.message);
-        // Fallback local session ID if table is not yet accessible
-        currentSessionId = `loc_sess_${Date.now()}`;
-      } else if (sessionData) {
-        currentSessionId = sessionData.id;
+        console.error('[LocationService] Failed to create location session in database:', sessionErr.message);
+        params.onError?.(`Failed to initialize location session: ${sessionErr.message}`);
+        return { sessionId: null, error: sessionErr.message };
+      }
+
+      if (sessionData?.id) {
+        currentSessionId = String(sessionData.id);
       } else {
-        currentSessionId = `loc_sess_${Date.now()}`;
+        const err = 'Database did not return a valid location session ID.';
+        params.onError?.(err);
+        return { sessionId: null, error: err };
       }
     }
 

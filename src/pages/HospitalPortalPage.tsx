@@ -59,6 +59,7 @@ import {
   Notification,
   AdminUser,
 } from '../types';
+import { LiveLocationMap } from '../components/map/LiveLocationMap';
 import {
   fetchPalApplications,
   approvePalApplication,
@@ -129,6 +130,7 @@ export const HospitalPortalPage: React.FC = () => {
   const [inquiriesList, setInquiriesList] = useState<HospitalInquiry[]>([]);
   const [notificationsList, setNotificationsList] = useState<Notification[]>([]);
   const [activeGpsSessions, setActiveGpsSessions] = useState<any[]>([]);
+  const [selectedGpsSession, setSelectedGpsSession] = useState<any | null>(null);
 
   // Filtering & Search State
   const [searchQuery, setSearchQuery] = useState('');
@@ -1507,39 +1509,90 @@ export const HospitalPortalPage: React.FC = () => {
        * ========================================================================= */}
       {activeTab === 'dispatch' && (
         <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-black text-[#1F3449]">Real-Time GPS Tracking Sessions</h2>
-            <p className="text-xs text-gray-500">
-              Live broadcast sessions from public.location_sessions and public.location_points.
-            </p>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-black text-[#1F3449]">Real-Time Dispatch & GPS Telemetry</h2>
+              <p className="text-xs text-gray-500">
+                Live broadcast telemetry from public.location_sessions and public.location_points.
+              </p>
+            </div>
+            {selectedGpsSession && (
+              <button
+                onClick={() => setSelectedGpsSession(null)}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs px-3 py-1.5 rounded-xl cursor-pointer"
+              >
+                Clear Selection
+              </button>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {activeGpsSessions.map((sess) => (
-              <div key={sess.id} className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="font-bold text-xs text-[#1F3449]">Live Session #{sess.id}</span>
-                  </div>
-                  <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase px-2 py-0.5 rounded border border-emerald-200">
-                    STREAMING
-                  </span>
-                </div>
-                <div className="text-xs text-gray-600">
-                  <div><strong>Pal User:</strong> {sess.pal_id || sess.user_id || 'Active Pal'}</div>
-                  <div><strong>Started:</strong> {new Date(sess.started_at).toLocaleTimeString()}</div>
-                </div>
-              </div>
-            ))}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Live Map Panel */}
+            <div className="lg:col-span-2">
+              <LiveLocationMap
+                hospital={{
+                  name: selectedGpsSession?.hospital_name || 'Hospital Main Campus',
+                  address: selectedGpsSession?.hospital_address || 'Designated Hospital Meeting Entrance',
+                  latitude: selectedGpsSession?.hospital_lat || 40.7421,
+                  longitude: selectedGpsSession?.hospital_lng || -73.9741,
+                }}
+                palLocation={
+                  selectedGpsSession?.last_lat && selectedGpsSession?.last_lng
+                    ? {
+                        latitude: selectedGpsSession.last_lat,
+                        longitude: selectedGpsSession.last_lng,
+                        accuracyMeters: 5,
+                        recordedAt: new Date().toISOString(),
+                      }
+                    : null
+                }
+                palName={selectedGpsSession ? `PAL #${selectedGpsSession.pal_id || selectedGpsSession.id}` : 'Companion PAL'}
+                height="h-96"
+              />
+            </div>
 
-            {activeGpsSessions.length === 0 && (
-              <div className="col-span-full p-12 text-center text-gray-400 bg-white rounded-2xl border border-gray-200 space-y-2">
-                <Radio className="w-8 h-8 mx-auto text-gray-400" />
-                <p>No active GPS location streaming sessions running currently.</p>
-                <p className="text-xs text-gray-400">Pals broadcast live coordinates during active hospital escorts.</p>
+            {/* Sessions List */}
+            <div className="space-y-3">
+              <div className="font-bold text-xs uppercase tracking-wider text-gray-500">
+                Active Streaming Sessions ({activeGpsSessions.length})
               </div>
-            )}
+
+              <div className="space-y-2">
+                {activeGpsSessions.map((sess) => (
+                  <div
+                    key={sess.id}
+                    onClick={() => setSelectedGpsSession(sess)}
+                    className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                      selectedGpsSession?.id === sess.id
+                        ? 'bg-[#48A6A5]/10 border-[#48A6A5] shadow-xs'
+                        : 'bg-white border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="font-bold text-xs text-[#1F3449]">Session #{sess.id}</span>
+                      </div>
+                      <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase px-2 py-0.5 rounded border border-emerald-200">
+                        STREAMING
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-600 mt-2 space-y-0.5">
+                      <div><strong>PAL ID:</strong> #{sess.pal_id || sess.user_id || 'Active Pal'}</div>
+                      <div><strong>Started:</strong> {new Date(sess.started_at).toLocaleTimeString()}</div>
+                    </div>
+                  </div>
+                ))}
+
+                {activeGpsSessions.length === 0 && (
+                  <div className="p-8 text-center text-gray-400 bg-white rounded-2xl border border-gray-200 space-y-2">
+                    <Radio className="w-6 h-6 mx-auto text-gray-400" />
+                    <p className="text-xs">No active GPS location streaming sessions running currently.</p>
+                    <p className="text-[11px] text-gray-400">PALs broadcast live coordinates during active hospital escorts.</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

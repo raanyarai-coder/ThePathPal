@@ -58,6 +58,10 @@ export interface PalRequest {
   patientPhone: string;
   hospitalId: string;
   hospitalName: string;
+  hospitalAddress?: string;
+  hospitalLatitude?: number;
+  hospitalLongitude?: number;
+  hospitalPlaceId?: string;
   appointmentDate: string;
   appointmentTime: string;
   department: string;
@@ -68,6 +72,29 @@ export interface PalRequest {
   status: 'pending' | 'matched' | 'in_progress' | 'completed' | 'cancelled';
   assignedPal?: Pal;
   createdAt: string;
+}
+
+export interface HospitalLocation {
+  id?: string;
+  name: string;
+  address: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  latitude: number;
+  longitude: number;
+  providerPlaceId?: string;
+  category?: string;
+  rawType?: string;
+}
+
+export interface LiveGpsPoint {
+  latitude: number;
+  longitude: number;
+  accuracyMeters?: number;
+  speedMps?: number | null;
+  heading?: number | null;
+  recordedAt: string;
 }
 
 export interface Match {
