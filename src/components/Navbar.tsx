@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, MapPin, Navigation, Menu, X, Shield, Users, Building2, CreditCard, UserCheck, HelpCircle, Calculator, Bell, ShieldAlert, Globe, ChevronDown, Keyboard, Calendar, Database, LogIn } from 'lucide-react';
+import { Heart, MapPin, Navigation, Menu, X, Shield, Users, Building2, CreditCard, UserCheck, HelpCircle, Calculator, Bell, ShieldAlert, Globe, ChevronDown, Keyboard, Calendar, Database, LogIn, RefreshCw } from 'lucide-react';
 import { useLanguage, LANGUAGES, SupportedLanguage } from '../context/LanguageContext';
 
 interface NavbarProps {
@@ -7,7 +7,7 @@ interface NavbarProps {
   onNavigatePage: (page: 'home' | 'patient' | 'pal' | 'hospital' | 'about') => void;
   onRequestPal: () => void;
   onBecomePal: () => void;
-  onHospitalPartner: () => void;
+  onReplacePal?: () => void;
   onOpenPayment?: () => void;
   onOpenPalAccount?: () => void;
   onOpenGpsModal?: () => void;
@@ -23,7 +23,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNavigatePage,
   onRequestPal,
   onBecomePal,
-  onHospitalPartner,
+  onReplacePal,
   onOpenPayment,
   onOpenPalAccount,
   onOpenGpsModal,
@@ -200,6 +200,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
+            {onReplacePal && (
+              <button
+                onClick={onReplacePal}
+                className="text-xs font-bold text-[#E85D75] bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-xs"
+                title="Replace Pal Template"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-[#E85D75]" />
+                <span>Replace Pal</span>
+              </button>
+            )}
+
             <button
               onClick={onRequestPal}
               className="text-xs font-black uppercase text-white bg-[#E85D75] hover:bg-[#E85D75]/90 px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 shadow-md ml-1"
@@ -309,6 +320,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <Navigation className="w-4 h-4 text-[#48A6A5]" />
                 Live GPS Location Tracker
+              </button>
+            )}
+
+            {onReplacePal && (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onReplacePal();
+                }}
+                className="w-full text-xs font-bold uppercase text-[#E85D75] bg-rose-50 hover:bg-rose-100 py-3 rounded-xl flex items-center justify-center gap-2 border border-rose-200"
+              >
+                <RefreshCw className="w-4 h-4 text-[#E85D75]" />
+                <span>Replace a Pal</span>
               </button>
             )}
 

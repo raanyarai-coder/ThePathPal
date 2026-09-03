@@ -18,20 +18,21 @@ import {
   Building2,
   Lock,
   HeartHandshake,
-  Check
+  Check,
+  RefreshCw
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 interface AboutAndBrandProps {
   onRequestPal?: () => void;
   onBecomePal?: () => void;
-  onHospitalPartner?: () => void;
+  onReplacePal?: () => void;
 }
 
 export const AboutAndBrand: React.FC<AboutAndBrandProps> = ({
   onRequestPal,
   onBecomePal,
-  onHospitalPartner,
+  onReplacePal,
 }) => {
   const { t } = useLanguage();
 
@@ -305,12 +306,12 @@ export const AboutAndBrand: React.FC<AboutAndBrandProps> = ({
         </div>
 
         {/* Action CTAs inside About Us */}
-        {(onRequestPal || onBecomePal || onHospitalPartner) && (
+        {(onRequestPal || onBecomePal || onReplacePal) && (
           <div className="bg-gradient-to-r from-[#2B425B] via-[#1F3449] to-[#2B425B] p-8 rounded-3xl border border-[#48A6A5]/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
             <div className="space-y-1 text-center md:text-left">
               <h3 className="text-xl sm:text-2xl font-black text-white uppercase">Ready to Experience PathPal?</h3>
               <p className="text-xs text-gray-300">
-                Book a companion escort, apply as an accredited CHW Pal, or bring PathPal to your hospital network.
+                Book a companion escort, apply as an accredited CHW Pal, or request a replacement companion anytime.
               </p>
             </div>
 
@@ -318,30 +319,30 @@ export const AboutAndBrand: React.FC<AboutAndBrandProps> = ({
               {onRequestPal && (
                 <button
                   onClick={onRequestPal}
-                  className="bg-[#E85D75] hover:bg-[#E85D75]/90 text-white font-black text-xs uppercase px-6 py-3.5 rounded-2xl shadow-lg transition-all flex items-center gap-2"
+                  className="bg-[#E85D75] hover:bg-[#E85D75]/90 text-white font-black text-xs uppercase px-6 py-3.5 rounded-2xl shadow-lg transition-all flex items-center gap-2 cursor-pointer"
                 >
                   <Heart className="w-4 h-4 fill-white" />
                   <span>Request a Pal</span>
                 </button>
               )}
 
-              {onBecomePal && (
+              {onReplacePal && (
                 <button
-                  onClick={onBecomePal}
-                  className="bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-black text-xs uppercase px-6 py-3.5 rounded-2xl shadow-lg transition-all flex items-center gap-2"
+                  onClick={onReplacePal}
+                  className="bg-white/10 hover:bg-white/20 text-[#E85D75] border border-[#E85D75]/50 font-black text-xs uppercase px-6 py-3.5 rounded-2xl transition-all flex items-center gap-2 cursor-pointer"
                 >
-                  <Users className="w-4 h-4" />
-                  <span>Become a Pal</span>
+                  <RefreshCw className="w-4 h-4 text-[#E85D75]" />
+                  <span>Replace Pal</span>
                 </button>
               )}
 
-              {onHospitalPartner && (
+              {onBecomePal && (
                 <button
-                  onClick={onHospitalPartner}
-                  className="bg-white/10 hover:bg-white/20 text-[#48A6A5] border border-[#48A6A5]/40 font-black text-xs uppercase px-6 py-3.5 rounded-2xl transition-all flex items-center gap-2"
+                  onClick={onBecomePal}
+                  className="bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-black text-xs uppercase px-6 py-3.5 rounded-2xl shadow-lg transition-all flex items-center gap-2 cursor-pointer"
                 >
-                  <Building2 className="w-4 h-4" />
-                  <span>Hospital Partner</span>
+                  <Users className="w-4 h-4" />
+                  <span>Become a Pal</span>
                 </button>
               )}
             </div>

@@ -23,6 +23,7 @@ import {
   Notification,
   Patient,
   AdminUser,
+  EscortSession,
 } from '../types';
 
 export {
@@ -1241,8 +1242,8 @@ export async function createPalRequest(requestData: {
       'pending'
     ).trim();
 
-    // 3. Build INSERT payload containing ONLY the verified columns of public.pal_requests
-    const payload = {
+    // 3. Build INSERT payload containing the verified columns of public.pal_requests
+    const payload: any = {
       patient_name,
       patient_phone,
       hospital_id,
@@ -1259,25 +1260,42 @@ export async function createPalRequest(requestData: {
       status,
     };
 
-    // 4. Plain INSERT into Supabase public.pal_requests without assuming SELECT permission
-    const { error: insertError } = await supabase
+    // Link patient_id if available
+    try {
+      const { data: pRow } = await supabase.from('patients').select('id').eq('auth_user_id', user.id).maybeSingle();
+      if (pRow?.id) {
+        payload.patient_id = pRow.id;
+      }
+    } catch {}
+
+    // 4. INSERT into Supabase public.pal_requests and retrieve real generated UUID
+    let generatedId = '';
+    const { data: insertedData, error: insertError } = await supabase
       .from('pal_requests')
-      .insert(payload);
+      .insert(payload)
+      .select('id, created_at');
 
-    if (insertError) {
-      console.error('[PAL Request] INSERT FAILED', {
-        code: insertError.code,
-        message: insertError.message,
-        details: insertError.details,
-        hint: insertError.hint,
-      });
+    if (insertedData && insertedData[0]?.id) {
+      generatedId = insertedData[0].id;
+    } else if (insertError) {
+      // Fallback if patient_id column type mismatch occurred
+      const fallbackPayload = { ...payload };
+      delete fallbackPayload.patient_id;
+      const { data: retryData, error: retryError } = await supabase
+        .from('pal_requests')
+        .insert(fallbackPayload)
+        .select('id, created_at');
 
-      return {
-        data: null,
-        error: {
-          message: insertError.message,
-        },
-      };
+      if (retryData && retryData[0]?.id) {
+        generatedId = retryData[0].id;
+      } else if (retryError) {
+        // Last fallback: plain insert without select
+        const { error: plainError } = await supabase.from('pal_requests').insert(fallbackPayload);
+        if (plainError) {
+          console.error('[PAL Request] INSERT FAILED', plainError);
+          return { data: null, error: { message: plainError.message } };
+        }
+      }
     }
 
     // 5. Send notification to authenticated user
@@ -1293,7 +1311,7 @@ export async function createPalRequest(requestData: {
     }
 
     const formatted: PalRequest = {
-      id: `REQ-${Date.now()}`,
+      id: generatedId || `REQ-${Date.now()}`,
       patientName: patient_name,
       patientPhone: patient_phone,
       hospitalId: hospital_id,
@@ -1407,6 +1425,40 @@ export async function assignPalToRequest(
       palName = palRecord.name || palName;
     }
 
+    // 1.5 ATTEMPT ATOMIC RPC accept_pal_request FIRST (Database transactional lock & escort_session creation)
+    try {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('accept_pal_request', {
+        p_request_id: requestId,
+      });
+
+      if (!rpcErr && rpcRes && rpcRes.success) {
+        const { data: updatedReq } = await supabase
+          .from('pal_requests')
+          .select('*')
+          .eq('id', requestId)
+          .maybeSingle();
+
+        if (updatedReq) {
+          const activePalFormatted = palRecord ? formatPalFromDb(palRecord) : palObj;
+          return {
+            success: true,
+            data: formatPalRequestFromDb(updatedReq, activePalFormatted),
+            error: null,
+          };
+        }
+      } else if (rpcErr) {
+        console.warn('[PAL Request] RPC accept_pal_request message:', rpcErr.message);
+        if (rpcErr.message.includes('already been claimed') || rpcErr.message.includes('no longer pending')) {
+          return {
+            success: false,
+            error: 'This request has already been accepted by another PAL.',
+          };
+        }
+      }
+    } catch (rpcEx) {
+      console.warn('[PAL Request] RPC invocation exception:', rpcEx);
+    }
+
     // 2. Fetch the target request first to check status and patient details
     const { data: targetReq, error: fetchErr } = await supabase
       .from('pal_requests')
@@ -1491,6 +1543,29 @@ export async function assignPalToRequest(
       }
     } catch (matchEx) {
       console.warn('[PAL Match] Match creation exception:', matchEx);
+    }
+
+    // 4.5 CREATE ESCORT_SESSION in public.escort_sessions
+    try {
+      const { data: existingSession } = await supabase
+        .from('escort_sessions')
+        .select('id')
+        .eq('request_id', requestId)
+        .maybeSingle();
+
+      if (!existingSession) {
+        await supabase.from('escort_sessions').insert({
+          request_id: requestId,
+          pal_id: numericPalId,
+          patient_id: claimedRow.patient_id ? parseInt(String(claimedRow.patient_id), 10) || null : null,
+          status: 'scheduled',
+          scheduled_start_at: new Date().toISOString(),
+          included_minutes: 120,
+          service_type: 'single_visit',
+        });
+      }
+    } catch (sessionEx) {
+      console.warn('[EscortSession] Session creation fallback log:', sessionEx);
     }
 
     // 5. NOTIFY PATIENT
@@ -1826,13 +1901,15 @@ export async function markNotificationRead(notificationId: number | string): Pro
 
 export async function createNotification(params: {
   user_id?: string;
+  userId?: string;
   title: string;
   message: string;
   type?: string;
+  referenceId?: string;
 }): Promise<boolean> {
   try {
     const { error } = await supabase.from('notifications').insert({
-      user_id: params.user_id || null,
+      user_id: params.user_id || params.userId || null,
       title: params.title,
       message: params.message,
       type: params.type || 'info',
@@ -2122,3 +2199,20 @@ export async function signOutAdmin(): Promise<{ error: { message: string } | nul
     return { error: { message: err?.message || 'Error signing out administrator.' } };
   }
 }
+
+export async function fetchAllEscortSessions(): Promise<EscortSession[]> {
+  try {
+    const { data, error } = await supabase
+      .from('escort_sessions')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      return data as EscortSession[];
+    }
+  } catch (err) {
+    console.warn('[EscortSession] fetchAllEscortSessions error:', err);
+  }
+  return [];
+}
+

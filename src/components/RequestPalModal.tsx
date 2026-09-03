@@ -154,7 +154,7 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
               </div>
               <h3 className="text-2xl font-black text-pathpal-navy">Request a PathPal Companion</h3>
               <p className="text-xs text-pathpal-navy/70">
-                Search your partner hospital and we will pair you with a verified Pal to meet you at the campus entrance.
+                Search your hospital destination and we will pair you with a verified Pal to meet you at the campus entrance.
               </p>
             </div>
 
@@ -215,7 +215,7 @@ export const RequestPalModal: React.FC<RequestPalModalProps> = ({ isOpen, onClos
               {/* Hospital Search & Map Preview */}
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-pathpal-navy">
-                  Partner Hospital Search & Coordinates
+                  Hospital Destination Search & Coordinates
                 </label>
                 <HospitalSearch
                   selectedHospital={selectedHospital}

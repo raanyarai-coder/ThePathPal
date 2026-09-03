@@ -29,7 +29,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { SAMPLE_HOSPITALS } from '../data/mockData';
-import { Pal, PalRequest, Match, HospitalVisit, Notification } from '../types';
+import { Pal, PalRequest, Match, HospitalVisit, Notification, EscortSession } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { createGoogleCalendarUrl, downloadIcsFile } from '../utils/calendarUtils';
 import {
@@ -40,23 +40,29 @@ import {
   fetchAllHospitalVisits,
   fetchUserNotifications,
   markNotificationRead,
+  createNotification,
 } from '../lib/supabase';
+import { fetchAllEscortSessions, calculateEscortCountdown } from '../lib/escortService';
 import { supabase } from '../lib/supabaseClient';
 
 interface PatientPortalPageProps {
   onOpenGpsModal: () => void;
   onOpenChargesModal: (tab?: 'patient_charges' | 'pal_earnings') => void;
   onOpenSupabaseAuth?: () => void;
+  onOpenReplacePal?: (requestId?: string) => void;
+  onOpenRequestPal?: () => void;
 }
 
 export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
   onOpenGpsModal,
   onOpenChargesModal,
   onOpenSupabaseAuth,
+  onOpenReplacePal,
+  onOpenRequestPal,
 }) => {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<
-    'available_pals' | 'request' | 'requests' | 'matches' | 'visits' | 'notifications' | 'financials' | 'profile'
+    'available_pals' | 'request' | 'replace_pal' | 'requests' | 'matches' | 'visits' | 'notifications' | 'financials' | 'profile'
   >('available_pals');
 
   // Supabase Data State
@@ -66,7 +72,18 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
   const [matches, setMatches] = useState<Match[]>([]);
   const [visits, setVisits] = useState<HospitalVisit[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [escortSessions, setEscortSessions] = useState<EscortSession[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Embedded Replace PAL Template State
+  const [replaceRequestId, setReplaceRequestId] = useState<string>('');
+  const [replaceReason, setReplaceReason] = useState<string>('Language preference / bilingual companion needed');
+  const [replaceLanguage, setReplaceLanguage] = useState<string>('Spanish');
+  const [replaceMobility, setReplaceMobility] = useState<string[]>(['Wheelchair Assistance']);
+  const [replaceNotes, setReplaceNotes] = useState<string>('');
+  const [isSubmittingReplace, setIsSubmittingReplace] = useState(false);
+  const [replaceError, setReplaceError] = useState<string | null>(null);
+  const [replaceSuccess, setReplaceSuccess] = useState<string | null>(null);
 
   // Patient Booking Form State
   const [patientName, setPatientName] = useState('');
@@ -134,12 +151,13 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
   const loadPatientData = async () => {
     setIsLoading(true);
     try {
-      const [palsData, reqsData, matchesData, visitsData, notifsData] = await Promise.all([
+      const [palsData, reqsData, matchesData, visitsData, notifsData, sessionsData] = await Promise.all([
         fetchEligiblePatientPals(),
         fetchPalRequests(),
         fetchAllMatches(),
         fetchAllHospitalVisits(),
         fetchUserNotifications(),
+        fetchAllEscortSessions(),
       ]);
 
       setAvailablePals(palsData);
@@ -147,10 +165,73 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
       setMatches(matchesData);
       setVisits(visitsData);
       setNotifications(notifsData);
+      setEscortSessions(sessionsData || []);
     } catch (err) {
       console.error('Error loading patient portal data:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleReplacePalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setReplaceError(null);
+    setReplaceSuccess(null);
+
+    if (!replaceRequestId) {
+      setReplaceError('Please select which appointment you need to replace a PAL for.');
+      return;
+    }
+
+    setIsSubmittingReplace(true);
+    try {
+      const selectedReq = requests.find((r) => r.id === replaceRequestId);
+      const prevPalId = selectedReq?.assignedPal?.id;
+
+      // Reset the request to 'pending', update notes with replacement details
+      const updatePayload: any = {
+        status: 'pending',
+        notes: `${selectedReq?.notes ? selectedReq.notes + '\n\n' : ''}[PAL REPLACEMENT REQUEST] Reason: ${replaceReason}. Preferred Language: ${replaceLanguage}. Mobility: ${replaceMobility.join(', ')}. Additional Instructions: ${replaceNotes}`,
+      };
+
+      const { error: updateError } = await supabase
+        .from('pal_requests')
+        .update(updatePayload)
+        .eq('id', replaceRequestId);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Notify previous PAL if one was assigned
+      if (prevPalId) {
+        await createNotification({
+          userId: typeof prevPalId === 'string' ? prevPalId : String(prevPalId),
+          title: 'Assignment Reassigned',
+          message: `The companion assignment for ${selectedReq?.patientName || 'patient'} at ${selectedReq?.hospitalName || 'hospital'} was returned to the open board for re-matching (${replaceReason}).`,
+          type: 'cancellation',
+          referenceId: replaceRequestId,
+        });
+      }
+
+      // Notify patient
+      if (authUser?.id) {
+        await createNotification({
+          userId: authUser.id,
+          title: 'PAL Replacement Dispatched',
+          message: `Your replacement request for ${selectedReq?.hospitalName || 'your appointment'} has been posted to all verified PALs. We are actively pairing you with a suitable companion.`,
+          type: 'match_alert',
+          referenceId: replaceRequestId,
+        });
+      }
+
+      setReplaceSuccess('PAL replacement request submitted successfully! Your appointment has been prioritized and dispatched to all verified PALs.');
+      await loadPatientData();
+    } catch (err: any) {
+      console.error('Error submitting replacement:', err);
+      setReplaceError(err?.message || 'Failed to submit replacement request.');
+    } finally {
+      setIsSubmittingReplace(false);
     }
   };
 
@@ -266,6 +347,56 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
         </div>
       </div>
 
+      {/* Active Escort Session Live Alert Banner */}
+      {(() => {
+        const activeEscort = escortSessions.find((s) => s.status === 'in_progress');
+        if (!activeEscort) return null;
+        const countdown = calculateEscortCountdown(activeEscort.started_at, activeEscort.included_minutes);
+
+        return (
+          <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white p-5 rounded-3xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-2 border-emerald-300">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white/20 rounded-2xl animate-pulse">
+                <Navigation className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-300 animate-ping" />
+                  <span className="text-[11px] font-black uppercase tracking-widest text-emerald-100">
+                    YOUR PAL IS ESCORTING YOU RIGHT NOW • 2-HOUR DOOR-TO-DEPARTMENT WINDOW
+                  </span>
+                </div>
+                <div className="text-base font-black">
+                  Escort Active at {activeEscort.hospital_name}
+                </div>
+                <div className="text-xs text-emerald-100">
+                  Meeting at {activeEscort.meeting_location} • Heading to {activeEscort.department}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+              <div className="text-right">
+                <div className="text-[11px] font-bold text-emerald-200 uppercase">Window Timer</div>
+                <div className="text-2xl font-black font-mono tracking-tight text-white">
+                  {countdown.remainingMinutes}m {String(countdown.remainingSeconds).padStart(2, '0')}s
+                </div>
+                <div className="text-[10px] text-emerald-200">
+                  {countdown.elapsedMinutes}m elapsed of 120m
+                </div>
+              </div>
+              <button
+                onClick={onOpenGpsModal}
+                className="px-4 py-2.5 rounded-xl bg-white text-emerald-800 font-black text-xs uppercase hover:bg-emerald-50 transition-all shadow-md cursor-pointer flex items-center gap-1.5 shrink-0"
+              >
+                <Navigation className="w-3.5 h-3.5" />
+                <span>Track Live GPS</span>
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Patient Tabs Navigation */}
       <div className="flex flex-wrap items-center gap-1.5 p-2 bg-white rounded-2xl border border-gray-200 text-xs font-bold shadow-sm overflow-x-auto">
         <button
@@ -289,7 +420,19 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
           }`}
         >
           <Heart className="w-4 h-4 fill-current" />
-          <span>Book Companion PAL</span>
+          <span>Request PAL Template</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('replace_pal')}
+          className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+            activeTab === 'replace_pal'
+              ? 'bg-rose-600 text-white shadow-md'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <RefreshCw className="w-4 h-4" />
+          <span>Replace PAL Template</span>
         </button>
 
         <button
@@ -776,92 +919,314 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
       )}
 
       {/* =========================================================================
+       * TAB: REPLACE PAL TEMPLATE
+       * ========================================================================= */}
+      {activeTab === 'replace_pal' && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-sm space-y-6">
+          <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+            <div className="p-3 bg-rose-50 rounded-2xl text-rose-600">
+              <RefreshCw className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-[#1F3449]">Replace PAL Template</h2>
+              <p className="text-xs text-gray-500">
+                Request a replacement companion for your scheduled hospital visit. Our verified PAL team will immediately re-match you.
+              </p>
+            </div>
+          </div>
+
+          {replaceSuccess && (
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              <span>{replaceSuccess}</span>
+            </div>
+          )}
+
+          {replaceError && (
+            <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-xs flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+              <span>{replaceError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleReplacePalSubmit} className="space-y-5">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                1. Select Scheduled Visit to Replace PAL For
+              </label>
+              {requests.length > 0 ? (
+                <select
+                  value={replaceRequestId}
+                  onChange={(e) => setReplaceRequestId(e.target.value)}
+                  className="w-full text-xs p-3.5 rounded-xl border border-gray-300 bg-white font-medium focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                  required
+                >
+                  <option value="">-- Choose an existing appointment request --</option>
+                  {requests.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.hospitalName} ({r.appointmentDate} at {r.appointmentTime}) – PAL: {r.assignedPal?.name || 'Pending PAL'}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 text-xs text-gray-500">
+                  You do not have any active appointments yet.{' '}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('request')}
+                    className="text-[#E85D75] font-bold underline"
+                  >
+                    Create a request first
+                  </button>
+                  .
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                2. Reason for Replacement
+              </label>
+              <select
+                value={replaceReason}
+                onChange={(e) => setReplaceReason(e.target.value)}
+                className="w-full text-xs p-3.5 rounded-xl border border-gray-300 bg-white font-medium focus:ring-2 focus:ring-rose-500 focus:outline-none"
+              >
+                <option value="Language preference / bilingual companion needed">Language preference / bilingual companion needed</option>
+                <option value="Specialized physical mobility assistance required">Specialized physical mobility assistance required</option>
+                <option value="Gender preference for companion">Gender preference for companion</option>
+                <option value="Scheduling / time conflict with original PAL">Scheduling / time conflict with original PAL</option>
+                <option value="Previous PAL unavailable or unresponsive">Previous PAL unavailable or unresponsive</option>
+                <option value="Other specialized care requirement">Other specialized care requirement</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                  3. Preferred Language for Replacement PAL
+                </label>
+                <select
+                  value={replaceLanguage}
+                  onChange={(e) => setReplaceLanguage(e.target.value)}
+                  className="w-full text-xs p-3.5 rounded-xl border border-gray-300 bg-white font-medium focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                >
+                  <option value="English">English</option>
+                  <option value="Spanish">Spanish (Español)</option>
+                  <option value="Mandarin">Mandarin (中文)</option>
+                  <option value="Cantonese">Cantonese (粵語)</option>
+                  <option value="Russian">Russian (Русский)</option>
+                  <option value="Korean">Korean (한국어)</option>
+                  <option value="Bengali">Bengali (বাংলা)</option>
+                  <option value="Haitian Creole">Haitian Creole (Kreyòl Ayisyen)</option>
+                  <option value="Arabic">Arabic (العربية)</option>
+                  <option value="American Sign Language (ASL)">American Sign Language (ASL)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                  4. Mobility Assistance Required
+                </label>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {['Wheelchair Assistance', 'Arm Support / Walking Guide', 'Cognitive / Memory Guidance', 'Visual / Hearing Support'].map((need) => {
+                    const isChecked = replaceMobility.includes(need);
+                    return (
+                      <button
+                        key={need}
+                        type="button"
+                        onClick={() => {
+                          if (isChecked) {
+                            setReplaceMobility(replaceMobility.filter((n) => n !== need));
+                          } else {
+                            setReplaceMobility([...replaceMobility, need]);
+                          }
+                        }}
+                        className={`text-xs px-3 py-2 rounded-xl border font-bold transition-all cursor-pointer ${
+                          isChecked
+                            ? 'bg-rose-50 border-rose-400 text-rose-700 shadow-xs'
+                            : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        {isChecked ? '✓ ' : '+ '}
+                        {need}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                5. Additional Notes for the Replacement PAL
+              </label>
+              <textarea
+                rows={3}
+                value={replaceNotes}
+                onChange={(e) => setReplaceNotes(e.target.value)}
+                placeholder="Share any special instructions, meeting preferences, or care notes to help your new PAL prepare..."
+                className="w-full text-xs p-3.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-rose-500 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="submit"
+                disabled={isSubmittingReplace || !replaceRequestId}
+                className="py-3.5 px-6 rounded-xl font-bold text-xs uppercase text-white bg-rose-600 hover:bg-rose-700 transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {isSubmittingReplace ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Dispatched to Verified PALs...</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    <span>Submit PAL Replacement Request</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* =========================================================================
        * TAB 3: MY REQUESTS
        * ========================================================================= */}
       {activeTab === 'requests' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-black text-[#1F3449]">My Companion Requests</h2>
-            <button
-              onClick={() => setActiveTab('request')}
-              className="text-xs font-bold text-[#E85D75] hover:underline cursor-pointer"
-            >
-              + Book Another Visit
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setActiveTab('replace_pal')}
+                className="text-xs font-bold text-rose-600 hover:underline cursor-pointer flex items-center gap-1"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Replace a PAL</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('request')}
+                className="text-xs font-bold text-[#E85D75] hover:underline cursor-pointer"
+              >
+                + Book Another Visit
+              </button>
+            </div>
           </div>
 
           <div className="space-y-4">
-            {requests.map((req) => (
-              <div key={req.id} className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
-                  <div>
-                    <div className="text-xs text-gray-400 uppercase font-bold">Request ID: {req.id}</div>
-                    <h3 className="font-bold text-base text-[#1F3449]">{req.hospitalName} - {req.department}</h3>
-                  </div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-black uppercase ${
-                      req.status === 'completed'
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                        : req.status === 'matched'
-                        ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                        : 'bg-amber-100 text-amber-800 border border-amber-300'
-                    }`}
-                  >
-                    {req.status}
-                  </span>
-                </div>
+            {requests.map((req) => {
+              const session = escortSessions.find((s) => s.request_id === req.id);
+              const isSessionActive = session?.status === 'in_progress';
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-gray-600">
-                  <div>
-                    <span className="text-gray-400 font-bold block">Appointment:</span>
-                    <span className="font-bold text-[#1F3449]">{req.appointmentDate} at {req.appointmentTime}</span>
+              return (
+                <div key={req.id} className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
+                    <div>
+                      <div className="text-xs text-gray-400 uppercase font-bold">Request ID: {req.id}</div>
+                      <h3 className="font-bold text-base text-[#1F3449]">{req.hospitalName} - {req.department}</h3>
+                    </div>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-black uppercase ${
+                        req.status === 'completed'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : req.status === 'matched'
+                          ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                          : 'bg-amber-100 text-amber-800 border border-amber-300'
+                      }`}
+                    >
+                      {req.status}
+                    </span>
                   </div>
-                  <div>
-                    <span className="text-gray-400 font-bold block">Meeting Location:</span>
-                    <span>{req.meetingLocation || req.meetingPoint}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 font-bold block">Assigned PAL:</span>
-                    {req.assignedPal ? (
-                      <span className="font-bold text-[#48A6A5]">{req.assignedPal.name}</span>
-                    ) : (
-                      <span className="text-amber-600 font-medium">Matching with active PAL...</span>
-                    )}
-                  </div>
-                </div>
 
-                <div className="flex flex-wrap items-center gap-2 pt-2">
-                  <a
-                    href={createGoogleCalendarUrl({
-                      title: `Path Pal Escort at ${req.hospitalName}`,
-                      description: `Hospital companion visit for ${req.patientName}. Meeting at: ${req.meetingLocation || req.meetingPoint}`,
-                      location: `${req.hospitalName}, ${req.meetingLocation || req.meetingPoint}`,
-                      startTime: new Date(`${req.appointmentDate}T10:00:00`),
-                      endTime: new Date(`${req.appointmentDate}T12:00:00`),
-                    })}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[11px] font-bold bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"
-                  >
-                    Add to Google Calendar
-                  </a>
-                  <button
-                    onClick={() =>
-                      downloadIcsFile({
+                  {isSessionActive && (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                        <span className="text-xs font-bold text-emerald-800">
+                          Door-to-Department 2-Hour Escort Active Now!
+                        </span>
+                      </div>
+                      <button
+                        onClick={onOpenGpsModal}
+                        className="text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer shadow-xs"
+                      >
+                        <Navigation className="w-3.5 h-3.5" />
+                        <span>Live GPS Tracker</span>
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-gray-600">
+                    <div>
+                      <span className="text-gray-400 font-bold block">Appointment:</span>
+                      <span className="font-bold text-[#1F3449]">{req.appointmentDate} at {req.appointmentTime}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 font-bold block">Meeting Location:</span>
+                      <span>{req.meetingLocation || req.meetingPoint}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 font-bold block">Assigned PAL:</span>
+                      {req.assignedPal ? (
+                        <span className="font-bold text-[#48A6A5]">{req.assignedPal.name}</span>
+                      ) : (
+                        <span className="text-amber-600 font-medium">Matching with active PAL...</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-2">
+                    <button
+                      onClick={() => {
+                        if (onOpenReplacePal) {
+                          onOpenReplacePal(req.id);
+                        } else {
+                          setReplaceRequestId(req.id);
+                          setActiveTab('replace_pal');
+                        }
+                      }}
+                      className="text-[11px] font-bold bg-rose-50 text-[#E85D75] hover:bg-rose-100 border border-rose-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Replace Pal</span>
+                    </button>
+
+                    <a
+                      href={createGoogleCalendarUrl({
                         title: `Path Pal Escort at ${req.hospitalName}`,
                         description: `Hospital companion visit for ${req.patientName}. Meeting at: ${req.meetingLocation || req.meetingPoint}`,
                         location: `${req.hospitalName}, ${req.meetingLocation || req.meetingPoint}`,
                         startTime: new Date(`${req.appointmentDate}T10:00:00`),
                         endTime: new Date(`${req.appointmentDate}T12:00:00`),
-                      })
-                    }
-                    className="text-[11px] font-bold bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
-                  >
-                    Download .iCal File
-                  </button>
+                      })}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-bold bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      Add to Google Calendar
+                    </a>
+                    <button
+                      onClick={() =>
+                        downloadIcsFile({
+                          title: `Path Pal Escort at ${req.hospitalName}`,
+                          description: `Hospital companion visit for ${req.patientName}. Meeting at: ${req.meetingLocation || req.meetingPoint}`,
+                          location: `${req.hospitalName}, ${req.meetingLocation || req.meetingPoint}`,
+                          startTime: new Date(`${req.appointmentDate}T10:00:00`),
+                          endTime: new Date(`${req.appointmentDate}T12:00:00`),
+                        })
+                      }
+                      className="text-[11px] font-bold bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
+                    >
+                      Download .iCal File
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {requests.length === 0 && (
               <div className="p-12 text-center text-gray-400 bg-white rounded-3xl border border-gray-200 space-y-2">

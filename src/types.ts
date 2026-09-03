@@ -103,6 +103,39 @@ export interface LiveGpsPoint {
   recordedAt: string;
 }
 
+export interface EscortSession {
+  id: string;
+  request_id: string;
+  patient_id?: number | null;
+  pal_id?: number | null;
+  patient_name?: string;
+  patient_phone?: string;
+  hospital_name?: string;
+  department?: string;
+  meeting_location?: string;
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+  scheduled_start_at?: string | null;
+  scheduled_end_at?: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+  included_minutes: number;
+  actual_minutes?: number | null;
+  total_duration_minutes?: number | null;
+  overtime_minutes?: number | null;
+  start_latitude?: number | null;
+  start_longitude?: number | null;
+  end_latitude?: number | null;
+  end_longitude?: number | null;
+  start_notes?: string | null;
+  completion_notes?: string | null;
+  membership_id?: number | null;
+  payment_id?: number | null;
+  service_type: 'single_visit' | 'monthly_pass' | 'annual_family' | string;
+  created_at: string;
+  request?: PalRequest;
+  pal?: Pal;
+}
+
 export interface Match {
   id: number;
   request_id: string;

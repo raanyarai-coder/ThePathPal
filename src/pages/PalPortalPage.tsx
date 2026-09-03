@@ -29,6 +29,9 @@ import {
   Calculator,
   User,
   HeartHandshake,
+  Timer,
+  Play,
+  Square,
 } from 'lucide-react';
 import {
   supabase,
@@ -43,11 +46,19 @@ import {
   markNotificationRead,
 } from '../lib/supabase';
 import {
+  fetchAllEscortSessions,
+  startEscortSession,
+  completeEscortSession,
+  calculateEscortCountdown,
+  formatDurationDisplay,
+  createEscortSession,
+} from '../lib/escortService';
+import {
   startPalLiveTracking,
   stopPalLiveTracking,
   LocationCoordinates,
 } from '../lib/locationService';
-import { Pal, PalRequest, HospitalVisit, Notification, LiveGpsPoint } from '../types';
+import { Pal, PalRequest, HospitalVisit, Notification, LiveGpsPoint, EscortSession } from '../types';
 import { MedicalSummaryWidget } from '../components/MedicalSummaryWidget';
 import { EtaCalculatorWidget } from '../components/EtaCalculatorWidget';
 import { LiveLocationMap } from '../components/map/LiveLocationMap';
@@ -94,15 +105,31 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
   const [requests, setRequests] = useState<PalRequest[]>([]);
   const [visits, setVisits] = useState<HospitalVisit[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [escortSessions, setEscortSessions] = useState<EscortSession[]>([]);
   const [isLoadingData, setIsLoadingData] = useState<boolean>(false);
   const [selectedPalPatientSummary, setSelectedPalPatientSummary] = useState<PalRequest | null>(null);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [escortActionLoadingId, setEscortActionLoadingId] = useState<string | null>(null);
+  const [escortNotes, setEscortNotes] = useState<Record<string, string>>({});
+  const [, setTimerTick] = useState<number>(0);
   const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Live GPS Broadcast State
   const [activeGpsSessionId, setActiveGpsSessionId] = useState<string | null>(null);
   const [isStreamingGps, setIsStreamingGps] = useState<boolean>(false);
   const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Escort countdown timer tick
+  useEffect(() => {
+    const hasActiveSession = escortSessions.some((s) => s.status === 'in_progress');
+    if (!hasActiveSession) return;
+
+    const timer = setInterval(() => {
+      setTimerTick((t) => t + 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [escortSessions]);
 
   useEffect(() => {
     loadAuthenticatedPal();
@@ -117,7 +144,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
       }
     });
 
-    // Realtime subscription for pal_requests
+    // Realtime subscription for pal_requests and escort_sessions
     const requestsChannel = supabase
       .channel('pal_portal_requests_realtime')
       .on(
@@ -125,6 +152,14 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
         { event: '*', schema: 'public', table: 'pal_requests' },
         (payload) => {
           console.log('[PAL Portal Realtime] Request change detected:', payload.eventType);
+          loadPortalCollections();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'escort_sessions' },
+        (payload) => {
+          console.log('[PAL Portal Realtime] Escort session change detected:', payload.eventType);
           loadPortalCollections();
         }
       )
@@ -189,15 +224,17 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
   const loadPortalCollections = async () => {
     setIsLoadingData(true);
     try {
-      const [liveReqs, visitsData, notifsData] = await Promise.all([
+      const [liveReqs, visitsData, notifsData, sessionsData] = await Promise.all([
         fetchPalRequests(),
         fetchAllHospitalVisits(),
         fetchUserNotifications(),
+        fetchAllEscortSessions(),
       ]);
 
       setRequests(liveReqs || []);
       setVisits(visitsData || []);
       setNotifications(notifsData || []);
+      setEscortSessions(sessionsData || []);
     } catch (err) {
       console.error('Error fetching PAL feed:', err);
     } finally {
@@ -286,6 +323,77 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
       await loadPortalCollections();
     } finally {
       setAcceptingId(null);
+    }
+  };
+
+  const handleStartEscort = async (req: PalRequest) => {
+    if (!palInfo) return;
+    setEscortActionLoadingId(req.id);
+    try {
+      let session = escortSessions.find((s) => s.request_id === req.id);
+      if (!session) {
+        session = await createEscortSession({
+          request_id: req.id,
+          pal_id: palInfo.id,
+          patient_name: req.patientName,
+          patient_phone: req.patientPhone,
+          hospital_name: req.hospitalName,
+          department: req.department,
+          meeting_location: req.meetingLocation || req.meetingPoint,
+          start_coords: gpsCoords || undefined,
+        });
+      }
+
+      if (session) {
+        const startedResult = await startEscortSession(session.id, gpsCoords || undefined);
+        if (startedResult.success && startedResult.session) {
+          const started = startedResult.session;
+          setEscortSessions((prev) => prev.map((s) => (s.id === started.id ? started : s)));
+          setActionFeedback({
+            type: 'success',
+            message: `2-hour escort started for ${req.patientName}! Door-to-department countdown active.`,
+          });
+          if (!isStreamingGps) {
+            handleStartGps();
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error('Error starting escort session:', err);
+      setActionFeedback({
+        type: 'error',
+        message: err?.message || 'Failed to start escort session.',
+      });
+    } finally {
+      setEscortActionLoadingId(null);
+      await loadPortalCollections();
+    }
+  };
+
+  const handleCompleteEscort = async (session: EscortSession, req?: PalRequest) => {
+    setEscortActionLoadingId(session.id);
+    try {
+      const notesText =
+        escortNotes[session.id] ||
+        'Escort successfully completed. Patient accompanied safely to department and care team.';
+      const completedResult = await completeEscortSession(session.id, gpsCoords || undefined, notesText);
+      if (completedResult.success && completedResult.session) {
+        const completed = completedResult.session;
+        setEscortSessions((prev) => prev.map((s) => (s.id === completed.id ? completed : s)));
+        setActionFeedback({
+          type: 'success',
+          message: `Escort successfully completed for ${session.patient_name || req?.patientName || 'patient'}! Total duration: ${completed.actual_minutes ?? completed.total_duration_minutes ?? 120} mins. Visit log and records updated.`,
+        });
+      }
+    } catch (err: any) {
+      console.error('Error completing escort session:', err);
+      setActionFeedback({
+        type: 'error',
+        message: err?.message || 'Failed to complete escort session.',
+      });
+    } finally {
+      setEscortActionLoadingId(null);
+      await loadPortalCollections();
     }
   };
 
@@ -502,6 +610,55 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Active Escort Session Live Alert Banner */}
+      {(() => {
+        const activeEscort = escortSessions.find((s) => s.status === 'in_progress');
+        if (!activeEscort) return null;
+        const countdown = calculateEscortCountdown(activeEscort.started_at, activeEscort.included_minutes);
+
+        return (
+          <div className="bg-gradient-to-r from-teal-700 via-emerald-600 to-teal-800 text-white p-5 rounded-3xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-2 border-emerald-300">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white/20 rounded-2xl animate-pulse">
+                <Timer className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-300 animate-ping" />
+                  <span className="text-[11px] font-black uppercase tracking-widest text-emerald-100">
+                    ESCORT IN PROGRESS • 2-HOUR DOOR-TO-DEPARTMENT WINDOW
+                  </span>
+                </div>
+                <div className="text-base font-black">
+                  {activeEscort.patient_name} at {activeEscort.hospital_name}
+                </div>
+                <div className="text-xs text-emerald-100">
+                  Dept: {activeEscort.department} • Meeting: {activeEscort.meeting_location}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+              <div className="text-right">
+                <div className="text-[11px] font-bold text-emerald-200 uppercase">Window Timer</div>
+                <div className="text-2xl font-black font-mono tracking-tight text-white">
+                  {countdown.remainingMinutes}m {String(countdown.remainingSeconds).padStart(2, '0')}s
+                </div>
+                <div className="text-[10px] text-emerald-200">
+                  {countdown.elapsedMinutes}m elapsed of 120m
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveTab('my_active')}
+                className="px-4 py-2.5 rounded-xl bg-white text-teal-800 font-black text-xs uppercase hover:bg-emerald-50 transition-all shadow-md cursor-pointer shrink-0"
+              >
+                Manage Escort
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Navigation Tabs */}
       <div className="flex flex-wrap items-center gap-1.5 p-2 bg-white rounded-2xl border border-gray-200 text-xs font-bold shadow-sm overflow-x-auto">
@@ -730,41 +887,208 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
           </div>
 
           <div className="space-y-4">
-            {myAssignments.map((req) => (
-              <div key={req.id} className="bg-white p-6 rounded-3xl border-2 border-[#48A6A5] shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-bold text-base text-[#1F3449]">{req.hospitalName} - {req.department}</h3>
-                    <p className="text-xs text-gray-600">Patient: {req.patientName} ({req.patientPhone})</p>
+            {myAssignments.map((req) => {
+              const session = escortSessions.find((s) => s.request_id === req.id);
+              const isSessionInProgress = session?.status === 'in_progress';
+              const isSessionCompleted = session?.status === 'completed';
+              const countdown = isSessionInProgress
+                ? calculateEscortCountdown(session.started_at, session.included_minutes)
+                : null;
+
+              return (
+                <div
+                  key={req.id}
+                  className={`bg-white p-6 rounded-3xl border-2 shadow-sm space-y-5 transition-all ${
+                    isSessionInProgress
+                      ? 'border-emerald-500 ring-4 ring-emerald-50'
+                      : isSessionCompleted
+                      ? 'border-gray-200'
+                      : 'border-[#48A6A5]'
+                  }`}
+                >
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono text-gray-400 uppercase">
+                          REQ ID: {req.id.slice(0, 8)}...
+                        </span>
+                        {isSessionInProgress && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping" />
+                            Live In-Progress
+                          </span>
+                        )}
+                        {isSessionCompleted && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            Escort Completed
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="font-bold text-base text-[#1F3449]">
+                        {req.hospitalName} – {req.department}
+                      </h3>
+                      <p className="text-xs text-gray-600">
+                        Patient: <span className="font-bold text-[#1F3449]">{req.patientName}</span> ({req.patientPhone})
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full">
+                        Matched Assignment
+                      </span>
+                    </div>
                   </div>
-                  <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full">
-                    Matched
-                  </span>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                  <div><strong>Date:</strong> {req.appointmentDate} at {req.appointmentTime}</div>
-                  <div><strong>Meet Location:</strong> {req.meetingLocation || req.meetingPoint}</div>
-                  <div><strong>Language:</strong> {req.languagePreference || 'English'}</div>
-                </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-gray-50/70 p-3.5 rounded-2xl">
+                    <div>
+                      <span className="text-gray-400 font-bold block">Appointment Time:</span>
+                      <span className="font-bold text-[#1F3449]">{req.appointmentDate} at {req.appointmentTime}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 font-bold block">Campus Meeting Point:</span>
+                      <span className="font-bold text-[#1F3449]">{req.meetingLocation || req.meetingPoint}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 font-bold block">Patient Language:</span>
+                      <span className="font-bold text-[#1F3449]">{req.languagePreference || 'English'}</span>
+                    </div>
+                  </div>
 
-                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100">
-                  <button
-                    onClick={() => setActiveTab('live_gps')}
-                    className="bg-[#48A6A5] text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Navigation className="w-3.5 h-3.5" />
-                    <span>Start Campus Navigation</span>
-                  </button>
-                  <button
-                    onClick={() => setSelectedPalPatientSummary(req)}
-                    className="bg-gray-100 text-gray-700 font-bold text-xs px-4 py-2 rounded-xl hover:bg-gray-200 cursor-pointer"
-                  >
-                    Medical Brief
-                  </button>
+                  {/* 2-Hour Escort Session Module */}
+                  <div className="p-4 rounded-2xl border bg-gradient-to-br from-white to-gray-50/50 space-y-3">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Timer className={`w-4 h-4 ${isSessionInProgress ? 'text-emerald-600 animate-pulse' : 'text-[#48A6A5]'}`} />
+                        <span className="text-xs font-black uppercase tracking-wider text-[#1F3449]">
+                          Door-to-Department 2-Hour Escort Service
+                        </span>
+                      </div>
+
+                      {isSessionInProgress && countdown && (
+                        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                          <span className="text-xs font-mono font-black text-emerald-800">
+                            {countdown.remainingMinutes}m {String(countdown.remainingSeconds).padStart(2, '0')}s remaining
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {isSessionInProgress && countdown && (
+                      <div className="space-y-2 bg-emerald-50/50 border border-emerald-100 p-3 rounded-xl">
+                        <div className="w-full bg-emerald-200/50 rounded-full h-2 overflow-hidden">
+                          <div
+                            className="bg-emerald-600 h-full transition-all duration-1000"
+                            style={{ width: `${Math.min(100, countdown.progressPercent)}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-[11px] text-emerald-900 font-medium">
+                          <span>Started at {new Date(session.started_at || '').toLocaleTimeString()}</span>
+                          <span>
+                            {countdown.isOvertime ? (
+                              <span className="text-rose-600 font-bold">Overtime: +{countdown.overtimeMinutes}m</span>
+                            ) : (
+                              <span>120m standard door-to-department coverage</span>
+                            )}
+                          </span>
+                        </div>
+
+                        {/* Completion notes field */}
+                        <div className="pt-2">
+                          <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                            Escort Completion Summary & Notes (optional)
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g., Safely met at Lobby desk, escorted to 3rd floor clinic, and checked in with nurse..."
+                            value={escortNotes[session.id] || ''}
+                            onChange={(e) =>
+                              setEscortNotes((prev) => ({ ...prev, [session.id]: e.target.value }))
+                            }
+                            className="w-full text-xs p-2.5 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {isSessionCompleted && (
+                      <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          <span className="font-bold text-gray-700">
+                            Completed • Duration: {session.total_duration_minutes} minutes
+                          </span>
+                        </div>
+                        {session.overtime_minutes && session.overtime_minutes > 0 ? (
+                          <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
+                            +{session.overtime_minutes}m Overtime Logged
+                          </span>
+                        ) : null}
+                      </div>
+                    )}
+
+                    {/* Escort Action Buttons */}
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      {!isSessionInProgress && !isSessionCompleted && (
+                        <button
+                          disabled={escortActionLoadingId === req.id}
+                          onClick={() => handleStartEscort(req)}
+                          className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                        >
+                          {escortActionLoadingId === req.id ? (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                              <span>Starting Escort...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-3.5 h-3.5 fill-white" />
+                              <span>Start Escort (2-Hour Service)</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+
+                      {isSessionInProgress && session && (
+                        <button
+                          disabled={escortActionLoadingId === session.id}
+                          onClick={() => handleCompleteEscort(session, req)}
+                          className="bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                        >
+                          {escortActionLoadingId === session.id ? (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                              <span>Finalizing Visit...</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Complete Escort & Finalize Log</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => setActiveTab('live_gps')}
+                        className="bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Navigation className="w-3.5 h-3.5" />
+                        <span>Live GPS Campus Tracking</span>
+                      </button>
+
+                      <button
+                        onClick={() => setSelectedPalPatientSummary(req)}
+                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs px-4 py-2 rounded-xl cursor-pointer"
+                      >
+                        Patient Care Brief
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {myAssignments.length === 0 && (
               <div className="p-12 text-center text-gray-400 bg-white rounded-3xl border border-gray-200 space-y-2">

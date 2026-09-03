@@ -8,7 +8,7 @@ interface HomePageProps {
   onNavigatePage: (page: 'home' | 'patient' | 'pal' | 'hospital' | 'about') => void;
   onRequestPal: () => void;
   onBecomePal: () => void;
-  onHospitalPartner: () => void;
+  onReplacePal?: () => void;
   onOpenGpsModal: () => void;
   onOpenChargesModal: (tab?: 'patient_charges' | 'pal_earnings') => void;
 }
@@ -17,7 +17,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   onNavigatePage,
   onRequestPal,
   onBecomePal,
-  onHospitalPartner,
+  onReplacePal,
   onOpenGpsModal,
   onOpenChargesModal,
 }) => {
@@ -210,7 +210,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       <AboutAndBrand 
         onRequestPal={onRequestPal}
         onBecomePal={onBecomePal}
-        onHospitalPartner={onHospitalPartner}
+        onReplacePal={onReplacePal}
       />
 
       {/* 5. Quick Action Bar for Navigation & Tools */}
