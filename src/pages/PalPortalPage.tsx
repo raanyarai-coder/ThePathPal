@@ -36,6 +36,10 @@ import {
 import {
   supabase,
   loginPal,
+  signUpPal,
+  resendPalVerificationEmail,
+  resetPalPassword,
+  getApprovedPalApplicationByEmail,
   fetchPalByAuthUserId,
   formatPalFromDb,
   fetchPalRequests,
@@ -82,10 +86,34 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
   const [activationError, setActivationError] = useState<string | null>(null);
 
   // Login Form State for Unauthenticated Visitors
+  const [authMode, setAuthMode] = useState<'login' | 'setup' | 'reset'>('login');
   const [loginEmail, setLoginEmail] = useState<string>('');
   const [loginPassword, setLoginPassword] = useState<string>('');
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginErrorDetails, setLoginErrorDetails] = useState<{
+    code?: string;
+    needsEmailVerification?: boolean;
+    needsAccountSetup?: boolean;
+  } | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
+
+  // First-time Account Setup State
+  const [setupEmail, setSetupEmail] = useState<string>('');
+  const [setupPassword, setSetupPassword] = useState<string>('');
+  const [setupConfirmPassword, setSetupConfirmPassword] = useState<string>('');
+  const [isSettingUp, setIsSettingUp] = useState<boolean>(false);
+  const [setupMessage, setSetupMessage] = useState<string | null>(null);
+  const [setupError, setSetupError] = useState<string | null>(null);
+
+  // Password Reset State
+  const [resetEmail, setResetEmail] = useState<string>('');
+  const [isResetting, setIsResetting] = useState<boolean>(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const [resetError, setResetError] = useState<string | null>(null);
+
+  // Resend Email Verification State
+  const [isResending, setIsResending] = useState<boolean>(false);
+  const [resendFeedback, setResendFeedback] = useState<string | null>(null);
 
   // Portal Operational State
   const [isOnDuty, setIsOnDuty] = useState<boolean>(true);
@@ -245,6 +273,8 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
   const handlePalLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
+    setLoginErrorDetails(null);
+    setResendFeedback(null);
     setIsLoggingIn(true);
 
     try {
@@ -252,6 +282,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
 
       if (error) {
         setLoginError(error.message);
+        setLoginErrorDetails(error);
         setIsLoggingIn(false);
         return;
       }
@@ -263,6 +294,110 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
       setLoginError(err?.message || 'Login failed. Please check credentials.');
     } finally {
       setIsLoggingIn(false);
+    }
+  };
+
+  const handleResendVerification = async (targetEmail?: string) => {
+    const emailToUse = targetEmail || loginEmail;
+    if (!emailToUse) {
+      setLoginError('Please enter your email address first.');
+      return;
+    }
+    setIsResending(true);
+    setResendFeedback(null);
+    try {
+      const res = await resendPalVerificationEmail(emailToUse);
+      if (res.error) {
+        setResendFeedback(`Unable to resend: ${res.error.message}`);
+      } else {
+        setResendFeedback('Verification email resent! Please check your inbox and spam folder.');
+      }
+    } catch (err: any) {
+      setResendFeedback(err?.message || 'Failed to resend email.');
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  const handleSetupPalAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSetupError(null);
+    setSetupMessage(null);
+
+    const email = setupEmail.trim().toLowerCase();
+    if (!email || !setupPassword) {
+      setSetupError('Please enter your email and a password.');
+      return;
+    }
+    if (setupPassword !== setupConfirmPassword) {
+      setSetupError('Passwords do not match. Please verify and try again.');
+      return;
+    }
+    if (setupPassword.length < 8) {
+      setSetupError('Password must be at least 8 characters long.');
+      return;
+    }
+
+    setIsSettingUp(true);
+    try {
+      const appCheck = await getApprovedPalApplicationByEmail(email);
+      if (appCheck.error || !appCheck.data) {
+        setSetupError(
+          appCheck.error?.message ||
+            'No approved PAL application was found with this email address. Please apply first.'
+        );
+        setIsSettingUp(false);
+        return;
+      }
+
+      const appData = appCheck.data;
+      const signUpRes = await signUpPal(
+        email,
+        setupPassword,
+        appData
+      );
+
+      if (signUpRes.error) {
+        setSetupError(signUpRes.error.message);
+      } else {
+        setSetupMessage(
+          'Account setup successfully created! Please check your email to verify your address, then sign in below.'
+        );
+        setLoginEmail(email);
+        setTimeout(() => {
+          setAuthMode('login');
+        }, 3000);
+      }
+    } catch (err: any) {
+      setSetupError(err?.message || 'An error occurred during PAL account setup.');
+    } finally {
+      setIsSettingUp(false);
+    }
+  };
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError(null);
+    setResetMessage(null);
+
+    const email = resetEmail.trim().toLowerCase();
+    if (!email) {
+      setResetError('Please enter your email address.');
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      const res = await resetPalPassword(email);
+      if (res.error) {
+        setResetError(res.error.message);
+      } else {
+        setResetMessage('Password reset link sent to your email. Please follow the instructions in the email.');
+      }
+    } catch (err: any) {
+      setResetError(err?.message || 'Failed to send password reset email.');
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -451,74 +586,344 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-[#1F3449]">PAL Companion Portal</h1>
             <p className="text-xs text-gray-500 max-w-sm mx-auto">
-              Sign in with your verified PAL email and password.
+              Access your dispatch queue, accept patient escort requests, and manage hospital visits.
             </p>
           </div>
 
-          {loginError && (
-            <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2 animate-fade-in">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <div className="font-medium">{loginError}</div>
+          {/* Mode Switcher Tabs */}
+          <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-2xl text-[11px] font-bold">
+            <button
+              type="button"
+              onClick={() => {
+                setAuthMode('login');
+                setLoginError(null);
+              }}
+              className={`py-2 rounded-xl transition-all cursor-pointer text-center ${
+                authMode === 'login' ? 'bg-white text-[#1F3449] shadow-xs' : 'text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAuthMode('setup');
+                setSetupError(null);
+                setSetupMessage(null);
+                if (loginEmail && !setupEmail) setSetupEmail(loginEmail);
+              }}
+              className={`py-2 rounded-xl transition-all cursor-pointer text-center ${
+                authMode === 'setup' ? 'bg-white text-[#1F3449] shadow-xs' : 'text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              Create Account
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAuthMode('reset');
+                setResetError(null);
+                setResetMessage(null);
+                if (loginEmail && !resetEmail) setResetEmail(loginEmail);
+              }}
+              className={`py-2 rounded-xl transition-all cursor-pointer text-center ${
+                authMode === 'reset' ? 'bg-white text-[#1F3449] shadow-xs' : 'text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              Reset Password
+            </button>
+          </div>
+
+          {/* MODE 1: SIGN IN */}
+          {authMode === 'login' && (
+            <div className="space-y-4">
+              {loginError && (
+                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-800 space-y-2 animate-fade-in">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                    <div className="font-medium">{loginError}</div>
+                  </div>
+
+                  {/* Context-aware action buttons */}
+                  {loginErrorDetails?.needsEmailVerification && (
+                    <div className="pt-2 border-t border-rose-200/60 flex items-center justify-between gap-2">
+                      <span className="text-[11px] text-rose-700">Didn't receive the verification email?</span>
+                      <button
+                        type="button"
+                        disabled={isResending}
+                        onClick={() => handleResendVerification(loginEmail)}
+                        className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1 shrink-0"
+                      >
+                        {isResending ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />}
+                        <span>Resend Email</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {loginErrorDetails?.needsAccountSetup && (
+                    <div className="pt-2 border-t border-rose-200/60 flex items-center justify-between gap-2">
+                      <span className="text-[11px] text-rose-700">Application approved but password not set:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSetupEmail(loginEmail);
+                          setAuthMode('setup');
+                        }}
+                        className="px-3 py-1.5 bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white rounded-lg text-[11px] font-bold transition-all cursor-pointer shrink-0"
+                      >
+                        Set Up Password Now
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {resendFeedback && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{resendFeedback}</span>
+                </div>
+              )}
+
+              <form onSubmit={handlePalLogin} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    PAL Email Address
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      required
+                      placeholder="pal@hospitalpathpal.org"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      className="w-full text-xs p-3.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 pl-10"
+                    />
+                    <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700">
+                      Password
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResetEmail(loginEmail);
+                        setAuthMode('reset');
+                      }}
+                      className="text-[11px] font-semibold text-[#48A6A5] hover:underline cursor-pointer"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="password"
+                      required
+                      placeholder="••••••••••••"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      className="w-full text-xs p-3.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 pl-10"
+                    />
+                    <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoggingIn}
+                  className="w-full py-4 rounded-xl font-black text-xs uppercase tracking-wider text-white bg-[#48A6A5] hover:bg-[#48A6A5]/90 shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isLoggingIn ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Authenticating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="w-4 h-4" />
+                      <span>Sign In to PAL Portal</span>
+                    </>
+                  )}
+                </button>
+              </form>
             </div>
           )}
 
-          <form onSubmit={handlePalLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
-                PAL Email Address
-              </label>
-              <div className="relative">
-                <input
-                  type="email"
-                  required
-                  placeholder="pal@hospitalpathpal.org"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  className="w-full text-xs p-3.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 pl-10"
-                />
-                <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
+          {/* MODE 2: FIRST-TIME PAL ACCOUNT SETUP */}
+          {authMode === 'setup' && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="p-3.5 bg-sky-50 border border-sky-200 rounded-2xl text-xs text-sky-800 space-y-1">
+                <div className="font-bold flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-sky-600" />
+                  <span>Approved PAL Onboarding</span>
+                </div>
+                <p className="text-[11px] text-sky-700">
+                  If your PAL companion application has been approved by our dispatch team, enter your application email below to activate your account and set your login password.
+                </p>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••••••"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full text-xs p-3.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 pl-10"
-                />
-                <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoggingIn}
-              className="w-full py-4 rounded-xl font-black text-xs uppercase tracking-wider text-white bg-[#48A6A5] hover:bg-[#48A6A5]/90 shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              {isLoggingIn ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Authenticating...</span>
-                </>
-              ) : (
-                <>
-                  <LogIn className="w-4 h-4" />
-                  <span>Sign In to PAL Portal</span>
-                </>
+              {setupError && (
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <div>{setupError}</div>
+                </div>
               )}
-            </button>
-          </form>
+
+              {setupMessage && (
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 space-y-2">
+                  <div className="flex items-center gap-2 font-bold">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Account Created Successfully!</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-700">{setupMessage}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleSetupPalAccount} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    Application Email Address
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      required
+                      placeholder="you@hospitalpathpal.org"
+                      value={setupEmail}
+                      onChange={(e) => setSetupEmail(e.target.value)}
+                      className="w-full text-xs p-3.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 pl-10"
+                    />
+                    <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    Create Password (minimum 8 characters)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="password"
+                      required
+                      minLength={8}
+                      placeholder="••••••••••••"
+                      value={setupPassword}
+                      onChange={(e) => setSetupPassword(e.target.value)}
+                      className="w-full text-xs p-3.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 pl-10"
+                    />
+                    <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="password"
+                      required
+                      minLength={8}
+                      placeholder="••••••••••••"
+                      value={setupConfirmPassword}
+                      onChange={(e) => setSetupConfirmPassword(e.target.value)}
+                      className="w-full text-xs p-3.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 pl-10"
+                    />
+                    <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSettingUp}
+                  className="w-full py-4 rounded-xl font-black text-xs uppercase tracking-wider text-white bg-[#48A6A5] hover:bg-[#48A6A5]/90 shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isSettingUp ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Creating Account...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="w-4 h-4" />
+                      <span>Set Up PAL Password & Activate</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* MODE 3: RESET PASSWORD */}
+          {authMode === 'reset' && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="p-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-xs text-gray-600 space-y-1">
+                <div className="font-bold text-gray-800">Forgot your password?</div>
+                <p className="text-[11px]">
+                  Enter your registered PAL email address. We'll send you a secure link to reset your password.
+                </p>
+              </div>
+
+              {resetError && (
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <div>{resetError}</div>
+                </div>
+              )}
+
+              {resetMessage && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{resetMessage}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    Registered PAL Email Address
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      required
+                      placeholder="pal@hospitalpathpal.org"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      className="w-full text-xs p-3.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 pl-10"
+                    />
+                    <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isResetting}
+                  className="w-full py-4 rounded-xl font-black text-xs uppercase tracking-wider text-white bg-[#1F3449] hover:bg-[#1F3449]/90 shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isResetting ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Sending Reset Link...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-4 h-4" />
+                      <span>Send Password Reset Email</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          )}
 
           {onBecomePal && (
             <div className="pt-4 border-t border-gray-100 text-center space-y-3">
-              <p className="text-xs text-gray-500">Don't have an approved PAL account?</p>
+              <p className="text-xs text-gray-500">Not an accredited PAL yet?</p>
               <button
                 onClick={onBecomePal}
                 className="w-full py-3 rounded-xl border-2 border-[#48A6A5] text-[#48A6A5] hover:bg-[#48A6A5]/5 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
@@ -641,12 +1046,20 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
 
             <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
               <div className="text-right">
-                <div className="text-[11px] font-bold text-emerald-200 uppercase">Window Timer</div>
+                <div className="text-[11px] font-bold text-emerald-200 uppercase">
+                  {countdown.isOvertime ? 'Overtime In Progress' : 'Window Timer'}
+                </div>
                 <div className="text-2xl font-black font-mono tracking-tight text-white">
-                  {countdown.remainingMinutes}m {String(countdown.remainingSeconds).padStart(2, '0')}s
+                  {countdown.isOvertime
+                    ? `+${countdown.overtimeMinutes}m`
+                    : `${countdown.remainingMinutes}m ${String(countdown.remainingSeconds).padStart(2, '0')}s`}
                 </div>
                 <div className="text-[10px] text-emerald-200">
-                  {countdown.elapsedMinutes}m elapsed of 120m
+                  {countdown.isOvertime ? (
+                    <span className="text-amber-200 font-bold">Escort exceeded included 120 minutes</span>
+                  ) : (
+                    `${countdown.elapsedMinutes}m elapsed of 120m`
+                  )}
                 </div>
               </div>
               <button
@@ -976,23 +1389,45 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
                     </div>
 
                     {isSessionInProgress && countdown && (
-                      <div className="space-y-2 bg-emerald-50/50 border border-emerald-100 p-3 rounded-xl">
+                      <div className="space-y-3 bg-emerald-50/50 border border-emerald-100 p-3.5 rounded-xl">
                         <div className="w-full bg-emerald-200/50 rounded-full h-2 overflow-hidden">
                           <div
-                            className="bg-emerald-600 h-full transition-all duration-1000"
+                            className={`h-full transition-all duration-1000 ${
+                              countdown.isOvertime ? 'bg-amber-500' : 'bg-emerald-600'
+                            }`}
                             style={{ width: `${Math.min(100, countdown.progressPercent)}%` }}
                           />
                         </div>
-                        <div className="flex justify-between text-[11px] text-emerald-900 font-medium">
-                          <span>Started at {new Date(session.started_at || '').toLocaleTimeString()}</span>
-                          <span>
-                            {countdown.isOvertime ? (
-                              <span className="text-rose-600 font-bold">Overtime: +{countdown.overtimeMinutes}m</span>
-                            ) : (
-                              <span>120m standard door-to-department coverage</span>
-                            )}
-                          </span>
-                        </div>
+
+                        {countdown.isOvertime ? (
+                          <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl space-y-1.5 text-xs">
+                            <div className="font-black text-amber-900 flex items-center gap-1.5">
+                              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                              <span>Escort exceeded included 120 minutes.</span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] text-amber-800 pt-1 border-t border-amber-200/60">
+                              <div>
+                                <span className="font-bold text-amber-900">Actual duration:</span>{' '}
+                                {countdown.elapsedMinutes} mins
+                              </div>
+                              <div>
+                                <span className="font-bold text-amber-900">Overtime minutes:</span>{' '}
+                                +{countdown.overtimeMinutes} mins
+                              </div>
+                              <div>
+                                <span className="font-bold text-amber-900">Status:</span>{' '}
+                                <span className="bg-amber-200/70 text-amber-900 px-1.5 py-0.5 rounded font-bold">
+                                  Pending overtime review
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex justify-between text-[11px] text-emerald-900 font-medium">
+                            <span>Started at {new Date(session.started_at || '').toLocaleTimeString()}</span>
+                            <span>120m standard door-to-department coverage</span>
+                          </div>
+                        )}
 
                         {/* Completion notes field */}
                         <div className="pt-2">

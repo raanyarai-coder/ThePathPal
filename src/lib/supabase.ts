@@ -26,6 +26,8 @@ import {
   EscortSession,
 } from '../types';
 
+export { fetchAllEscortSessions } from './escortService';
+
 export {
   supabase,
   supabaseClient,
@@ -336,9 +338,51 @@ export async function fetchPalApplications(): Promise<PalApplication[]> {
 
 export async function approvePalApplication(
   applicationId: string,
-  _adminNotes: string = 'Approved by Administrator'
+  adminNotes: string = 'Approved by Administrator'
 ): Promise<{ data: { application: PalApplication; signupLink: string } | null; error: { message: string } | null }> {
   try {
+    // 1. Attempt atomic RPC first
+    try {
+      const { data: rpcData, error: rpcErr } = await supabase.rpc('approve_pal_application_admin', {
+        p_application_id: applicationId,
+        p_admin_notes: adminNotes,
+      });
+
+      if (!rpcErr && rpcData?.success) {
+        const { data: appRow } = await supabase
+          .from('pal_applications')
+          .select('*')
+          .eq('id', applicationId)
+          .single();
+
+        if (appRow) {
+          const application = formatApplicationFromDb(appRow);
+          const signupLink = `${window.location.origin}/#pal-signup?app_id=${application.id}`;
+          return { data: { application, signupLink }, error: null };
+        }
+      } else if (rpcErr) {
+        console.warn('[Admin] RPC approve_pal_application_admin warning:', rpcErr.message);
+      }
+    } catch (rpcEx) {
+      console.warn('[Admin] RPC invocation note:', rpcEx);
+    }
+
+    // 2. Fallback: Verify application exists & is eligible
+    const { data: targetApp, error: fetchErr } = await supabase
+      .from('pal_applications')
+      .select('*')
+      .eq('id', applicationId)
+      .maybeSingle();
+
+    if (fetchErr || !targetApp) {
+      return { data: null, error: { message: fetchErr?.message || 'Application not found.' } };
+    }
+
+    if (targetApp.status === 'rejected') {
+      return { data: null, error: { message: 'Application has already been rejected and cannot be approved.' } };
+    }
+
+    // 3. Update status to approved
     const { data: updatedAppDb, error: updateAppErr } = await supabase
       .from('pal_applications')
       .update({ status: 'approved' })
@@ -346,40 +390,240 @@ export async function approvePalApplication(
       .select()
       .single();
 
-    if (updateAppErr) {
-      console.error('Failed to update application status:', updateAppErr.message);
-      return { data: null, error: { message: 'Failed to approve application.' } };
+    if (updateAppErr || !updatedAppDb) {
+      console.error('Failed to update application status:', updateAppErr?.message);
+      return { data: null, error: { message: updateAppErr?.message || 'Failed to approve application.' } };
     }
 
     const application = formatApplicationFromDb(updatedAppDb);
+    const cleanEmail = (application.email || '').trim().toLowerCase();
 
-    // Ensure corresponding record in `pals` matching name and phone
-    const { data: existingPal } = await supabase
-      .from('pals')
-      .select('*')
-      .eq('name', application.name)
-      .eq('phone', application.phone)
-      .maybeSingle();
+    // 4. Ensure corresponding record in public.pals exists (Idempotent)
+    let existingPal: any = null;
+    if (cleanEmail) {
+      const { data: palByEmail } = await supabase
+        .from('pals')
+        .select('*')
+        .ilike('email', cleanEmail)
+        .maybeSingle();
+      existingPal = palByEmail;
+    }
+
+    if (!existingPal && application.phone) {
+      const { data: palByPhone } = await supabase
+        .from('pals')
+        .select('*')
+        .eq('phone', application.phone)
+        .maybeSingle();
+      existingPal = palByPhone;
+    }
 
     if (!existingPal) {
-      await supabase.from('pals').insert([
-        {
-          name: application.name,
-          phone: application.phone,
-          bio: application.bio || 'Hospital Escort and Patient Companion Pal.',
-          availability: 'Flexible (Weekdays & Weekends)',
-          background_check_status: 'cleared',
-          rating: 5.0,
-          hourly_rate_cents: 2600,
-        },
-      ]);
+      const { data: newPal, error: insertPalErr } = await supabase
+        .from('pals')
+        .insert([
+          {
+            name: application.name,
+            email: cleanEmail || null,
+            phone: application.phone || '',
+            bio: application.bio || 'Hospital Escort and Patient Companion Pal.',
+            ssn: application.ssn || null,
+            availability: 'Flexible (Weekdays & Weekends)',
+            background_check_status: 'cleared',
+            is_active: true,
+            rating: 5.0,
+            hourly_rate_cents: 2600,
+            email_verified: false,
+          },
+        ])
+        .select()
+        .single();
+
+      if (insertPalErr || !newPal) {
+        console.error('[Admin Approval] Failed to create pals record:', insertPalErr);
+        // DO NOT report approval success if pal creation fails
+        return {
+          data: null,
+          error: {
+            message: `Application was approved, but failed to create PAL profile: ${insertPalErr?.message || 'Database error'}`,
+          },
+        };
+      }
     }
 
     const signupLink = `${window.location.origin}/#pal-signup?app_id=${application.id}`;
     return { data: { application, signupLink }, error: null };
   } catch (err: any) {
     console.error('Approval exception:', err);
-    return { data: null, error: { message: 'Failed to approve application.' } };
+    return { data: null, error: { message: err?.message || 'Failed to approve application.' } };
+  }
+}
+
+/**
+ * Repairs an approved application that is missing a corresponding public.pals record.
+ */
+export async function repairApprovedPalApplication(
+  applicationId: string
+): Promise<{ success: boolean; palId?: number; error: { message: string } | null }> {
+  try {
+    const { data: rpcData, error: rpcErr } = await supabase.rpc('repair_pal_record', {
+      p_application_id: applicationId,
+    });
+
+    if (!rpcErr && rpcData?.success) {
+      return { success: true, palId: rpcData.pal_id, error: null };
+    }
+
+    const { data: appData, error: appErr } = await supabase
+      .from('pal_applications')
+      .select('*')
+      .eq('id', applicationId)
+      .maybeSingle();
+
+    if (appErr || !appData) {
+      return { success: false, error: { message: 'Application could not be found.' } };
+    }
+
+    if (appData.status !== 'approved') {
+      return { success: false, error: { message: 'Application is not in approved status.' } };
+    }
+
+    const cleanEmail = (appData.email || '').trim().toLowerCase();
+    let existingPal = null;
+
+    if (cleanEmail) {
+      const { data } = await supabase.from('pals').select('*').ilike('email', cleanEmail).maybeSingle();
+      existingPal = data;
+    }
+    if (!existingPal && appData.phone) {
+      const { data } = await supabase.from('pals').select('*').eq('phone', appData.phone).maybeSingle();
+      existingPal = data;
+    }
+
+    if (!existingPal) {
+      const { data: inserted, error: insertErr } = await supabase
+        .from('pals')
+        .insert([
+          {
+            name: appData.name || 'PAL Companion',
+            email: cleanEmail || null,
+            phone: appData.phone || '',
+            bio: appData.bio || 'Hospital Escort and Patient Companion Pal.',
+            ssn: appData.ssn || null,
+            availability: 'Flexible (Weekdays & Weekends)',
+            background_check_status: 'cleared',
+            is_active: true,
+            rating: 5.0,
+            hourly_rate_cents: 2600,
+            email_verified: false,
+          },
+        ])
+        .select()
+        .single();
+
+      if (insertErr || !inserted) {
+        return { success: false, error: { message: insertErr?.message || 'Failed to create missing PAL record.' } };
+      }
+      return { success: true, palId: inserted.id, error: null };
+    }
+
+    return { success: true, palId: existingPal.id, error: null };
+  } catch (err: any) {
+    return { success: false, error: { message: err?.message || 'Error repairing PAL record.' } };
+  }
+}
+
+/**
+ * Checks if an email corresponds to an approved PAL application before account creation.
+ */
+export async function getApprovedPalApplicationByEmail(
+  email: string
+): Promise<{ data: PalApplication | null; error: { message: string } | null }> {
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      return { data: null, error: { message: 'Email is required.' } };
+    }
+
+    const { data, error } = await supabase
+      .from('pal_applications')
+      .select('*')
+      .ilike('email', cleanEmail)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      return { data: null, error: { message: error.message } };
+    }
+
+    if (!data) {
+      return {
+        data: null,
+        error: { message: `No PAL application found for "${cleanEmail}". Please apply to become a PAL first.` },
+      };
+    }
+
+    if (data.status !== 'approved') {
+      return {
+        data: null,
+        error: {
+          message: `Your PAL application is currently "${data.status}". You must wait for an administrator to approve your application before creating your PAL account.`,
+        },
+      };
+    }
+
+    return { data: formatApplicationFromDb(data), error: null };
+  } catch (err: any) {
+    return { data: null, error: { message: err?.message || 'Error checking PAL application status.' } };
+  }
+}
+
+/**
+ * Initiates a password reset flow for a PAL user.
+ */
+export async function resetPalPassword(
+  email: string
+): Promise<{ success: boolean; error: { message: string } | null }> {
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return { success: false, error: { message: 'Please enter a valid email address.' } };
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+      redirectTo: `${window.location.origin}/#pal-reset`,
+    });
+
+    if (error) {
+      return { success: false, error: { message: formatFriendlyAuthError(error) } };
+    }
+
+    return { success: true, error: null };
+  } catch (err: any) {
+    return { success: false, error: { message: formatFriendlyAuthError(err) } };
+  }
+}
+
+/**
+ * Updates password for current authenticated user.
+ */
+export async function updatePalPassword(
+  newPassword: string
+): Promise<{ success: boolean; error: { message: string } | null }> {
+  try {
+    if (!newPassword || newPassword.length < 6) {
+      return { success: false, error: { message: 'Password must be at least 6 characters.' } };
+    }
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      return { success: false, error: { message: formatFriendlyAuthError(error) } };
+    }
+
+    return { success: true, error: null };
+  } catch (err: any) {
+    return { success: false, error: { message: formatFriendlyAuthError(err) } };
   }
 }
 
@@ -822,16 +1066,114 @@ export async function loginPal(
     session: any;
     palRecord: Pal | null;
   } | null;
-  error: { message: string } | null;
+  error: {
+    message: string;
+    code?: string;
+    needsEmailVerification?: boolean;
+    needsAccountSetup?: boolean;
+    applicationId?: string;
+    allowReset?: boolean;
+  } | null;
 }> {
   try {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !password) {
+      return { data: null, error: { message: 'Email and password are required.' } };
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
+      email: cleanEmail,
       password,
     });
 
     if (error) {
-      return { data: null, error: { message: formatFriendlyAuthError(error) } };
+      const errMsg = error.message || '';
+
+      // 1. Email not confirmed
+      if (
+        errMsg.toLowerCase().includes('email not confirmed') ||
+        (error as any).code === 'email_not_confirmed'
+      ) {
+        return {
+          data: null,
+          error: {
+            message: 'Your email has not been verified yet. Please check your inbox and click the verification link.',
+            code: 'EMAIL_NOT_CONFIRMED',
+            needsEmailVerification: true,
+          },
+        };
+      }
+
+      // 2. Pre-check application status to provide exact helpful guidance
+      try {
+        const { data: appData } = await supabase
+          .from('pal_applications')
+          .select('id, name, status')
+          .ilike('email', cleanEmail)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!appData) {
+          return {
+            data: null,
+            error: {
+              message: 'No PAL account or application found for this email. Please apply to become a PAL first.',
+              code: 'NO_ACCOUNT',
+            },
+          };
+        }
+
+        if (appData.status === 'pending') {
+          return {
+            data: null,
+            error: {
+              message: 'Your PAL application is currently pending administrator review. Once approved, you will receive an invitation email to create your password.',
+              code: 'APPLICATION_PENDING',
+            },
+          };
+        }
+
+        if (appData.status === 'rejected') {
+          return {
+            data: null,
+            error: {
+              message: 'Your PAL application was not approved. Please contact dispatch support.',
+              code: 'APPLICATION_REJECTED',
+            },
+          };
+        }
+
+        if (appData.status === 'approved') {
+          // Check if user has an auth record or needs account creation
+          const { data: palRow } = await supabase
+            .from('pals')
+            .select('id, auth_user_id')
+            .ilike('email', cleanEmail)
+            .maybeSingle();
+
+          if (!palRow?.auth_user_id) {
+            return {
+              data: null,
+              error: {
+                message: 'Your PAL application is approved! Please complete your account setup and create your password.',
+                code: 'NEEDS_ACCOUNT_SETUP',
+                needsAccountSetup: true,
+                applicationId: appData.id,
+              },
+            };
+          }
+        }
+      } catch {}
+
+      return {
+        data: null,
+        error: {
+          message: 'Invalid email or password. Please verify your credentials and try again.',
+          code: 'INVALID_CREDENTIALS',
+          allowReset: true,
+        },
+      };
     }
 
     if (!data.user) {
@@ -848,6 +1190,8 @@ export async function loginPal(
         },
         error: {
           message: 'Your email address is not verified yet. Please check your inbox and confirm your email before logging in.',
+          code: 'EMAIL_NOT_CONFIRMED',
+          needsEmailVerification: true,
         },
       };
     }
@@ -857,10 +1201,20 @@ export async function loginPal(
 
     if (!palRecord) {
       // Attempt activation/linking
-      const activationRes = await verifyPalEmailAndActivate();
+      const activationRes = await verifyPalEmailAndActivate(authUserId, cleanEmail);
       if (activationRes.data?.palRecord) {
         palRecord = activationRes.data.palRecord;
       }
+    }
+
+    if (palRecord && (palRecord as any).is_active === false) {
+      return {
+        data: null,
+        error: {
+          message: 'Your PAL account is currently disabled. Please contact dispatch support.',
+          code: 'ACCOUNT_DISABLED',
+        },
+      };
     }
 
     return {
@@ -1288,14 +1642,18 @@ export async function createPalRequest(requestData: {
 
       if (retryData && retryData[0]?.id) {
         generatedId = retryData[0].id;
-      } else if (retryError) {
-        // Last fallback: plain insert without select
-        const { error: plainError } = await supabase.from('pal_requests').insert(fallbackPayload);
-        if (plainError) {
-          console.error('[PAL Request] INSERT FAILED', plainError);
-          return { data: null, error: { message: plainError.message } };
-        }
+      } else {
+        const errorMsg = retryError?.message || insertError?.message || 'Failed to insert request into database.';
+        console.error('[PAL Request] INSERT FAILED', errorMsg);
+        return { data: null, error: { message: errorMsg } };
       }
+    }
+
+    if (!generatedId) {
+      return {
+        data: null,
+        error: { message: insertError?.message || 'Database did not return a valid request ID.' },
+      };
     }
 
     // 5. Send notification to authenticated user
@@ -1311,7 +1669,7 @@ export async function createPalRequest(requestData: {
     }
 
     const formatted: PalRequest = {
-      id: generatedId || `REQ-${Date.now()}`,
+      id: generatedId,
       patientName: patient_name,
       patientPhone: patient_phone,
       hospitalId: hospital_id,
@@ -1451,7 +1809,7 @@ export async function assignPalToRequest(
         if (rpcErr.message.includes('already been claimed') || rpcErr.message.includes('no longer pending')) {
           return {
             success: false,
-            error: 'This request has already been accepted by another PAL.',
+            error: 'This assignment has already been claimed.',
           };
         }
       }
@@ -1484,7 +1842,7 @@ export async function assignPalToRequest(
     if (targetReq.status !== 'pending' || targetReq.assigned_pal_id) {
       return {
         success: false,
-        error: 'This request has already been accepted by another PAL.',
+        error: 'This assignment has already been claimed.',
       };
     }
 
@@ -1515,7 +1873,7 @@ export async function assignPalToRequest(
     if (!updatedRows || updatedRows.length === 0) {
       return {
         success: false,
-        error: 'This request has already been accepted by another PAL.',
+        error: 'This assignment has already been claimed.',
       };
     }
 
@@ -2198,21 +2556,5 @@ export async function signOutAdmin(): Promise<{ error: { message: string } | nul
   } catch (err: any) {
     return { error: { message: err?.message || 'Error signing out administrator.' } };
   }
-}
-
-export async function fetchAllEscortSessions(): Promise<EscortSession[]> {
-  try {
-    const { data, error } = await supabase
-      .from('escort_sessions')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      return data as EscortSession[];
-    }
-  } catch (err) {
-    console.warn('[EscortSession] fetchAllEscortSessions error:', err);
-  }
-  return [];
 }
 
