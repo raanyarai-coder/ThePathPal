@@ -49,7 +49,6 @@ interface PatientPortalPageProps {
   onOpenGpsModal: () => void;
   onOpenChargesModal: (tab?: 'patient_charges' | 'pal_earnings') => void;
   onOpenSupabaseAuth?: () => void;
-  onOpenReplacePal?: (requestId?: string) => void;
   onOpenRequestPal?: () => void;
 }
 
@@ -57,12 +56,11 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
   onOpenGpsModal,
   onOpenChargesModal,
   onOpenSupabaseAuth,
-  onOpenReplacePal,
   onOpenRequestPal,
 }) => {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<
-    'available_pals' | 'request' | 'replace_pal' | 'requests' | 'matches' | 'visits' | 'notifications' | 'financials' | 'profile'
+    'available_pals' | 'request' | 'requests' | 'matches' | 'visits' | 'notifications' | 'financials' | 'profile'
   >('available_pals');
 
   // Supabase Data State
@@ -74,16 +72,6 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [escortSessions, setEscortSessions] = useState<EscortSession[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  // Embedded Replace PAL Template State
-  const [replaceRequestId, setReplaceRequestId] = useState<string>('');
-  const [replaceReason, setReplaceReason] = useState<string>('Language preference / bilingual companion needed');
-  const [replaceLanguage, setReplaceLanguage] = useState<string>('Spanish');
-  const [replaceMobility, setReplaceMobility] = useState<string[]>(['Wheelchair Assistance']);
-  const [replaceNotes, setReplaceNotes] = useState<string>('');
-  const [isSubmittingReplace, setIsSubmittingReplace] = useState(false);
-  const [replaceError, setReplaceError] = useState<string | null>(null);
-  const [replaceSuccess, setReplaceSuccess] = useState<string | null>(null);
 
   // Patient Booking Form State
   const [patientName, setPatientName] = useState('');
@@ -170,68 +158,6 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
       console.error('Error loading patient portal data:', err);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleReplacePalSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setReplaceError(null);
-    setReplaceSuccess(null);
-
-    if (!replaceRequestId) {
-      setReplaceError('Please select which appointment you need to replace a PAL for.');
-      return;
-    }
-
-    setIsSubmittingReplace(true);
-    try {
-      const selectedReq = requests.find((r) => r.id === replaceRequestId);
-      const prevPalId = selectedReq?.assignedPal?.id;
-
-      // Reset the request to 'pending', update notes with replacement details
-      const updatePayload: any = {
-        status: 'pending',
-        notes: `${selectedReq?.notes ? selectedReq.notes + '\n\n' : ''}[PAL REPLACEMENT REQUEST] Reason: ${replaceReason}. Preferred Language: ${replaceLanguage}. Mobility: ${replaceMobility.join(', ')}. Additional Instructions: ${replaceNotes}`,
-      };
-
-      const { error: updateError } = await supabase
-        .from('pal_requests')
-        .update(updatePayload)
-        .eq('id', replaceRequestId);
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      // Notify previous PAL if one was assigned
-      if (prevPalId) {
-        await createNotification({
-          userId: typeof prevPalId === 'string' ? prevPalId : String(prevPalId),
-          title: 'Assignment Reassigned',
-          message: `The companion assignment for ${selectedReq?.patientName || 'patient'} at ${selectedReq?.hospitalName || 'hospital'} was returned to the open board for re-matching (${replaceReason}).`,
-          type: 'cancellation',
-          referenceId: replaceRequestId,
-        });
-      }
-
-      // Notify patient
-      if (authUser?.id) {
-        await createNotification({
-          userId: authUser.id,
-          title: 'PAL Replacement Dispatched',
-          message: `Your replacement request for ${selectedReq?.hospitalName || 'your appointment'} has been posted to all verified PALs. We are actively pairing you with a suitable companion.`,
-          type: 'match_alert',
-          referenceId: replaceRequestId,
-        });
-      }
-
-      setReplaceSuccess('PAL replacement request submitted successfully! Your appointment has been prioritized and dispatched to all verified PALs.');
-      await loadPatientData();
-    } catch (err: any) {
-      console.error('Error submitting replacement:', err);
-      setReplaceError(err?.message || 'Failed to submit replacement request.');
-    } finally {
-      setIsSubmittingReplace(false);
     }
   };
 
@@ -421,18 +347,6 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
         >
           <Heart className="w-4 h-4 fill-current" />
           <span>Request PAL Template</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('replace_pal')}
-          className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-            activeTab === 'replace_pal'
-              ? 'bg-rose-600 text-white shadow-md'
-              : 'text-gray-600 hover:bg-gray-100'
-          }`}
-        >
-          <RefreshCw className="w-4 h-4" />
-          <span>Replace PAL Template</span>
         </button>
 
         <button
@@ -919,181 +833,6 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
       )}
 
       {/* =========================================================================
-       * TAB: REPLACE PAL TEMPLATE
-       * ========================================================================= */}
-      {activeTab === 'replace_pal' && (
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-sm space-y-6">
-          <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-            <div className="p-3 bg-rose-50 rounded-2xl text-rose-600">
-              <RefreshCw className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-xl font-black text-[#1F3449]">Replace PAL Template</h2>
-              <p className="text-xs text-gray-500">
-                Request a replacement companion for your scheduled hospital visit. Our verified PAL team will immediately re-match you.
-              </p>
-            </div>
-          </div>
-
-          {replaceSuccess && (
-            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-              <span>{replaceSuccess}</span>
-            </div>
-          )}
-
-          {replaceError && (
-            <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-xs flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
-              <span>{replaceError}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleReplacePalSubmit} className="space-y-5">
-            <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                1. Select Scheduled Visit to Replace PAL For
-              </label>
-              {requests.length > 0 ? (
-                <select
-                  value={replaceRequestId}
-                  onChange={(e) => setReplaceRequestId(e.target.value)}
-                  className="w-full text-xs p-3.5 rounded-xl border border-gray-300 bg-white font-medium focus:ring-2 focus:ring-rose-500 focus:outline-none"
-                  required
-                >
-                  <option value="">-- Choose an existing appointment request --</option>
-                  {requests.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.hospitalName} ({r.appointmentDate} at {r.appointmentTime}) – PAL: {r.assignedPal?.name || 'Pending PAL'}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 text-xs text-gray-500">
-                  You do not have any active appointments yet.{' '}
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('request')}
-                    className="text-[#E85D75] font-bold underline"
-                  >
-                    Create a request first
-                  </button>
-                  .
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                2. Reason for Replacement
-              </label>
-              <select
-                value={replaceReason}
-                onChange={(e) => setReplaceReason(e.target.value)}
-                className="w-full text-xs p-3.5 rounded-xl border border-gray-300 bg-white font-medium focus:ring-2 focus:ring-rose-500 focus:outline-none"
-              >
-                <option value="Language preference / bilingual companion needed">Language preference / bilingual companion needed</option>
-                <option value="Specialized physical mobility assistance required">Specialized physical mobility assistance required</option>
-                <option value="Gender preference for companion">Gender preference for companion</option>
-                <option value="Scheduling / time conflict with original PAL">Scheduling / time conflict with original PAL</option>
-                <option value="Previous PAL unavailable or unresponsive">Previous PAL unavailable or unresponsive</option>
-                <option value="Other specialized care requirement">Other specialized care requirement</option>
-              </select>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                  3. Preferred Language for Replacement PAL
-                </label>
-                <select
-                  value={replaceLanguage}
-                  onChange={(e) => setReplaceLanguage(e.target.value)}
-                  className="w-full text-xs p-3.5 rounded-xl border border-gray-300 bg-white font-medium focus:ring-2 focus:ring-rose-500 focus:outline-none"
-                >
-                  <option value="English">English</option>
-                  <option value="Spanish">Spanish (Español)</option>
-                  <option value="Mandarin">Mandarin (中文)</option>
-                  <option value="Cantonese">Cantonese (粵語)</option>
-                  <option value="Russian">Russian (Русский)</option>
-                  <option value="Korean">Korean (한국어)</option>
-                  <option value="Bengali">Bengali (বাংলা)</option>
-                  <option value="Haitian Creole">Haitian Creole (Kreyòl Ayisyen)</option>
-                  <option value="Arabic">Arabic (العربية)</option>
-                  <option value="American Sign Language (ASL)">American Sign Language (ASL)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                  4. Mobility Assistance Required
-                </label>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {['Wheelchair Assistance', 'Arm Support / Walking Guide', 'Cognitive / Memory Guidance', 'Visual / Hearing Support'].map((need) => {
-                    const isChecked = replaceMobility.includes(need);
-                    return (
-                      <button
-                        key={need}
-                        type="button"
-                        onClick={() => {
-                          if (isChecked) {
-                            setReplaceMobility(replaceMobility.filter((n) => n !== need));
-                          } else {
-                            setReplaceMobility([...replaceMobility, need]);
-                          }
-                        }}
-                        className={`text-xs px-3 py-2 rounded-xl border font-bold transition-all cursor-pointer ${
-                          isChecked
-                            ? 'bg-rose-50 border-rose-400 text-rose-700 shadow-xs'
-                            : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                        }`}
-                      >
-                        {isChecked ? '✓ ' : '+ '}
-                        {need}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                5. Additional Notes for the Replacement PAL
-              </label>
-              <textarea
-                rows={3}
-                value={replaceNotes}
-                onChange={(e) => setReplaceNotes(e.target.value)}
-                placeholder="Share any special instructions, meeting preferences, or care notes to help your new PAL prepare..."
-                className="w-full text-xs p-3.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-rose-500 focus:outline-none"
-              />
-            </div>
-
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                type="submit"
-                disabled={isSubmittingReplace || !replaceRequestId}
-                className="py-3.5 px-6 rounded-xl font-bold text-xs uppercase text-white bg-rose-600 hover:bg-rose-700 transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                {isSubmittingReplace ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Dispatched to Verified PALs...</span>
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-4 h-4" />
-                    <span>Submit PAL Replacement Request</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* =========================================================================
        * TAB 3: MY REQUESTS
        * ========================================================================= */}
       {activeTab === 'requests' && (
@@ -1101,13 +840,6 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-black text-[#1F3449]">My Companion Requests</h2>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setActiveTab('replace_pal')}
-                className="text-xs font-bold text-rose-600 hover:underline cursor-pointer flex items-center gap-1"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Replace a PAL</span>
-              </button>
               <button
                 onClick={() => setActiveTab('request')}
                 className="text-xs font-bold text-[#E85D75] hover:underline cursor-pointer"
@@ -1180,21 +912,6 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 pt-2">
-                    <button
-                      onClick={() => {
-                        if (onOpenReplacePal) {
-                          onOpenReplacePal(req.id);
-                        } else {
-                          setReplaceRequestId(req.id);
-                          setActiveTab('replace_pal');
-                        }
-                      }}
-                      className="text-[11px] font-bold bg-rose-50 text-[#E85D75] hover:bg-rose-100 border border-rose-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      <span>Replace Pal</span>
-                    </button>
-
                     <a
                       href={createGoogleCalendarUrl({
                         title: `Path Pal Escort at ${req.hospitalName}`,

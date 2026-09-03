@@ -13,7 +13,6 @@ import { Footer } from './components/Footer';
 
 import { RequestPalModal } from './components/RequestPalModal';
 import { BecomePalModal } from './components/BecomePalModal';
-import { ReplacePalModal } from './components/ReplacePalModal';
 import { PalAccountModal } from './components/PalAccountModal';
 import { PaymentModal } from './components/PaymentModal';
 import { LiveGpsTrackerModal } from './components/LiveGpsTrackerModal';
@@ -31,8 +30,6 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('home');
   const [requestModalOpen, setRequestModalOpen] = useState(false);
   const [becomePalModalOpen, setBecomePalModalOpen] = useState(false);
-  const [replacePalModalOpen, setReplacePalModalOpen] = useState(false);
-  const [replacePalRequestId, setReplacePalRequestId] = useState<string | undefined>(undefined);
   const [palAccountModalOpen, setPalAccountModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [gpsModalOpen, setGpsModalOpen] = useState(false);
@@ -140,7 +137,6 @@ export default function App() {
         setKeyboardModalOpen(false);
         setRequestModalOpen(false);
         setBecomePalModalOpen(false);
-        setReplacePalModalOpen(false);
         setPalAccountModalOpen(false);
         setPaymentModalOpen(false);
         setGpsModalOpen(false);
@@ -173,10 +169,6 @@ export default function App() {
             onNavigatePage={navigateToPage}
             onRequestPal={() => setRequestModalOpen(true)}
             onBecomePal={() => setBecomePalModalOpen(true)}
-            onReplacePal={(reqId?: string) => {
-              setReplacePalRequestId(typeof reqId === 'string' ? reqId : undefined);
-              setReplacePalModalOpen(true);
-            }}
             onOpenPayment={() => setPaymentModalOpen(true)}
             onOpenPalAccount={() => navigateToPage('pal')}
             onOpenGpsModal={() => setGpsModalOpen(true)}
@@ -193,10 +185,6 @@ export default function App() {
                 onNavigatePage={navigateToPage}
                 onRequestPal={() => setRequestModalOpen(true)}
                 onBecomePal={() => setBecomePalModalOpen(true)}
-                onReplacePal={(reqId?: string) => {
-                  setReplacePalRequestId(typeof reqId === 'string' ? reqId : undefined);
-                  setReplacePalModalOpen(true);
-                }}
                 onOpenGpsModal={() => setGpsModalOpen(true)}
                 onOpenChargesModal={(tab) => handleOpenChargesModal(tab)}
               />
@@ -207,10 +195,6 @@ export default function App() {
                 onOpenGpsModal={() => setGpsModalOpen(true)}
                 onOpenChargesModal={(tab) => handleOpenChargesModal(tab || 'patient_charges')}
                 onOpenSupabaseAuth={() => setSupabaseAuthModalOpen(true)}
-                onOpenReplacePal={(reqId?: string) => {
-                  setReplacePalRequestId(typeof reqId === 'string' ? reqId : undefined);
-                  setReplacePalModalOpen(true);
-                }}
                 onOpenRequestPal={() => setRequestModalOpen(true)}
               />
             )}
@@ -255,10 +239,6 @@ export default function App() {
         <Footer
           onRequestPal={() => setRequestModalOpen(true)}
           onBecomePal={() => setBecomePalModalOpen(true)}
-          onReplacePal={(reqId?: string) => {
-            setReplacePalRequestId(typeof reqId === 'string' ? reqId : undefined);
-            setReplacePalModalOpen(true);
-          }}
         />
 
         {/* Interactive Modals */}
@@ -270,14 +250,6 @@ export default function App() {
         <BecomePalModal
           isOpen={becomePalModalOpen}
           onClose={() => setBecomePalModalOpen(false)}
-        />
-        <ReplacePalModal
-          isOpen={replacePalModalOpen}
-          onClose={() => {
-            setReplacePalModalOpen(false);
-            setReplacePalRequestId(undefined);
-          }}
-          preselectedRequestId={replacePalRequestId}
         />
         <PalAccountModal
           isOpen={palAccountModalOpen}

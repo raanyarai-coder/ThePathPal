@@ -1,13 +1,12 @@
 import React from 'react';
-import { Heart, MapPin, ShieldAlert, ArrowUp, RefreshCw } from 'lucide-react';
+import { Heart, MapPin, ShieldAlert, ArrowUp } from 'lucide-react';
 
 interface FooterProps {
   onRequestPal: () => void;
   onBecomePal: () => void;
-  onReplacePal?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onRequestPal, onBecomePal, onReplacePal }) => {
+export const Footer: React.FC<FooterProps> = ({ onRequestPal, onBecomePal }) => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -73,15 +72,6 @@ export const Footer: React.FC<FooterProps> = ({ onRequestPal, onBecomePal, onRep
                 <Heart className="w-4 h-4 fill-white" />
                 Request a Companion Pal
               </button>
-              {onReplacePal && (
-                <button
-                  onClick={onReplacePal}
-                  className="w-full text-xs font-bold text-[#E85D75] bg-rose-50 hover:bg-rose-100 border border-rose-200 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
-                >
-                  <RefreshCw className="w-3.5 h-3.5 text-[#E85D75]" />
-                  Replace Your Pal
-                </button>
-              )}
               <button
                 onClick={onBecomePal}
                 className="w-full text-xs font-bold text-white bg-[#48A6A5] hover:bg-[#48A6A5]/90 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"

@@ -18,21 +18,18 @@ import {
   Building2,
   Lock,
   HeartHandshake,
-  Check,
-  RefreshCw
+  Check
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 interface AboutAndBrandProps {
   onRequestPal?: () => void;
   onBecomePal?: () => void;
-  onReplacePal?: () => void;
 }
 
 export const AboutAndBrand: React.FC<AboutAndBrandProps> = ({
   onRequestPal,
   onBecomePal,
-  onReplacePal,
 }) => {
   const { t } = useLanguage();
 
@@ -306,12 +303,12 @@ export const AboutAndBrand: React.FC<AboutAndBrandProps> = ({
         </div>
 
         {/* Action CTAs inside About Us */}
-        {(onRequestPal || onBecomePal || onReplacePal) && (
+        {(onRequestPal || onBecomePal) && (
           <div className="bg-gradient-to-r from-[#2B425B] via-[#1F3449] to-[#2B425B] p-8 rounded-3xl border border-[#48A6A5]/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
             <div className="space-y-1 text-center md:text-left">
               <h3 className="text-xl sm:text-2xl font-black text-white uppercase">Ready to Experience PathPal?</h3>
               <p className="text-xs text-gray-300">
-                Book a companion escort, apply as an accredited CHW Pal, or request a replacement companion anytime.
+                Book a companion escort or apply as an accredited CHW Pal anytime.
               </p>
             </div>
 
@@ -323,16 +320,6 @@ export const AboutAndBrand: React.FC<AboutAndBrandProps> = ({
                 >
                   <Heart className="w-4 h-4 fill-white" />
                   <span>Request a Pal</span>
-                </button>
-              )}
-
-              {onReplacePal && (
-                <button
-                  onClick={onReplacePal}
-                  className="bg-white/10 hover:bg-white/20 text-[#E85D75] border border-[#E85D75]/50 font-black text-xs uppercase px-6 py-3.5 rounded-2xl transition-all flex items-center gap-2 cursor-pointer"
-                >
-                  <RefreshCw className="w-4 h-4 text-[#E85D75]" />
-                  <span>Replace Pal</span>
                 </button>
               )}
 
