@@ -30,7 +30,7 @@ export const Hero: React.FC<HeroProps> = ({ onRequestPal, onExploreDemo, onBecom
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1F3449] text-white shadow-md">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#E85D75] animate-pulse"></span>
                 <span className="text-xs font-black uppercase tracking-widest text-white">
-                  INNOVATION PROJECT • {t('heroBadge')}
+                  {t('heroBadge')}
                 </span>
               </div>
 

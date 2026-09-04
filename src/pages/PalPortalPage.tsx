@@ -20,6 +20,7 @@ import {
   Sparkles,
   RefreshCw,
   Mail,
+  Key,
   KeyRound,
   ArrowRight,
   ShieldAlert,
@@ -39,6 +40,7 @@ import {
   signUpPal,
   resendPalVerificationEmail,
   resetPalPassword,
+  updatePalPassword,
   getApprovedPalApplicationByEmail,
   fetchPalByAuthUserId,
   formatPalFromDb,
@@ -86,7 +88,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
   const [activationError, setActivationError] = useState<string | null>(null);
 
   // Login Form State for Unauthenticated Visitors
-  const [authMode, setAuthMode] = useState<'login' | 'setup' | 'reset'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'setup' | 'reset' | 'new_password'>('login');
   const [loginEmail, setLoginEmail] = useState<string>('');
   const [loginPassword, setLoginPassword] = useState<string>('');
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -110,6 +112,13 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
   const [isResetting, setIsResetting] = useState<boolean>(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [resetError, setResetError] = useState<string | null>(null);
+
+  // New Password (Recovery) State
+  const [newRecoveryPassword, setNewRecoveryPassword] = useState<string>('');
+  const [confirmRecoveryPassword, setConfirmRecoveryPassword] = useState<string>('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState<boolean>(false);
+  const [newPasswordError, setNewPasswordError] = useState<string | null>(null);
+  const [newPasswordSuccess, setNewPasswordSuccess] = useState<string | null>(null);
 
   // Resend Email Verification State
   const [isResending, setIsResending] = useState<boolean>(false);
@@ -160,9 +169,21 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
   }, [escortSessions]);
 
   useEffect(() => {
+    // Detect password recovery flow from URL
+    const isRecovery =
+      window.location.hash.includes('type=recovery') ||
+      window.location.search.includes('type=recovery') ||
+      window.location.hash.includes('pal-reset');
+    if (isRecovery) {
+      setAuthMode('new_password');
+    }
+
     loadAuthenticatedPal();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setAuthMode('new_password');
+      }
       if (session?.user) {
         await fetchPalProfile(session.user);
       } else {
@@ -401,6 +422,43 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
     }
   };
 
+  const handleUpdateRecoveryPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setNewPasswordError(null);
+    setNewPasswordSuccess(null);
+
+    const password = newRecoveryPassword.trim();
+    if (!password || password.length < 8) {
+      setNewPasswordError('Password must be at least 8 characters long.');
+      return;
+    }
+
+    if (password !== confirmRecoveryPassword.trim()) {
+      setNewPasswordError('Passwords do not match. Please verify and try again.');
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      const res = await updatePalPassword(password);
+      if (res.error) {
+        setNewPasswordError(res.error.message);
+      } else {
+        setNewPasswordSuccess('Password updated successfully! You can now sign in with your new credentials.');
+        setNewRecoveryPassword('');
+        setConfirmRecoveryPassword('');
+        setTimeout(() => {
+          setAuthMode('login');
+          setNewPasswordSuccess(null);
+        }, 3000);
+      }
+    } catch (err: any) {
+      setNewPasswordError(err?.message || 'Failed to update password.');
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
   const handleSignOut = async () => {
     if (activeGpsSessionId) {
       await stopPalLiveTracking(activeGpsSessionId);
@@ -591,7 +649,7 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
           </div>
 
           {/* Mode Switcher Tabs */}
-          <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-2xl text-[11px] font-bold">
+          <div className={`grid ${authMode === 'new_password' ? 'grid-cols-4' : 'grid-cols-3'} gap-1 bg-gray-100 p-1 rounded-2xl text-[11px] font-bold`}>
             <button
               type="button"
               onClick={() => {
@@ -632,6 +690,14 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
             >
               Reset Password
             </button>
+            {authMode === 'new_password' && (
+              <button
+                type="button"
+                className="py-2 rounded-xl bg-white text-[#1F3449] shadow-xs text-center cursor-default font-bold"
+              >
+                Set Password
+              </button>
+            )}
           </div>
 
           {/* MODE 1: SIGN IN */}
@@ -914,6 +980,91 @@ export const PalPortalPage: React.FC<PalPortalPageProps> = ({
                     <>
                       <Mail className="w-4 h-4" />
                       <span>Send Password Reset Email</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* MODE 4: SET NEW PASSWORD (RECOVERY) */}
+          {authMode === 'new_password' && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="p-3.5 bg-sky-50 border border-sky-200 rounded-2xl text-xs text-sky-800 space-y-1">
+                <div className="font-bold flex items-center gap-1.5">
+                  <Key className="w-4 h-4 text-sky-600" />
+                  <span>Password Reset Recovery</span>
+                </div>
+                <p className="text-[11px] text-sky-700">
+                  Please enter and confirm your new secure PAL password below.
+                </p>
+              </div>
+
+              {newPasswordError && (
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <div>{newPasswordError}</div>
+                </div>
+              )}
+
+              {newPasswordSuccess && (
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="font-bold">{newPasswordSuccess}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleUpdateRecoveryPassword} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    New Password (minimum 8 characters)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="password"
+                      required
+                      minLength={8}
+                      placeholder="••••••••••••"
+                      value={newRecoveryPassword}
+                      onChange={(e) => setNewRecoveryPassword(e.target.value)}
+                      className="w-full text-xs p-3.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 pl-10"
+                    />
+                    <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="password"
+                      required
+                      minLength={8}
+                      placeholder="••••••••••••"
+                      value={confirmRecoveryPassword}
+                      onChange={(e) => setConfirmRecoveryPassword(e.target.value)}
+                      className="w-full text-xs p-3.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#48A6A5] focus:outline-none bg-gray-50 pl-10"
+                    />
+                    <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isUpdatingPassword}
+                  className="w-full py-4 rounded-xl font-black text-xs uppercase tracking-wider text-white bg-[#48A6A5] hover:bg-[#48A6A5]/90 shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isUpdatingPassword ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Saving New Password...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Key className="w-4 h-4" />
+                      <span>Save New Password</span>
                     </>
                   )}
                 </button>

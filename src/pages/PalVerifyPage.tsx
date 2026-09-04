@@ -555,6 +555,27 @@ export const PalVerifyPage: React.FC<PalVerifyPageProps> = ({
               )}
             </form>
 
+            {/* Direct Verification Retry Action */}
+            <button
+              type="button"
+              onClick={verifyAndActivatePal}
+              className="w-full py-4 rounded-2xl bg-[#48A6A5] hover:bg-[#48A6A5]/90 text-white font-black text-xs uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <UserCheck className="w-4 h-4" />
+              <span>Verify Active PAL Session & Update `pals` Record</span>
+            </button>
+
+            <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+              <span className="text-gray-600">Testing or waiting on review?</span>
+              <a
+                href="#hospital"
+                className="font-bold text-[#48A6A5] hover:underline flex items-center gap-1 shrink-0"
+              >
+                <span>Go to Hospital Portal (Approve Applications)</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
+            </div>
+
             <div className="flex justify-between items-center text-xs pt-2">
               <a
                 href="#pal-signup"

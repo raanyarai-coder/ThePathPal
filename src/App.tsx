@@ -52,6 +52,18 @@ export default function App() {
       const rawHash = window.location.hash.replace('#', '');
       const hashPage = rawHash.split('?')[0].toLowerCase();
 
+      // Check if arriving on password reset recovery
+      if (
+        pathname.includes('/pal/reset') ||
+        pathname.includes('/pal-reset') ||
+        hashPage === 'pal-reset' ||
+        window.location.hash.includes('type=recovery') ||
+        window.location.search.includes('type=recovery')
+      ) {
+        setCurrentPage('pal');
+        return;
+      }
+
       // Check if arriving on email verification route or auth callback
       if (
         pathname.includes('/pal/verify') ||
